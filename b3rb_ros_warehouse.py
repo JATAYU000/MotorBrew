@@ -288,6 +288,10 @@ class WarehouseExplore(Node):
 	
 	def state_machine_update(self):
 		"""Main state machine logic"""
+		# if self.current_shelf_id == 3:
+		# 	height, width = self.global_map_curr.info.height, self.global_map_curr.info.width
+		# 	map_array = np.array(self.global_map_curr.data).reshape((height, width))
+		# 	np.save('warehouse.npy', map_array)
 		if self.current_state == self.EXPLORE:
 			self.frontier_explore()
 		elif self.current_state == self.NAVIGATE_TO_SHELF:
@@ -326,7 +330,7 @@ class WarehouseExplore(Node):
 				self.current_shelf_centre = shelf_info['center']
 				self.current_shelf_orientation = shelf_info['rotation_angle']
 
-		left,right = self.find_front_back_points(self.current_shelf_centre, self.shelf_info, 60,True)
+		left,right = self.find_front_back_points(self.current_shelf_centre, self.shelf_info, 50,True)
 		self.get_logger().info(f"Left point: {left}, Right point: {right}")
 
 		# choose left or right which is safe and navigate there
@@ -392,11 +396,15 @@ class WarehouseExplore(Node):
 			# reset next goals
 			self.shelf_objects_curr = WarehouseShelf()
 			self.current_angle = self.parse_qr_for_next_angle(self.current_qr_data)
+			self.world_centre = self.current_shelf_centre
 			self.current_shelf_id +=1
 			self.current_shelf_centre = None
 			self.current_shelf_orientation = None
+			self.logger.info(f"Next shelf ID: {self.current_shelf_id}, Next angle: {self.current_angle}°")
+			self.logger.info(f"World centre: {self.world_centre}, Current shelf centre: {self.current_shelf_centre}")
+			self.logger.info(f"Shelf info new: {self.shelf_info}")
 			self.current_state = self.EXPLORE
-
+			
 			
 		elif time.time() - self.qr_scan_start_time > 5.0:  # 15 second timeout
 			self.should_detect_qr = False
@@ -468,7 +476,7 @@ class WarehouseExplore(Node):
 				curr_robot_angle += 360
 			yaw = self.current_angle
 			buggy_mapcoord = self.get_map_coord_from_world_coord(self.buggy_pose_x, self.buggy_pose_y, self.global_map_curr.info)
-			front,back = self.find_front_back_points(self.current_shelf_centre, shelf_info, 50,False)
+			front,back = self.find_front_back_points(self.current_shelf_centre, shelf_info, 48,False)
 			self.get_logger().info(f"Front Robot position in map coordinates: {buggy_mapcoord}")
 			self.get_logger().info(f"Front point: {front}, Back point: {back}")
 			self.get_logger().info(f"Distance to front: {self.calc_distance(buggy_mapcoord, front):.2f}, Back: {self.calc_distance(buggy_mapcoord, back):.2f}")
@@ -491,10 +499,14 @@ class WarehouseExplore(Node):
 				# self.get_logger().info("\n\nRobot is aligned with shelf\n\n")
 				self.current_state = self.CAPTURE_OBJECTS
 			elif self.calc_distance(buggy_mapcoord, front) < 25 or self.calc_distance(buggy_mapcoord, back) < 25:
+				direction = self.shelf_info['orientation']['secondary_direction']
+				angle = math.degrees(math.atan2(direction[1], direction[0]))
 				if self.calc_distance(buggy_mapcoord, front) < self.calc_distance(buggy_mapcoord, back):
 					goal_x, goal_y = float(front[0]), float(front[1])
+					yaw = angle + 180
 				else:
 					goal_x, goal_y = float(back[0]), float(back[1])
+					yaw = angle
 				self.get_logger().info(f'\nmap cords of goal: ({goal_x:.2f}, {goal_y:.2f})')	
 				goal_x, goal_y = self.get_world_coord_from_map_coord(goal_x, goal_y, self.global_map_curr.info)
 				goal = self.create_goal_from_world_coord(goal_x, goal_y, math.radians(yaw))
@@ -554,7 +566,10 @@ class WarehouseExplore(Node):
 		height, width = self.global_map_curr.info.height, self.global_map_curr.info.width
 		map_array = np.array(self.global_map_curr.data).reshape((height, width))
 		frontiers = self.get_frontiers_for_space_exploration(map_array)
+		self.logger.info(f"\nFound {len(frontiers)} frontiers in the map.")
 		_, shelf_info = self.find_shelf_and_target_point(slam_map= map_array, robot_pos=self.world_centre, shelf_angle_deg=self.current_angle, search_distance=400)
+		self.shelf_info = shelf_info
+		self.get_logger().info(f"\n\nworld centre: {self.world_centre}, Current shelf info: {shelf_info}")
 		map_info = self.global_map_curr.info
 		if frontiers:
 			closest_frontier = None
@@ -565,6 +580,29 @@ class WarehouseExplore(Node):
 				shelf_info['center'][1],
 				map_info
 			)
+			if shelf_info is not None:
+				world_self_center = self.get_world_coord_from_map_coord(
+					shelf_info['center'][0],
+					shelf_info['center'][1],
+					map_info
+				)
+			else:
+				initial_world_pos = self.get_world_coord_from_map_coord(
+					self.current_pos[0], 
+					self.current_pos[1], 
+					map_info
+				)
+
+				distance_to_shelf = 100 
+				angle_rad = math.radians(self.initial_angle)
+
+				shelf_direction_x = initial_world_pos[0] + distance_to_shelf * math.cos(angle_rad)
+				shelf_direction_y = initial_world_pos[1] + distance_to_shelf * math.sin(angle_rad)
+
+				world_self_center = (
+					(initial_world_pos[0] + shelf_direction_x) / 2,
+					(initial_world_pos[1] + shelf_direction_y) / 2
+				)
 			for fy, fx in frontiers:
 				fx_world, fy_world = self.get_world_coord_from_map_coord(fx, fy,
 											 map_info)
@@ -1115,38 +1153,102 @@ class WarehouseExplore(Node):
 
 	def find_shelf_and_target_point(self,slam_map, robot_pos, shelf_angle_deg, search_distance=100):
 		"""
-		Parameters:
-		slam_map: 2D numpy array with pixel values (0=free, 99/100=obstacles, 255=unexplored)
-		robot_pos: tuple (x, y) of robot position
-		shelf_angle_deg: angle in degrees where shelf is expected
-		search_distance: maximum distance to search for shelf
-		
-		Returns:
-		target_point: (x, y) coordinates of safe point to move towards
-		shelf_info: dict with 'center', 'orientation', 'corners', 'dimensions'
+		Find shelf in specified direction and locate a safe point to move towards it.
+		NOW INCLUDES:
+		- 30-unit margin around robot position
+		- 20-unit margin from map edges
+		- WIDER SEARCH CORRIDOR (±3 units perpendicular to search direction)
 		"""
-		
+		# Convert angle to radians
 		angle_rad = np.radians(shelf_angle_deg)
+		
+		# Create a mask for obstacles (shelves are typically obstacles)
 		obstacle_mask = (slam_map == 99) | (slam_map == 100)
+		
+		# Create search line in the specified direction
 		robot_x, robot_y = robot_pos
 		
-		# Generate points along the search direction
+		# MODIFICATION: Start search from 30 units away from robot
+		min_search_distance = 25  # Exclude 25-unit margin around robot
+
+		# Map boundary margins
+		edge_margin = 3  # Exclude 20-unit margin from map edges
+		map_height, map_width = slam_map.shape
+		
+		# WIDER SEARCH: Create a corridor instead of just a line
+		search_width = 3  # Search ±3 units perpendicular to the main direction
+		
+		# Calculate perpendicular direction
+		perp_angle = angle_rad + np.pi/2  # 90 degrees perpendicular
+		perp_dx = np.cos(perp_angle)
+		perp_dy = np.sin(perp_angle)
+		
+		# Generate points along the search corridor
 		search_points = []
-		for distance in range(1, search_distance + 1):
-			x = int(robot_x + distance * np.cos(angle_rad))
-			y = int(robot_y + distance * np.sin(angle_rad))
-			if 0 <= x < slam_map.shape[1] and 0 <= y < slam_map.shape[0]:
-				search_points.append((x, y))
+		for distance in range(min_search_distance, search_distance + 1):
+			# Main search line point
+			main_x = robot_x + distance * np.cos(angle_rad)
+			main_y = robot_y + distance * np.sin(angle_rad)
+			
+			# Create points across the search width
+			for offset in range(-search_width, search_width + 1):
+				x = int(main_x + offset * perp_dx)
+				y = int(main_y + offset * perp_dy)
+				
+				# Check bounds WITH edge margins
+				if (edge_margin <= x < map_width - edge_margin and 
+					edge_margin <= y < map_height - edge_margin):
+					search_points.append((x, y))
+		
+		# Remove duplicates while preserving order
+		search_points = list(dict.fromkeys(search_points))
+		
+		print(f"Generated {len(search_points)} search points in {2*search_width+1}-unit wide corridor")
+		
+		# Find obstacles along the search corridor
 		obstacles_on_line = []
 		for x, y in search_points:
 			if obstacle_mask[y, x]:  # Note: y first for numpy array indexing
 				obstacles_on_line.append((x, y))
 		
 		if not obstacles_on_line:
-			print("No obstacles found in the specified direction")
+			print(f"No obstacles found in {2*search_width+1}-unit wide search corridor")
+			print(f"Beyond {min_search_distance} units from robot and {edge_margin} units from map edges")
 			return None, None
 		
-		shelf_info = self.detect_shelf_with_orientation(slam_map, obstacles_on_line, robot_pos, angle_rad)
+		print(f"Found {len(obstacles_on_line)} obstacle points in search corridor")
+		
+		# Additional validation: Ensure detected obstacles meet both distance criteria
+		valid_obstacles = []
+		for obs_x, obs_y in obstacles_on_line:
+			# Check distance from robot
+			distance_from_robot = np.sqrt((obs_x - robot_x)**2 + (obs_y - robot_y)**2)
+			
+			# Check distance from map edges
+			distance_from_edges = min(
+				obs_x,                          # Distance from left edge
+				obs_y,                          # Distance from top edge
+				map_width - 1 - obs_x,         # Distance from right edge
+				map_height - 1 - obs_y         # Distance from bottom edge
+			)
+			
+			# Keep obstacle only if it meets both criteria
+			if (distance_from_robot >= min_search_distance and 
+				distance_from_edges >= edge_margin):
+				valid_obstacles.append((obs_x, obs_y))
+		
+		if not valid_obstacles:
+			print(f"All detected obstacles are either:")
+			print(f"  - Within {min_search_distance}-unit exclusion zone around robot, OR")
+			print(f"  - Within {edge_margin}-unit margin from map edges")
+			return None, None
+		
+		print(f"Found {len(valid_obstacles)} valid obstacles (excluding robot vicinity and map edges)")
+		
+		# Use valid obstacles (beyond both margins) for shelf detection
+		shelf_info = self.detect_shelf_with_orientation(slam_map, valid_obstacles, robot_pos, angle_rad)
+		
+		# Find a safe point to move towards the shelf
 		target_point = None
 		if shelf_info and shelf_info['center']:
 			target_point = self.find_safe_approach_point(slam_map, robot_pos, shelf_info, angle_rad)
