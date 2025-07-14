@@ -476,37 +476,35 @@ class WarehouseExplore(Node):
 				curr_robot_angle += 360
 			yaw = self.current_angle
 			buggy_mapcoord = self.get_map_coord_from_world_coord(self.buggy_pose_x, self.buggy_pose_y, self.global_map_curr.info)
-			front,back = self.find_front_back_points(self.current_shelf_centre, shelf_info, 48,False)
+			front,back = self.find_front_back_points(self.current_shelf_centre, shelf_info, 50,False)
 			self.get_logger().info(f"Front Robot position in map coordinates: {buggy_mapcoord}")
 			self.get_logger().info(f"Front point: {front}, Back point: {back}")
 			self.get_logger().info(f"Distance to front: {self.calc_distance(buggy_mapcoord, front):.2f}, Back: {self.calc_distance(buggy_mapcoord, back):.2f}")
 			self.get_logger().info(f"Shelf: {self.current_angle} Robot: {curr_robot_angle} diff : {self.current_angle - curr_robot_angle}")
-			if self.calc_distance(buggy_mapcoord, front) < 8 or self.calc_distance(buggy_mapcoord, back) < 8:
-				# now align orientation of the robot by moving back
-				# if np.abs(self.current_angle - curr_robot_angle) > 10:
-				# 	if self.current_angle - curr_robot_angle > 0:
-				# 		new_yaw = yaw + np.abs(self.current_angle - curr_robot_angle)
-				# 	else:
-				# 		new_yaw = yaw - np.abs(self.current_angle - curr_robot_angle)
-				# 	goal_x, goal_y = self.adjust_robot_orientation(180 - new_yaw)
-				# 	self.get_logger().info(f'\nmap cords of goal: ({goal_x:.2f}, {goal_y:.2f})')
-				# 	goal = self.create_goal_from_world_coord(goal_x, goal_y, math.radians(new_yaw))
-				# 	if self.send_goal_from_world_pose(goal):
-				# 		self.get_logger().info(f"ADJUSTED goal sent to ({goal_x:.2f}, {goal_y:.2f})")
-				# 	else:
-				# 		self.get_logger().error("Failed to send navigation goal!")
-				# # else:
-				# self.get_logger().info("\n\nRobot is aligned with shelf\n\n")
+			direction = self.shelf_info['orientation']['secondary_direction']
+			angle = math.degrees(math.atan2(direction[1], direction[0]))
+			if self.calc_distance(buggy_mapcoord, front) < self.calc_distance(buggy_mapcoord, back):
+				goal_x, goal_y = float(front[0]), float(front[1])
+				yaw = angle + 180
+				self.get_logger().info(f'\nNavigating to Front point: ({goal_x:.2f}, {goal_y:.2f}) with yaw {yaw:.2f}°')
+			else:
+				goal_x, goal_y = float(back[0]), float(back[1])
+				yaw = angle 
+				self.get_logger().info(f'\nNavigating to Back point: ({goal_x:.2f}, {goal_y:.2f}) with yaw {yaw:.2f}°')
+			
+			if (self.calc_distance(buggy_mapcoord, front) < 5 or self.calc_distance(buggy_mapcoord, back) < 5):
+				self.get_logger().info("\n\nRobot is aligned with shelf\n\n")
 				self.current_state = self.CAPTURE_OBJECTS
-			elif self.calc_distance(buggy_mapcoord, front) < 25 or self.calc_distance(buggy_mapcoord, back) < 25:
-				direction = self.shelf_info['orientation']['secondary_direction']
-				angle = math.degrees(math.atan2(direction[1], direction[0]))
+			elif self.calc_distance(buggy_mapcoord, front) < 40 or self.calc_distance(buggy_mapcoord, back) < 40:
+				
 				if self.calc_distance(buggy_mapcoord, front) < self.calc_distance(buggy_mapcoord, back):
 					goal_x, goal_y = float(front[0]), float(front[1])
-					yaw = angle + 180
+					yaw = angle +180
+					self.get_logger().info(f'\nNavigating to Front point: ({goal_x:.2f}, {goal_y:.2f}) with yaw {yaw:.2f}°')
 				else:
 					goal_x, goal_y = float(back[0]), float(back[1])
-					yaw = angle
+					yaw = angle 
+					self.get_logger().info(f'\nNavigating to Back point: ({goal_x:.2f}, {goal_y:.2f}) with yaw {yaw:.2f}°')
 				self.get_logger().info(f'\nmap cords of goal: ({goal_x:.2f}, {goal_y:.2f})')	
 				goal_x, goal_y = self.get_world_coord_from_map_coord(goal_x, goal_y, self.global_map_curr.info)
 				goal = self.create_goal_from_world_coord(goal_x, goal_y, math.radians(yaw))
