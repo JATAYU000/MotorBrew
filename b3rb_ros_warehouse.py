@@ -236,7 +236,7 @@ class WarehouseExplore(Node):
 		self.current_state = -1
 		self.current_shelf_id	= 1
 		self.current_angle = self.initial_angle
-		self.current_pos = (150,150)
+		self.world_centre = (150,150)
 		self.navigation_started = False
 		self.current_shelf_objects = None
 		self.should_detect_objects = False
@@ -320,8 +320,7 @@ class WarehouseExplore(Node):
 		self.get_logger().info(f"\nMoving to side of shelf {self.current_shelf_id} for QR scan")
 		map_array = np.array(self.global_map_curr.data).reshape((self.global_map_curr.info.height, self.global_map_curr.info.width))
 		if self.current_shelf_centre is None or self.current_shelf_orientation is None:
-			
-			target_point, shelf_info = self.find_shelf_and_target_point(slam_map= map_array, robot_pos=(150,150), shelf_angle_deg=self.current_angle, search_distance=100)
+			target_point, shelf_info = self.find_shelf_and_target_point(slam_map= map_array, robot_pos=self.world_centre, shelf_angle_deg=self.current_angle, search_distance=100)
 			if target_point is not None:
 				self.get_logger().info(f"Found target point: {target_point} shelf info: {shelf_info}")
 				self.current_shelf_centre = shelf_info['center']
@@ -455,7 +454,7 @@ class WarehouseExplore(Node):
 		
 		self.get_logger().info(f"Navigating to shelf number {self.current_shelf_id} at angle {self.current_angle}°")
 		map_array = np.array(self.global_map_curr.data).reshape((self.global_map_curr.info.height, self.global_map_curr.info.width))
-		target_point, shelf_info = self.find_shelf_and_target_point(slam_map= map_array, robot_pos=self.current_pos, shelf_angle_deg=self.current_angle, search_distance=150)
+		target_point, shelf_info = self.find_shelf_and_target_point(slam_map= map_array, robot_pos=self.world_centre, shelf_angle_deg=self.current_angle, search_distance=400)
 		self.get_logger().info(f"Target point: {target_point}")	
 		self.shelf_info = shelf_info
 		# If a target point is found, navigate to it
@@ -555,11 +554,11 @@ class WarehouseExplore(Node):
 		height, width = self.global_map_curr.info.height, self.global_map_curr.info.width
 		map_array = np.array(self.global_map_curr.data).reshape((height, width))
 		frontiers = self.get_frontiers_for_space_exploration(map_array)
+		_, shelf_info = self.find_shelf_and_target_point(slam_map= map_array, robot_pos=self.world_centre, shelf_angle_deg=self.current_angle, search_distance=400)
 		map_info = self.global_map_curr.info
 		if frontiers:
 			closest_frontier = None
 			min_distance_curr = float('inf')
-			_, shelf_info = self.find_shelf_and_target_point(slam_map= map_array, robot_pos=self.current_pos, shelf_angle_deg=self.current_angle, search_distance=150)
 			self.shelf_info = shelf_info
 			world_self_center = self.get_world_coord_from_map_coord(
 				shelf_info['center'][0],
@@ -605,15 +604,21 @@ class WarehouseExplore(Node):
 			None
 		"""
 		self.global_map_curr = message
+		height, width = self.global_map_curr.info.height, self.global_map_curr.info.width
+		
 		if self.current_state == -1:
+			self.world_centre = self.get_map_coord_from_world_coord(0,0, self.global_map_curr.info)
+			self.get_logger().info(f"World center: {self.world_centre}")
+			self.get_logger().info(f"Map size: {width} x {height}")
 			self.current_state = self.EXPLORE
 			# self.get_logger().info(f"Detected {len(detected_lines)} lines in current direction {self.current_angle}°")
 
 		# if not self.goal_completed:
 		# 	return
 
-		# height, width = self.global_map_curr.info.height, self.global_map_curr.info.width
-		# map_array = np.array(self.global_map_curr.data).reshape((height, width))
+		
+		# save mpy file
+		
 
 		# frontiers = self.get_frontiers_for_space_exploration(map_array)
 
@@ -1294,8 +1299,8 @@ class WarehouseExplore(Node):
 		best_distance_to_target = float('inf')
 		
 		# Search in expanding circles around the robot
-		for search_radius in [10, 15, 20, 25, 30, 35, 40, 45, 50]:
-			num_points = max(12, search_radius // 2)  
+		for search_radius in range(10, 301, 5):
+			num_points = max(12, search_radius // 2)
 			for i in range(num_points):
 				angle = i * 2 * np.pi / num_points
 				# Calculate candidate position around robot
