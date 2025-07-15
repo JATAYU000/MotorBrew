@@ -334,7 +334,7 @@ class WarehouseExplore(Node):
 				self.current_shelf_centre = shelf_info['center']
 				self.current_shelf_orientation = shelf_info['rotation_angle']
 
-		left,right = self.find_front_back_points(self.current_shelf_centre, self.shelf_info, 55,True)
+		left,right = self.find_front_back_points(self.current_shelf_centre, self.shelf_info, 50,True)
 		self.get_logger().info(f"Left point: {left}, Right point: {right}")
 
 		# choose left or right which is safe and navigate there
@@ -480,11 +480,13 @@ class WarehouseExplore(Node):
 			self.current_shelf_orientation = shelf_info['rotation_angle']
 			curr_robot_angle = self.get_current_robot_yaw()
 			curr_robot_angle = math.degrees(curr_robot_angle)
+			self.logger.info(f"Current robot angle: {curr_robot_angle} deg")
+			
 			if curr_robot_angle < 0:
 				curr_robot_angle += 360
 			yaw = self.current_angle
 			buggy_mapcoord = self.get_map_coord_from_world_coord(self.buggy_pose_x, self.buggy_pose_y, self.global_map_curr.info)
-			front,back = self.find_front_back_points(self.current_shelf_centre, shelf_info, 50,False)
+			front,back = self.find_front_back_points(self.current_shelf_centre, shelf_info, 45,False)
 			self.get_logger().info(f"Front Robot position in map coordinates: {buggy_mapcoord}")
 			self.get_logger().info(f"Front point: {front}, Back point: {back}")
 			self.get_logger().info(f"Distance to front: {self.calc_distance(buggy_mapcoord, front):.2f}, Back: {self.calc_distance(buggy_mapcoord, back):.2f}")
@@ -493,26 +495,29 @@ class WarehouseExplore(Node):
 			angle = math.degrees(math.atan2(direction[1], direction[0]))
 			if self.calc_distance(buggy_mapcoord, front) < self.calc_distance(buggy_mapcoord, back):
 				goal_x, goal_y = float(front[0]), float(front[1])
-				yaw = angle
+				yaw = angle + 180
 				self.get_logger().info(f'\nNavigating to Front point: ({goal_x:.2f}, {goal_y:.2f}) with yaw {yaw:.2f}°')
 			else:
 				goal_x, goal_y = float(back[0]), float(back[1])
-				yaw = angle + 180
+				yaw = angle
 				self.get_logger().info(f'\nNavigating to Back point: ({goal_x:.2f}, {goal_y:.2f}) with yaw {yaw:.2f}°')
-			
-			if (self.calc_distance(buggy_mapcoord, front) < 5 or self.calc_distance(buggy_mapcoord, back) < 5):
+			if yaw < 0:
+				yaw += 180
+			if (self.calc_distance(buggy_mapcoord, front) < 6 or self.calc_distance(buggy_mapcoord, back) < 6):
 				self.get_logger().info("\n\nRobot is aligned with shelf\n\n")
 				self.current_state = self.CAPTURE_OBJECTS
 			elif self.calc_distance(buggy_mapcoord, front) < 40 or self.calc_distance(buggy_mapcoord, back) < 40:
 				
 				if self.calc_distance(buggy_mapcoord, front) < self.calc_distance(buggy_mapcoord, back):
 					goal_x, goal_y = float(front[0]), float(front[1])
-					yaw = angle
+					yaw = angle + 180
 					self.get_logger().info(f'\nNavigating to Front point: ({goal_x:.2f}, {goal_y:.2f}) with yaw {yaw:.2f}°')
 				else:
 					goal_x, goal_y = float(back[0]), float(back[1])
-					yaw = angle + 180
+					yaw = angle
 					self.get_logger().info(f'\nNavigating to Back point: ({goal_x:.2f}, {goal_y:.2f}) with yaw {yaw:.2f}°')
+				if yaw < 0:
+					yaw += 180
 				self.get_logger().info(f'\nmap cords of goal: ({goal_x:.2f}, {goal_y:.2f})')	
 				goal_x, goal_y = self.get_world_coord_from_map_coord(goal_x, goal_y, self.global_map_curr.info)
 				goal = self.create_goal_from_world_coord(goal_x, goal_y, math.radians(yaw))
@@ -846,7 +851,7 @@ class WarehouseExplore(Node):
 			# CHANGING TO MANUAL JATAYU : msg.buttons from [0, 1, 0, 0, 0, 0, 0, 1] to [1, 0, 0, 0, 0, 0, 0, 1]
 
 			msg = Joy()
-			msg.buttons = [1, 0, 0, 0, 0, 0, 0, 1]
+			msg.buttons = [0, 1, 0, 0, 0, 0, 0, 1]
 			msg.axes = [0.0, 0.0, 0.0, 0.0]
 			self.publisher_joy.publish(msg)
 
@@ -1454,7 +1459,7 @@ class WarehouseExplore(Node):
 		orientation = shelf_info['orientation']
 		primary_direction = orientation['primary_direction']
 		secondary_direction = orientation['secondary_direction']
-		target_distance = 50
+		target_distance = 45
 		front_candidates = []
 		
 		for direction in [secondary_direction, -secondary_direction]:
@@ -1582,7 +1587,7 @@ class WarehouseExplore(Node):
 			direction_vector = orientation['primary_direction']
 			direction_name = "primary"
 		else:
-			direction_vector = -orientation['primary_direction']
+			direction_vector = orientation['secondary_direction']
 			direction_name = "secondary"
 		
 		# Extract direction components
