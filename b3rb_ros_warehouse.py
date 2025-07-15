@@ -180,6 +180,7 @@ class WarehouseExplore(Node):
 			self.get_parameter('shelf_count').get_parameter_value().integer_value
 		self.initial_angle = \
 			self.get_parameter('initial_angle').get_parameter_value().double_value
+		
 
 		# --- Robot State ---
 		self.armed = False
@@ -191,7 +192,7 @@ class WarehouseExplore(Node):
 		self.buggy_pose_y = 0.0
 		self.buggy_center = (0.0, 0.0)
 		self.world_center = (0.0, 0.0)
-
+		self.current_pos = (0, 0)
 		# --- Map Data ---
 		self.simple_map_curr = None
 		self.global_map_curr = None
@@ -231,6 +232,7 @@ class WarehouseExplore(Node):
 		self.EXPLORE = 7
 		self.current_shelf_centre = None
 		self.current_shelf_orientation = None
+		self.previous_shelf_centre = None 
 		self.shelf_info = None
 
 		self.current_state = -1
@@ -270,6 +272,14 @@ class WarehouseExplore(Node):
 		self.buggy_pose_x = message.pose.pose.position.x
 		self.buggy_pose_y = message.pose.pose.position.y
 		self.buggy_center = (self.buggy_pose_x, self.buggy_pose_y)
+
+		# Update current position in map coordinates if we have a map
+		if self.global_map_curr is not None:
+			self.current_pos = self.get_map_coord_from_world_coord(
+				self.buggy_pose_x, 
+				self.buggy_pose_y, 
+				self.global_map_curr.info
+			)
 
 	def simple_map_callback(self, message):
 		"""Callback function to handle simple map updates.
@@ -401,6 +411,7 @@ class WarehouseExplore(Node):
 			self.current_shelf_objects = None  # Reset objects after QR scan
 			self.qr_reached = False  # Reset QR reached flag
 
+			self.previous_shelf_centre = self.current_shelf_centre
 			# reset next goals
 			self.shelf_objects_curr = WarehouseShelf()
 			self.current_angle = self.parse_qr_for_next_angle(self.current_qr_data)
@@ -586,34 +597,48 @@ class WarehouseExplore(Node):
 			closest_frontier = None
 			min_distance_curr = float('inf')
 			self.shelf_info = shelf_info
-			world_self_center = self.get_world_coord_from_map_coord(
-				shelf_info['center'][0],
-				shelf_info['center'][1],
-				map_info
-			)
+			
 			if shelf_info is not None:
 				world_self_center = self.get_world_coord_from_map_coord(
 					shelf_info['center'][0],
 					shelf_info['center'][1],
 					map_info
 				)
-			else:
-				initial_world_pos = self.get_world_coord_from_map_coord(
-					self.current_pos[0], 
-					self.current_pos[1], 
-					map_info
-				)
+			elif shelf_info is None :
+				if self.current_shelf_id == 1:
+					initial_world_pos = self.get_world_coord_from_map_coord(
+						self.current_pos[0], 
+						self.current_pos[1], 
+						map_info
+					)
 
-				distance_to_shelf = 100 
-				angle_rad = math.radians(self.initial_angle)
+					distance_to_shelf = 300 
+					angle_rad = math.radians(self.initial_angle)
 
-				shelf_direction_x = initial_world_pos[0] + distance_to_shelf * math.cos(angle_rad)
-				shelf_direction_y = initial_world_pos[1] + distance_to_shelf * math.sin(angle_rad)
+					shelf_direction_x = initial_world_pos[0] + distance_to_shelf * math.cos(angle_rad)
+					shelf_direction_y = initial_world_pos[1] + distance_to_shelf * math.sin(angle_rad)
 
-				world_self_center = (
-					(initial_world_pos[0] + shelf_direction_x) / 2,
-					(initial_world_pos[1] + shelf_direction_y) / 2
-				)
+					world_self_center = (
+						(initial_world_pos[0] + shelf_direction_x) / 2,
+						(initial_world_pos[1] + shelf_direction_y) / 2
+					)
+				elif self.current_shelf_id > 1 and self.previous_shelf_centre is not None:
+					previous_world_pos = self.get_world_coord_from_map_coord(
+						self.previous_shelf_centre[0],
+						self.previous_shelf_centre[1],
+						map_info
+					)
+					
+					distance_to_shelf = 100
+					angle_rad = math.radians(self.current_angle)
+					
+					shelf_direction_x = previous_world_pos[0] + distance_to_shelf * math.cos(angle_rad)
+					shelf_direction_y = previous_world_pos[1] + distance_to_shelf * math.sin(angle_rad)
+					
+					world_self_center = (
+						(previous_world_pos[0] + shelf_direction_x) / 2,
+						(previous_world_pos[1] + shelf_direction_y) / 2
+					)
 			for fy, fx in frontiers:
 				fx_world, fy_world = self.get_world_coord_from_map_coord(fx, fy,
 											 map_info)
