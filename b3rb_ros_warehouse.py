@@ -322,9 +322,31 @@ class WarehouseExplore(Node):
 	
 	def handle_navigate_to_qr_side(self):
 		"""State 3: Move to side of shelf to scan QR code"""
+		
+		# NEW: Check if QR code already detected with current shelf ID
+		if (self.current_qr_data is not None and 
+			self.validate_qr_format(self.current_qr_data)):
+			
+			try:
+				qr_shelf_id = int(self.current_qr_data.split('_')[0])
+				if qr_shelf_id == self.current_shelf_id:
+					self.get_logger().info(f"QR code for shelf {self.current_shelf_id} already detected: {self.current_qr_data}")
+					self.get_logger().info("Cancelling QR navigation and processing data directly")
+					
+					# Cancel current goal if active
+					if not self.goal_completed and self.goal_handle_curr is not None:
+						self.cancel_current_goal()
+						return
+				
+					return
+					
+			except (ValueError, IndexError):
+				self.get_logger().warn(f"Failed to parse QR shelf ID from: {self.current_qr_data}")
+		
 		if not self.goal_completed or self.qr_reached:
 			self.get_logger().info("Still moving ......")
 			return  # Still moving
+			
 		self.get_logger().info(f"\nMoving to side of shelf {self.current_shelf_id} for QR scan")
 		map_array = np.array(self.global_map_curr.data).reshape((self.global_map_curr.info.height, self.global_map_curr.info.width))
 		if self.current_shelf_centre is None or self.current_shelf_orientation is None:
@@ -367,20 +389,13 @@ class WarehouseExplore(Node):
 			self.goal_sent = False
 			self.qr_reached = False
 			self.current_state = self.DO_NOTHING
-		# if np.abs(yaw-curr_robot_angle) > 10:
-		# 	goal_x, goal_y = self.adjust_robot_orientation(yaw)
-		# 	self.get_logger().info(f'\nmap cords of goal: ({goal_x:.2f}, {goal_y:.2f})')
-		# 	goal = self.create_goal_from_world_coord(goal_x, goal_y, math.radians(yaw))
-		# 	if self.send_goal_from_world_pose(goal):
-		# 		self.get_logger().info(f"ADJUSTED goal sent to ({goal_x:.2f}, {goal_y:.2f})")
-		# 	else:
-		# 		self.get_logger().error("Failed to send navigation goal!")
 
 
 	def handle_SCAN_QR(self):
 		"""State 4: Capture QR code"""
 		if not self.goal_completed or self.qr_reached == False:
 			return  # Still moving to QR position
+		
 		self.get_logger().info("Starting QR code scan...")
 		if not self.should_detect_qr:
 			
@@ -406,6 +421,10 @@ class WarehouseExplore(Node):
 			self.current_angle = self.parse_qr_for_next_angle(self.current_qr_data)
 			self.world_centre = self.current_shelf_centre
 			self.current_shelf_id +=1
+			if self.current_shelf_id > self.shelf_count:
+				self.get_logger().info("\n\n\nExploration complete, no more shelves to process.\n\n\n")
+				self.current_state = self.DO_NOTHING
+				return
 			self.current_shelf_centre = None
 			self.current_shelf_orientation = None
 			self.logger.info(f"Next shelf ID: {self.current_shelf_id}, Next angle: {self.current_angle}°")
@@ -529,7 +548,14 @@ class WarehouseExplore(Node):
 				# If the robot is far from the shelf, navigate to the target point
 				goal_x, goal_y = float(target_point[0]), float(target_point[1])
 				self.get_logger().info(f'\nmap cords of goal: ({goal_x:.2f}, {goal_y:.2f})')
+				# update yaw if target is closer to front  or back
+				if self.calc_distance(target_point, front) < self.calc_distance(target_point, back):
+					yaw = angle + 180
+				else:
+					yaw = angle
 				goal_x, goal_y = self.get_world_coord_from_map_coord(goal_x, goal_y, self.global_map_curr.info)
+				if yaw < 0:
+					yaw += 180
 				goal = self.create_goal_from_world_coord(goal_x, goal_y, math.radians(yaw))
 
 				if self.send_goal_from_world_pose(goal):
@@ -571,26 +597,64 @@ class WarehouseExplore(Node):
 			self.get_logger().warn("Object detection timeout")
 			self.get_logger().info("Moving to QR scanning anyway...")
 
+	def find_percentage_of_free_space(self, map_array):
+		"""Calculate the percentage of free space in the occupancy grid"""
+		free_space_count = np.sum(map_array == 0)
+		total_cells = map_array.size
+		return (free_space_count / total_cells) * 100
 	def frontier_explore(self):
 		"""State 3: Explore the frontier"""
+		
+		# NEW: Check if robot is close to current goal and switch to navigation
+		if not self.goal_completed and self.goal_handle_curr is not None:
+			# Get current robot position in map coordinates
+			robot_map_pos = self.get_map_coord_from_world_coord(
+				self.buggy_pose_x, self.buggy_pose_y, self.global_map_curr.info
+			)
+			
+			# Calculate distance to current goal (you'll need to store the goal position)
+			if hasattr(self, 'current_frontier_goal'):
+				distance_to_goal = self.calc_distance(robot_map_pos, self.current_frontier_goal)
+				self.logger.info(f"Distance to current frontier goal: {distance_to_goal:.2f}")
+				if self.goal_completed:
+					self.current_state = self.NAVIGATE_TO_SHELF
+					return
+				if distance_to_goal < 20:  # Within 20 units of frontier goal
+					self.get_logger().info(f"Robot within 20 units of frontier goal (distance: {distance_to_goal:.2f})")
+					self.get_logger().info("Cancelling frontier exploration and switching to NAVIGATE_TO_SHELF")
+					
+					# Cancel current goal
+					self.cancel_current_goal()
+					self.current_frontier_goal = None
+					# Switch to navigation state
+					self.current_state = self.NAVIGATE_TO_SHELF
+					# self.get_logger().info(f"Saving global map after reaching frontier goal for shelf {self.current_shelf_id}")
+					# map_array = np.array(self.global_map_curr.data).reshape((self.global_map_curr.info.height, self.global_map_curr.info.width))
+					# np.save(f'after_front_global_{self.current_shelf_id}.npy', map_array)
+					return
+
+		if self.find_percentage_of_free_space(np.array(self.global_map_curr.data).reshape((self.global_map_curr.info.height, self.global_map_curr.info.width))) >80:
+			self.get_logger().info("Map is mostly free space, skipping exploration")
+			self.current_state = self.NAVIGATE_TO_SHELF
+			return
+		if not self.goal_completed :
+			return  # Still moving to current frontier
+		
 		self.get_logger().info("Exploring frontier...")
 		height, width = self.global_map_curr.info.height, self.global_map_curr.info.width
 		map_array = np.array(self.global_map_curr.data).reshape((height, width))
 		frontiers = self.get_frontiers_for_space_exploration(map_array)
 		self.logger.info(f"\nFound {len(frontiers)} frontiers in the map.")
-		_, shelf_info = self.find_shelf_and_target_point(slam_map= map_array, robot_pos=self.world_centre, shelf_angle_deg=self.current_angle, search_distance=400)
+		_, shelf_info = self.find_shelf_and_target_point(slam_map=map_array, robot_pos=self.world_centre, shelf_angle_deg=self.current_angle, search_distance=400)
 		self.shelf_info = shelf_info
 		self.get_logger().info(f"\n\nworld centre: {self.world_centre}, Current shelf info: {shelf_info}")
 		map_info = self.global_map_curr.info
+		
 		if frontiers:
 			closest_frontier = None
 			min_distance_curr = float('inf')
 			self.shelf_info = shelf_info
-			world_self_center = self.get_world_coord_from_map_coord(
-				shelf_info['center'][0],
-				shelf_info['center'][1],
-				map_info
-			)
+			
 			if shelf_info is not None:
 				world_self_center = self.get_world_coord_from_map_coord(
 					shelf_info['center'][0],
@@ -614,24 +678,27 @@ class WarehouseExplore(Node):
 					(initial_world_pos[0] + shelf_direction_x) / 2,
 					(initial_world_pos[1] + shelf_direction_y) / 2
 				)
+				
 			for fy, fx in frontiers:
-				fx_world, fy_world = self.get_world_coord_from_map_coord(fx, fy,
-											 map_info)
+				fx_world, fy_world = self.get_world_coord_from_map_coord(fx, fy, map_info)
 				distance = euclidean((fx_world, fy_world), world_self_center)
 				if (distance < min_distance_curr and
-				    distance <= self.max_step_dist_world_meters and
-				    distance >= self.min_step_dist_world_meters):
+					distance <= self.max_step_dist_world_meters and
+					distance >= self.min_step_dist_world_meters):
 					min_distance_curr = distance
 					closest_frontier = (fy, fx)
 
 			if closest_frontier:
 				fy, fx = closest_frontier
+				
+				# NEW: Store the frontier goal for distance checking
+				self.current_frontier_goal = (fx, fy)
+				
 				self.get_logger().info(f'\nFound frontier closest at: ({fx}, {fy})')
 				self.get_logger().info(f'World coordinates: ({fx_world}, {fy_world})')
 				goal = self.create_goal_from_map_coord(fx, fy, map_info)
 				self.send_goal_from_world_pose(goal)
 				print("Sending goal for space exploration.")
-				self.current_state = self.NAVIGATE_TO_SHELF
 				return
 			else:
 				self.max_step_dist_world_meters += 2.0
