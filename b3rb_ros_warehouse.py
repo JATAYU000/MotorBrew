@@ -232,6 +232,7 @@ class WarehouseExplore(Node):
 		self.current_shelf_centre = None
 		self.current_shelf_orientation = None
 		self.shelf_info = None
+		self.current_pos = None
 
 		self.current_state = -1
 		self.current_shelf_id	= 1
@@ -419,6 +420,7 @@ class WarehouseExplore(Node):
 			# reset next goals
 			self.shelf_objects_curr = WarehouseShelf()
 			self.current_angle = self.parse_qr_for_next_angle(self.current_qr_data)
+			self.current_pos = self.world_centre
 			self.world_centre = self.current_shelf_centre
 			self.current_shelf_id +=1
 			if self.current_shelf_id > self.shelf_count:
@@ -541,7 +543,7 @@ class WarehouseExplore(Node):
 				goal_x, goal_y = self.get_world_coord_from_map_coord(goal_x, goal_y, self.global_map_curr.info)
 				goal = self.create_goal_from_world_coord(goal_x, goal_y, math.radians(yaw))
 				if self.send_goal_from_world_pose(goal):
-					self.get_logger().info(f"IDEAL Goal sent to ({goal_x:.2f}, {goal_y:.2f})")
+					self.get_logger().info(f"IDEAL Goal sent to ({goal_x:.2f}, {goal_y:.2f}) with yaw {yaw:.2f}°")
 				else:
 					self.get_logger().error("Failed to send navigation goal!")
 			else:
@@ -559,12 +561,13 @@ class WarehouseExplore(Node):
 				goal = self.create_goal_from_world_coord(goal_x, goal_y, math.radians(yaw))
 
 				if self.send_goal_from_world_pose(goal):
-					self.get_logger().info(f"TEMPORARY Goal sent to ({goal_x:.2f}, {goal_y:.2f})")
+					self.get_logger().info(f"TEMPORARY Goal sent to ({goal_x:.2f}, {goal_y:.2f}) with yaw {yaw:.2f}°")
 					self.goal_sent = False
 				else:
 					self.get_logger().error("Failed to send navigation goal!")
 		else:
-			print("Use frontier logic here")
+			self.get_logger().error("No target point found for shelf navigation!")
+			self.current_state = self.EXPLORE
 
 
 	
@@ -628,9 +631,9 @@ class WarehouseExplore(Node):
 					self.current_frontier_goal = None
 					# Switch to navigation state
 					self.current_state = self.NAVIGATE_TO_SHELF
-					# self.get_logger().info(f"Saving global map after reaching frontier goal for shelf {self.current_shelf_id}")
-					# map_array = np.array(self.global_map_curr.data).reshape((self.global_map_curr.info.height, self.global_map_curr.info.width))
-					# np.save(f'after_front_global_{self.current_shelf_id}.npy', map_array)
+					self.get_logger().info(f"Saving global map after reaching frontier goal for shelf {self.current_shelf_id}")
+					map_array = np.array(self.global_map_curr.data).reshape((self.global_map_curr.info.height, self.global_map_curr.info.width))
+					np.save(f'warehouse_3_04.npy', map_array)
 					return
 
 		if self.find_percentage_of_free_space(np.array(self.global_map_curr.data).reshape((self.global_map_curr.info.height, self.global_map_curr.info.width))) >80:
@@ -649,7 +652,6 @@ class WarehouseExplore(Node):
 		self.shelf_info = shelf_info
 		self.get_logger().info(f"\n\nworld centre: {self.world_centre}, Current shelf info: {shelf_info}")
 		map_info = self.global_map_curr.info
-		
 		if frontiers:
 			closest_frontier = None
 			min_distance_curr = float('inf')
@@ -662,23 +664,23 @@ class WarehouseExplore(Node):
 					map_info
 				)
 			else:
-				initial_world_pos = self.get_world_coord_from_map_coord(
-					self.current_pos[0], 
-					self.current_pos[1], 
+				self.get_logger().info(f"\n\nInitial world position: {self.current_pos}")
+				distance_to_shelf = self.global_map_curr.info.height
+				if self.global_map_curr.info.width < self.global_map_curr.info.height:
+					distance_to_shelf = self.global_map_curr.info.width
+				distance_to_shelf /= 2
+				angle_rad = math.radians(self.current_angle)
+				self.get_logger().info(f"Initial angle: {self.current_angle}°")
+				shelf_direction_x = self.current_pos[0] + distance_to_shelf * math.cos(angle_rad)
+				shelf_direction_y = self.current_pos[1] + distance_to_shelf * math.sin(angle_rad)
+
+				world_self_center = self.get_world_coord_from_map_coord(
+					shelf_direction_x, 
+					shelf_direction_y, 
 					map_info
 				)
+				self.get_logger().info(f"Calculated world self center: {world_self_center}")
 
-				distance_to_shelf = 100 
-				angle_rad = math.radians(self.initial_angle)
-
-				shelf_direction_x = initial_world_pos[0] + distance_to_shelf * math.cos(angle_rad)
-				shelf_direction_y = initial_world_pos[1] + distance_to_shelf * math.sin(angle_rad)
-
-				world_self_center = (
-					(initial_world_pos[0] + shelf_direction_x) / 2,
-					(initial_world_pos[1] + shelf_direction_y) / 2
-				)
-				
 			for fy, fx in frontiers:
 				fx_world, fy_world = self.get_world_coord_from_map_coord(fx, fy, map_info)
 				distance = euclidean((fx_world, fy_world), world_self_center)
@@ -724,6 +726,10 @@ class WarehouseExplore(Node):
 		
 		if self.current_state == -1:
 			self.world_centre = self.get_map_coord_from_world_coord(0,0, self.global_map_curr.info)
+			# self.get_logger().info(f"Saving global map after reaching frontier goal for shelf {self.current_shelf_id}")
+			# map_array = np.array(self.global_map_curr.data).reshape((self.global_map_curr.info.height, self.global_map_curr.info.width))
+			# np.save(f'warehouse_3.npy', map_array)
+			self.current_pos = self.world_centre
 			self.get_logger().info(f"World center: {self.world_centre}")
 			self.get_logger().info(f"Map size: {width} x {height}")
 			self.current_state = self.EXPLORE
@@ -1325,7 +1331,18 @@ class WarehouseExplore(Node):
 		
 		# Use valid obstacles (beyond both margins) for shelf detection
 		shelf_info = self.detect_shelf_with_orientation(slam_map, valid_obstacles, robot_pos, angle_rad)
-		
+		if shelf_info:
+			h = shelf_info['dimensions']['height']
+			w = shelf_info['dimensions']['width']
+			if h>w: h,w=w,h
+			if 26<w<=39 and 9<h<=21:
+				pass
+				# self.get_logger().info(f"Detected shelf with height {h} and width {w} in the search corridor")
+			else:
+				print(f"Detected shelf with height {h} and width {w} in the search corridor, but it does not match expected dimensions")
+				return self.find_shelf_and_target_point(slam_map,shelf_info['center'],shelf_angle_deg,search_distance)
+		else:
+			return None, None
 		# Find a safe point to move towards the shelf
 		target_point = None
 		if shelf_info and shelf_info['center']:
@@ -1336,7 +1353,7 @@ class WarehouseExplore(Node):
 	def detect_shelf_with_orientation(self,slam_map, obstacles_on_line, robot_pos, angle_rad):
 		"""
 		Detect shelf and determine its orientation/rotation.
-		NOW INCLUDES: Edge margin filtering to exclude map boundary pixels
+		NOW SELECTS: Component whose center is closest to the search line
 		"""
 		if not obstacles_on_line:
 			return None
@@ -1392,16 +1409,72 @@ class WarehouseExplore(Node):
 		if num_features == 0:
 			return None
 		
-		# SIMPLE: Just find the largest component
-		component_sizes = []
+		# NEW: Find component whose center is closest to the search line
+		robot_x, robot_y = robot_pos
+		search_line_dx = np.cos(angle_rad)
+		search_line_dy = np.sin(angle_rad)
+		
+		component_info = []
 		for i in range(1, num_features + 1):
 			component_mask = (labeled == i)
 			size = np.sum(component_mask)
-			component_sizes.append((size, i))
+			
+			# Skip very small components
+			if size < 10:
+				continue
+				
+			# Get component coordinates
+			y_coords, x_coords = np.where(component_mask)
+			
+			# Convert to global coordinates
+			global_x_coords = x_coords + roi_x1
+			global_y_coords = y_coords + roi_y1
+			
+			# Calculate component center
+			center_x = np.mean(global_x_coords)
+			center_y = np.mean(global_y_coords)
+			
+			# Calculate distance from component center to search line
+			# Vector from robot to component center
+			to_center_x = center_x - robot_x
+			to_center_y = center_y - robot_y
+			
+			# Project onto search line direction to get along-line distance
+			along_line_distance = to_center_x * search_line_dx + to_center_y * search_line_dy
+			
+			# Calculate perpendicular distance from center to search line
+			# Point on search line closest to component center
+			closest_point_x = robot_x + along_line_distance * search_line_dx
+			closest_point_y = robot_y + along_line_distance * search_line_dy
+			
+			# Distance from component center to closest point on search line
+			perp_distance = np.sqrt(
+				(center_x - closest_point_x)**2 + (center_y - closest_point_y)**2
+			)
+			
+			component_info.append({
+				'label': i,
+				'size': size,
+				'center': (center_x, center_y),
+				'perp_distance': perp_distance,
+				'along_line_distance': along_line_distance
+			})
+			
+			print(f"Component {i}: size={size}, center=({center_x:.1f}, {center_y:.1f}), "
+				f"perp_dist={perp_distance:.2f}, along_dist={along_line_distance:.2f}")
 		
-		# Get the largest component
-		largest_size, largest_label = max(component_sizes)
-		largest_component = (labeled == largest_label)
+		if not component_info:
+			print("No valid components found")
+			return None
+		
+		# Select component closest to search line (minimum perpendicular distance)
+		best_component = min(component_info, key=lambda x: x['perp_distance'])
+		selected_label = best_component['label']
+		
+		print(f"Selected component {selected_label} with perpendicular distance {best_component['perp_distance']:.2f}")
+		
+		# Get the selected component
+		largest_component = (labeled == selected_label)
 		
 		# Get coordinates of the shelf pixels
 		y_coords, x_coords = np.where(largest_component)
@@ -1433,7 +1506,7 @@ class WarehouseExplore(Node):
 		center_x = int(np.mean(global_x_coords))
 		center_y = int(np.mean(global_y_coords))
 		
-		print(f"Shelf center: ({center_x}, {center_y})")
+		print(f"Final shelf center: ({center_x}, {center_y})")
 		print(f"Shelf contains {len(global_x_coords)} pixels (after edge filtering)")
 		
 		# Find shelf orientation using PCA
