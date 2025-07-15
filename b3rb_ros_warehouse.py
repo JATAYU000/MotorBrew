@@ -295,6 +295,9 @@ class WarehouseExplore(Node):
 		if self.current_state == self.EXPLORE:
 			self.frontier_explore()
 		elif self.current_state == self.NAVIGATE_TO_SHELF:
+			# height, width = self.global_map_curr.info.height, self.global_map_curr.info.width
+			# map_array = np.array(self.global_map_curr.data).reshape((height, width))
+			# np.save('after_front_global.npy', map_array)
 			self.get_logger().info('NAVIGATING')
 			self.handle_nav_to_shelf()
 		elif self.current_state == self.CAPTURE_OBJECTS:
@@ -320,11 +323,12 @@ class WarehouseExplore(Node):
 	def handle_navigate_to_qr_side(self):
 		"""State 3: Move to side of shelf to scan QR code"""
 		if not self.goal_completed or self.qr_reached:
+			self.get_logger().info("Still moving ......")
 			return  # Still moving
 		self.get_logger().info(f"\nMoving to side of shelf {self.current_shelf_id} for QR scan")
 		map_array = np.array(self.global_map_curr.data).reshape((self.global_map_curr.info.height, self.global_map_curr.info.width))
 		if self.current_shelf_centre is None or self.current_shelf_orientation is None:
-			target_point, shelf_info = self.find_shelf_and_target_point(slam_map= map_array, robot_pos=self.world_centre, shelf_angle_deg=self.current_angle, search_distance=100)
+			target_point, shelf_info = self.find_shelf_and_target_point(slam_map= map_array, robot_pos=self.world_centre, shelf_angle_deg=self.current_angle, search_distance=400)
 			if target_point is not None:
 				self.get_logger().info(f"Found target point: {target_point} shelf info: {shelf_info}")
 				self.current_shelf_centre = shelf_info['center']
@@ -343,10 +347,14 @@ class WarehouseExplore(Node):
 		angle = math.degrees(math.atan2(direction[1], direction[0]))
 		if curr_robot_angle < 0:
 			curr_robot_angle += 360
-		if self.is_free_space(map_array,left):
+		# Choose the point (left or right) with the shortest distance to the robot
+		dist_left = self.calc_distance(self.buggy_center, left)
+		dist_right = self.calc_distance(self.buggy_center, right)
+
+		if dist_left < dist_right:
 			goal_x, goal_y = float(left[0]), float(left[1])
 			yaw = angle + 180
-		elif self.is_free_space(map_array,right):
+		else:
 			goal_x, goal_y = float(right[0]), float(right[1])
 			yaw = angle
 		goal_x, goal_y = self.get_world_coord_from_map_coord(goal_x, goal_y, self.global_map_curr.info)	
@@ -472,11 +480,13 @@ class WarehouseExplore(Node):
 			self.current_shelf_orientation = shelf_info['rotation_angle']
 			curr_robot_angle = self.get_current_robot_yaw()
 			curr_robot_angle = math.degrees(curr_robot_angle)
+			self.logger.info(f"Current robot angle: {curr_robot_angle} deg")
+			
 			if curr_robot_angle < 0:
 				curr_robot_angle += 360
 			yaw = self.current_angle
 			buggy_mapcoord = self.get_map_coord_from_world_coord(self.buggy_pose_x, self.buggy_pose_y, self.global_map_curr.info)
-			front,back = self.find_front_back_points(self.current_shelf_centre, shelf_info, 50,False)
+			front,back = self.find_front_back_points(self.current_shelf_centre, shelf_info, 45,False)
 			self.get_logger().info(f"Front Robot position in map coordinates: {buggy_mapcoord}")
 			self.get_logger().info(f"Front point: {front}, Back point: {back}")
 			self.get_logger().info(f"Distance to front: {self.calc_distance(buggy_mapcoord, front):.2f}, Back: {self.calc_distance(buggy_mapcoord, back):.2f}")
@@ -489,22 +499,25 @@ class WarehouseExplore(Node):
 				self.get_logger().info(f'\nNavigating to Front point: ({goal_x:.2f}, {goal_y:.2f}) with yaw {yaw:.2f}°')
 			else:
 				goal_x, goal_y = float(back[0]), float(back[1])
-				yaw = angle 
+				yaw = angle
 				self.get_logger().info(f'\nNavigating to Back point: ({goal_x:.2f}, {goal_y:.2f}) with yaw {yaw:.2f}°')
-			
-			if (self.calc_distance(buggy_mapcoord, front) < 5 or self.calc_distance(buggy_mapcoord, back) < 5):
+			if yaw < 0:
+				yaw += 180
+			if (self.calc_distance(buggy_mapcoord, front) < 6 or self.calc_distance(buggy_mapcoord, back) < 6):
 				self.get_logger().info("\n\nRobot is aligned with shelf\n\n")
 				self.current_state = self.CAPTURE_OBJECTS
 			elif self.calc_distance(buggy_mapcoord, front) < 40 or self.calc_distance(buggy_mapcoord, back) < 40:
 				
 				if self.calc_distance(buggy_mapcoord, front) < self.calc_distance(buggy_mapcoord, back):
 					goal_x, goal_y = float(front[0]), float(front[1])
-					yaw = angle +180
+					yaw = angle + 180
 					self.get_logger().info(f'\nNavigating to Front point: ({goal_x:.2f}, {goal_y:.2f}) with yaw {yaw:.2f}°')
 				else:
 					goal_x, goal_y = float(back[0]), float(back[1])
-					yaw = angle 
+					yaw = angle
 					self.get_logger().info(f'\nNavigating to Back point: ({goal_x:.2f}, {goal_y:.2f}) with yaw {yaw:.2f}°')
+				if yaw < 0:
+					yaw += 180
 				self.get_logger().info(f'\nmap cords of goal: ({goal_x:.2f}, {goal_y:.2f})')	
 				goal_x, goal_y = self.get_world_coord_from_map_coord(goal_x, goal_y, self.global_map_curr.info)
 				goal = self.create_goal_from_world_coord(goal_x, goal_y, math.radians(yaw))
@@ -838,7 +851,7 @@ class WarehouseExplore(Node):
 			# CHANGING TO MANUAL JATAYU : msg.buttons from [0, 1, 0, 0, 0, 0, 0, 1] to [1, 0, 0, 0, 0, 0, 0, 1]
 
 			msg = Joy()
-			msg.buttons = [1, 0, 0, 0, 0, 0, 0, 1]
+			msg.buttons = [0, 1, 0, 0, 0, 0, 0, 1]
 			msg.axes = [0.0, 0.0, 0.0, 0.0]
 			self.publisher_joy.publish(msg)
 
@@ -1255,59 +1268,126 @@ class WarehouseExplore(Node):
 
 	def detect_shelf_with_orientation(self,slam_map, obstacles_on_line, robot_pos, angle_rad):
 		"""
-		Returns:
-		dict with 'center', 'orientation', 'corners', 'dimensions', 'rotation_angle'
+		Detect shelf and determine its orientation/rotation.
+		NOW INCLUDES: Edge margin filtering to exclude map boundary pixels
 		"""
 		if not obstacles_on_line:
 			return None
 		
-		obstacle_points = np.array(obstacles_on_line)
+		# Map boundary margins (same as in find_shelf_and_target_point)
+		edge_margin = 5  # Exclude 5-unit margin from map edges
+		map_height, map_width = slam_map.shape
+		
+		# Filter obstacles_on_line to exclude those near map edges
+		filtered_obstacles = []
+		for obs_x, obs_y in obstacles_on_line:
+			# Check distance from map edges
+			distance_from_edges = min(
+				obs_x,                          # Distance from left edge
+				obs_y,                          # Distance from top edge
+				map_width - 1 - obs_x,         # Distance from right edge
+				map_height - 1 - obs_y         # Distance from bottom edge
+			)
+			
+			# Keep obstacle only if it's away from edges
+			if distance_from_edges >= edge_margin:
+				filtered_obstacles.append((obs_x, obs_y))
+		
+		if not filtered_obstacles:
+			print(f"No obstacles found after excluding {edge_margin}-unit margin from map edges")
+			return None
+		
+		print(f"Filtered obstacles: {len(obstacles_on_line)} -> {len(filtered_obstacles)} (removed edge obstacles)")
+		
+		# Create a region of interest around the FILTERED obstacles
+		obstacle_points = np.array(filtered_obstacles)  # Use filtered list
 		min_x, min_y = np.min(obstacle_points, axis=0)
 		max_x, max_y = np.max(obstacle_points, axis=0)
 		
+		# Simple margin
 		margin = 30
-		roi_x1 = max(0, min_x - margin)
-		roi_y1 = max(0, min_y - margin)
-		roi_x2 = min(slam_map.shape[1], max_x + margin)
-		roi_y2 = min(slam_map.shape[0], max_y + margin)
+		roi_x1 = max(edge_margin, min_x - margin)          # Respect edge margin
+		roi_y1 = max(edge_margin, min_y - margin)          # Respect edge margin
+		roi_x2 = min(map_width - edge_margin, max_x + margin)   # Respect edge margin
+		roi_y2 = min(map_height - edge_margin, max_y + margin)  # Respect edge margin
+		
+		print(f"ROI bounds (with edge margins): ({roi_x1}, {roi_y1}) to ({roi_x2}, {roi_y2})")
 		
 		# Extract ROI
 		roi = slam_map[roi_y1:roi_y2, roi_x1:roi_x2]
+		
+		# Create obstacle mask for ROI
 		obstacle_roi = (roi == 99) | (roi == 100)
+		
+		# Find connected components
 		num_features, labeled = cv2.connectedComponents(obstacle_roi.astype(np.uint8))
 		
 		if num_features == 0:
 			return None
+		
+		# SIMPLE: Just find the largest component
 		component_sizes = []
 		for i in range(1, num_features + 1):
 			component_mask = (labeled == i)
 			size = np.sum(component_mask)
 			component_sizes.append((size, i))
 		
+		# Get the largest component
 		largest_size, largest_label = max(component_sizes)
 		largest_component = (labeled == largest_label)
 		
+		# Get coordinates of the shelf pixels
 		y_coords, x_coords = np.where(largest_component)
 		
 		if len(x_coords) == 0:
 			return None
 		
+		# Convert back to global coordinates
 		global_x_coords = x_coords + roi_x1
 		global_y_coords = y_coords + roi_y1
+		
+		# ADDITIONAL FILTERING: Remove any points that are still too close to edges
+		final_x_coords = []
+		final_y_coords = []
+		for x, y in zip(global_x_coords, global_y_coords):
+			distance_from_edges = min(x, y, map_width - 1 - x, map_height - 1 - y)
+			if distance_from_edges >= edge_margin:
+				final_x_coords.append(x)
+				final_y_coords.append(y)
+		
+		if len(final_x_coords) == 0:
+			print("No shelf pixels found after edge filtering")
+			return None
+		
+		global_x_coords = np.array(final_x_coords)
+		global_y_coords = np.array(final_y_coords)
+		
+		# Calculate shelf center
 		center_x = int(np.mean(global_x_coords))
 		center_y = int(np.mean(global_y_coords))
 		
+		print(f"Shelf center: ({center_x}, {center_y})")
+		print(f"Shelf contains {len(global_x_coords)} pixels (after edge filtering)")
+		
+		# Find shelf orientation using PCA
 		shelf_points = np.column_stack([global_x_coords, global_y_coords])
 		orientation_info = self.calculate_shelf_orientation(shelf_points)
+		
+		# Find minimum area rectangle for better shape analysis
 		contour_points = np.column_stack([global_x_coords, global_y_coords]).astype(np.int32)
 		rect_info = cv2.minAreaRect(contour_points)
 		
+		# Extract rectangle information
 		(rect_center_x, rect_center_y), (width, height), rotation_angle = rect_info
+		
+		# Get corner points of the rotated rectangle
 		box_points = cv2.boxPoints(rect_info)
 		box_points = np.int32(box_points)
 		
+		# Normalize rotation angle to [0, 180) degrees
 		rotation_angle = rotation_angle % 180
 		
+		# Create shelf info dictionary
 		shelf_info = {
 			'center': (center_x, center_y),
 			'orientation': orientation_info,
@@ -1315,7 +1395,7 @@ class WarehouseExplore(Node):
 			'dimensions': {
 				'width': width,
 				'height': height,
-				'area': largest_size
+				'area': len(global_x_coords)
 			},
 			'rotation_angle': rotation_angle,
 			'rect_center': (rect_center_x, rect_center_y)
@@ -1379,7 +1459,7 @@ class WarehouseExplore(Node):
 		orientation = shelf_info['orientation']
 		primary_direction = orientation['primary_direction']
 		secondary_direction = orientation['secondary_direction']
-		target_distance = 55
+		target_distance = 45
 		front_candidates = []
 		
 		for direction in [secondary_direction, -secondary_direction]:
