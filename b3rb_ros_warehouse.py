@@ -376,10 +376,10 @@ class WarehouseExplore(Node):
 
 		if dist_left < dist_right:
 			goal_x, goal_y = float(left[0]), float(left[1])
-			yaw = angle + 180
+			yaw = self.find_angle_point_direction(self.shelf_info['center'], left, direction)
 		else:
 			goal_x, goal_y = float(right[0]), float(right[1])
-			yaw = angle
+			yaw = self.find_angle_point_direction(self.shelf_info['center'], right, direction)
 		goal_x, goal_y = self.get_world_coord_from_map_coord(goal_x, goal_y, self.global_map_curr.info)	
 		goal = self.create_goal_from_world_coord(goal_x, goal_y, math.radians(yaw))
 		if self.send_goal_from_world_pose(goal):
@@ -516,14 +516,13 @@ class WarehouseExplore(Node):
 			angle = math.degrees(math.atan2(direction[1], direction[0]))
 			if self.calc_distance(buggy_mapcoord, front) < self.calc_distance(buggy_mapcoord, back):
 				goal_x, goal_y = float(front[0]), float(front[1])
-				yaw = angle + 180
+				yaw = self.find_angle_point_direction(self.shelf_info['center'], front, direction)
 				self.get_logger().info(f'\nNavigating to Front point: ({goal_x:.2f}, {goal_y:.2f}) with yaw {yaw:.2f}°')
 			else:
 				goal_x, goal_y = float(back[0]), float(back[1])
-				yaw = angle
+				yaw = self.find_angle_point_direction(self.shelf_info['center'], back, direction)
 				self.get_logger().info(f'\nNavigating to Back point: ({goal_x:.2f}, {goal_y:.2f}) with yaw {yaw:.2f}°')
-			if yaw < 0:
-				yaw += 180
+		
 			if (self.calc_distance(buggy_mapcoord, front) < 6 or self.calc_distance(buggy_mapcoord, back) < 6):
 				self.get_logger().info("\n\nRobot is aligned with shelf\n\n")
 				self.current_state = self.CAPTURE_OBJECTS
@@ -531,15 +530,13 @@ class WarehouseExplore(Node):
 				
 				if self.calc_distance(buggy_mapcoord, front) < self.calc_distance(buggy_mapcoord, back):
 					goal_x, goal_y = float(front[0]), float(front[1])
-					yaw = angle + 180
+					yaw = self.find_angle_point_direction(self.shelf_info['center'], front, direction)
 					self.get_logger().info(f'\nNavigating to Front point: ({goal_x:.2f}, {goal_y:.2f}) with yaw {yaw:.2f}°')
 				else:
 					goal_x, goal_y = float(back[0]), float(back[1])
-					yaw = angle
+					yaw = self.find_angle_point_direction(self.shelf_info['center'], back, direction)
 					self.get_logger().info(f'\nNavigating to Back point: ({goal_x:.2f}, {goal_y:.2f}) with yaw {yaw:.2f}°')
-				if yaw < 0:
-					yaw += 180
-				self.get_logger().info(f'\nmap cords of goal: ({goal_x:.2f}, {goal_y:.2f})')	
+				self.get_logger().info(f'\nmap cords of goal: ({goal_x:.2f}, {goal_y:.2f})')
 				goal_x, goal_y = self.get_world_coord_from_map_coord(goal_x, goal_y, self.global_map_curr.info)
 				goal = self.create_goal_from_world_coord(goal_x, goal_y, math.radians(yaw))
 				if self.send_goal_from_world_pose(goal):
@@ -552,12 +549,10 @@ class WarehouseExplore(Node):
 				self.get_logger().info(f'\nmap cords of goal: ({goal_x:.2f}, {goal_y:.2f})')
 				# update yaw if target is closer to front  or back
 				if self.calc_distance(target_point, front) < self.calc_distance(target_point, back):
-					yaw = angle + 180
+					yaw = self.find_angle_point_direction(self.shelf_info['center'], front, direction)
 				else:
-					yaw = angle
+					yaw = self.find_angle_point_direction(self.shelf_info['center'], back, direction)
 				goal_x, goal_y = self.get_world_coord_from_map_coord(goal_x, goal_y, self.global_map_curr.info)
-				if yaw < 0:
-					yaw += 180
 				goal = self.create_goal_from_world_coord(goal_x, goal_y, math.radians(yaw))
 
 				if self.send_goal_from_world_pose(goal):
@@ -567,6 +562,9 @@ class WarehouseExplore(Node):
 					self.get_logger().error("Failed to send navigation goal!")
 		else:
 			self.get_logger().error("No target point found for shelf navigation!")
+			self.get_logger().info(f"world centre: {self.world_centre}, current shelf centre: {self.current_shelf_centre}")
+			map_array = np.array(self.global_map_curr.data).reshape((self.global_map_curr.info.height, self.global_map_curr.info.width))
+			np.save('shelf_not_found.npy', map_array)
 			self.current_state = self.EXPLORE
 
 
@@ -605,6 +603,26 @@ class WarehouseExplore(Node):
 		free_space_count = np.sum(map_array == 0)
 		total_cells = map_array.size
 		return (free_space_count / total_cells) * 100
+	
+	def find_percentage_of_free_space_around_point(self, map_array, point, radius):
+		"""Calculate the percentage of free space around a point in the occupancy grid"""
+		x, y = int(point[0]), int(point[1])
+		radius = int(radius)
+		free_space_count = 0
+		total_cells = 0
+		
+		for dy in range(-radius, radius + 1):
+			for dx in range(-radius, radius + 1):
+				if dx**2 + dy**2 <= radius**2:
+					ny, nx = y + dy, x + dx
+					if 0 <= nx < map_array.shape[1] and 0 <= ny < map_array.shape[0]:
+						total_cells += 1
+						if map_array[ny, nx] == 0:
+							free_space_count += 1
+		if total_cells > 0:
+			return (free_space_count / total_cells) * 100
+		return 0
+
 	def frontier_explore(self):
 		"""State 3: Explore the frontier"""
 		
@@ -625,31 +643,30 @@ class WarehouseExplore(Node):
 				if distance_to_goal < 20:  # Within 20 units of frontier goal
 					self.get_logger().info(f"Robot within 20 units of frontier goal (distance: {distance_to_goal:.2f})")
 					self.get_logger().info("Cancelling frontier exploration and switching to NAVIGATE_TO_SHELF")
-					
+					map_array = np.array(self.global_map_curr.data).reshape((self.global_map_curr.info.height, self.global_map_curr.info.width))
+					# Save the current map for debugging
+					np.save('frontier_exploration.npy', map_array)
 					# Cancel current goal
 					self.cancel_current_goal()
 					self.current_frontier_goal = None
 					# Switch to navigation state
 					self.current_state = self.NAVIGATE_TO_SHELF
-					self.get_logger().info(f"Saving global map after reaching frontier goal for shelf {self.current_shelf_id}")
-					map_array = np.array(self.global_map_curr.data).reshape((self.global_map_curr.info.height, self.global_map_curr.info.width))
-					np.save(f'warehouse_3_04.npy', map_array)
 					return
-
-		if self.find_percentage_of_free_space(np.array(self.global_map_curr.data).reshape((self.global_map_curr.info.height, self.global_map_curr.info.width))) >80:
-			self.get_logger().info("Map is mostly free space, skipping exploration")
-			self.current_state = self.NAVIGATE_TO_SHELF
-			return
+		
 		if not self.goal_completed :
 			return  # Still moving to current frontier
 		
 		self.get_logger().info("Exploring frontier...")
 		height, width = self.global_map_curr.info.height, self.global_map_curr.info.width
 		map_array = np.array(self.global_map_curr.data).reshape((height, width))
-		frontiers = self.get_frontiers_for_space_exploration(map_array)
-		self.logger.info(f"\nFound {len(frontiers)} frontiers in the map.")
 		_, shelf_info = self.find_shelf_and_target_point(slam_map=map_array, robot_pos=self.world_centre, shelf_angle_deg=self.current_angle, search_distance=400)
 		self.shelf_info = shelf_info
+		if self.find_percentage_of_free_space(map_array) >90 or (self.shelf_info is not None and self.find_percentage_of_free_space_around_point(map_array, shelf_info['center'], radius=75)>94):
+			self.get_logger().info("Map is mostly free space, skipping exploration")
+			self.current_state = self.NAVIGATE_TO_SHELF
+			return
+		frontiers = self.get_frontiers_for_space_exploration(map_array)
+		self.logger.info(f"\nFound {len(frontiers)} frontiers in the map.")
 		self.get_logger().info(f"\n\nworld centre: {self.world_centre}, Current shelf info: {shelf_info}")
 		map_info = self.global_map_curr.info
 		if frontiers:
@@ -1235,6 +1252,40 @@ class WarehouseExplore(Node):
 		return self.create_goal_from_world_coord(world_x, world_y, yaw)
 
 
+	def find_angle_point_direction(self,center, point, direction):
+		"""
+		Calculate the angle that point 'p' needs to face to look towards center 'c',
+		relative to the given direction vector.
+		
+		Parameters:
+		center: (cx, cy) - the center point to look towards
+		point: (px, py) - the point that needs to face the center
+		direction: [dx, dy] - the reference direction vector
+		
+		Returns:
+		angle in degrees (relative to the direction vector)
+		"""
+		cx, cy = center
+		px, py = point
+		
+		# Vector from point to center (where point should look)
+		to_center_x = cx - px  
+		to_center_y = cy - py  
+		
+		# Calculate angle of "point to center" vector
+		angle_to_center = np.arctan2(to_center_y, to_center_x)
+		relative_angle_deg = np.degrees(angle_to_center)
+
+		# Normalize to [-180, 180] range
+		if relative_angle_deg > 180:
+			relative_angle_deg -= 360
+		elif relative_angle_deg < -180:
+			relative_angle_deg += 360
+		if relative_angle_deg < 0:
+			relative_angle_deg += 360
+		self.get_logger().info(f" ANGLE to center: {relative_angle_deg}°")
+		return relative_angle_deg
+	
 	def find_shelf_and_target_point(self,slam_map, robot_pos, shelf_angle_deg, search_distance=100):
 		"""
 		Find shelf in specified direction and locate a safe point to move towards it.
@@ -1287,7 +1338,6 @@ class WarehouseExplore(Node):
 		# Remove duplicates while preserving order
 		search_points = list(dict.fromkeys(search_points))
 		
-		print(f"Generated {len(search_points)} search points in {2*search_width+1}-unit wide corridor")
 		
 		# Find obstacles along the search corridor
 		obstacles_on_line = []
@@ -1296,11 +1346,8 @@ class WarehouseExplore(Node):
 				obstacles_on_line.append((x, y))
 		
 		if not obstacles_on_line:
-			print(f"No obstacles found in {2*search_width+1}-unit wide search corridor")
-			print(f"Beyond {min_search_distance} units from robot and {edge_margin} units from map edges")
 			return None, None
 		
-		print(f"Found {len(obstacles_on_line)} obstacle points in search corridor")
 		
 		# Additional validation: Ensure detected obstacles meet both distance criteria
 		valid_obstacles = []
@@ -1322,24 +1369,17 @@ class WarehouseExplore(Node):
 				valid_obstacles.append((obs_x, obs_y))
 		
 		if not valid_obstacles:
-			print(f"All detected obstacles are either:")
-			print(f"  - Within {min_search_distance}-unit exclusion zone around robot, OR")
-			print(f"  - Within {edge_margin}-unit margin from map edges")
 			return None, None
-		
-		print(f"Found {len(valid_obstacles)} valid obstacles (excluding robot vicinity and map edges)")
-		
 		# Use valid obstacles (beyond both margins) for shelf detection
 		shelf_info = self.detect_shelf_with_orientation(slam_map, valid_obstacles, robot_pos, angle_rad)
 		if shelf_info:
 			h = shelf_info['dimensions']['height']
 			w = shelf_info['dimensions']['width']
 			if h>w: h,w=w,h
-			if 26<w<=39 and 9<h<=21:
+			if 26<w<=40 and 9<h<=22:
 				pass
-				# self.get_logger().info(f"Detected shelf with height {h} and width {w} in the search corridor")
+				self.get_logger().info(f"Detected shelf with height {h} and width {w} in the search corridor")
 			else:
-				print(f"Detected shelf with height {h} and width {w} in the search corridor, but it does not match expected dimensions")
 				return self.find_shelf_and_target_point(slam_map,shelf_info['center'],shelf_angle_deg,search_distance)
 		else:
 			return None, None
