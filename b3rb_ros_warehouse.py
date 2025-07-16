@@ -522,7 +522,7 @@ class WarehouseExplore(Node):
 				goal_x, goal_y = float(back[0]), float(back[1])
 				yaw = self.find_angle_point_direction(self.shelf_info['center'], back, direction)
 				self.get_logger().info(f'\nNavigating to Back point: ({goal_x:.2f}, {goal_y:.2f}) with yaw {yaw:.2f}°')
-		
+
 			if (self.calc_distance(buggy_mapcoord, front) < 6 or self.calc_distance(buggy_mapcoord, back) < 6):
 				self.get_logger().info("\n\nRobot is aligned with shelf\n\n")
 				self.current_state = self.CAPTURE_OBJECTS
@@ -537,6 +537,7 @@ class WarehouseExplore(Node):
 					yaw = self.find_angle_point_direction(self.shelf_info['center'], back, direction)
 					self.get_logger().info(f'\nNavigating to Back point: ({goal_x:.2f}, {goal_y:.2f}) with yaw {yaw:.2f}°')
 				self.get_logger().info(f'\nmap cords of goal: ({goal_x:.2f}, {goal_y:.2f})')
+
 				goal_x, goal_y = self.get_world_coord_from_map_coord(goal_x, goal_y, self.global_map_curr.info)
 				goal = self.create_goal_from_world_coord(goal_x, goal_y, math.radians(yaw))
 				if self.send_goal_from_world_pose(goal):
