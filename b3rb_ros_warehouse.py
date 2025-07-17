@@ -1,3 +1,7 @@
+# nav2.yaml
+# xy_goal_tolerance: 0.27
+# yaw_goal_tolerance: 0.15
+
 # Copyright 2025 NXP
 
 # Copyright 2016 Open Source Robotics Foundation, Inc.
@@ -181,72 +185,70 @@ class WarehouseExplore(Node):
 		self.initial_angle = \
 			self.get_parameter('initial_angle').get_parameter_value().double_value
 
-		# --- Robot State ---
+		# ----------------------- Robot State ----------------------- 
 		self.armed = False
 		self.logger = self.get_logger()
 
-		# --- Robot Pose ---
+		# ----------------------- Robot Pose ----------------------- 
 		self.pose_curr = PoseWithCovarianceStamped()
 		self.buggy_pose_x = 0.0
 		self.buggy_pose_y = 0.0
 		self.buggy_center = (0.0, 0.0)
 		self.world_center = (0.0, 0.0)
 
-		# --- Map Data ---
+		# ----------------------- Map Data ----------------------- 
 		self.simple_map_curr = None
 		self.global_map_curr = None
 
-		# --- Goal Management ---
-		self.xy_goal_tolerance = 0.25
-		self.yaw_goal_tolerance = 0.35
+		# ----------------------- Goal Management ----------------------- 
+		self.xy_goal_tolerance = 0.2
+		self.yaw_goal_tolerance = 0.15
 		self.goal_completed = True  # No goal is currently in-progress.
 		self.goal_handle_curr = None
 		self.cancelling_goal = False
 		self.recovery_threshold = 10
 
-		# --- Goal Creation ---
+		# ----------------------- Goal Creation ----------------------- 
 		self._frame_id = "map"
 
-		# --- Exploration Parameters ---
+		# ----------------------- Exploration Parameters ----------------------- 
 		self.max_step_dist_world_meters = 7.0
 		self.min_step_dist_world_meters = 4.0
 		self.full_map_explored_count = 0
 
-		# --- QR Code Data ---
+		# -------------------- QR Code Data --------------------
 		self.qr_code_str = "Empty"
 		if PROGRESS_TABLE_GUI:
 			self.table_row_count = 0
 			self.table_col_count = 0
 
-		# --- Shelf Data ---
+		# ----------------------- Shelf Data -----------------------
 		self.shelf_objects_curr = WarehouseShelf()
 
+		# ----------------------- Robot State -----------------------
 		self.NAVIGATE_TO_SHELF = 0
 		self.CAPTURE_OBJECTS = 1
-		self.NAVIGATE_TO_QR_SIDE = 2
-		self.SCAN_QR = 3
-		self.PROCESS_DATA = 4
-		self.EXPLORATION_COMPLETE = 5
-		self.DO_NOTHING = 6
-		self.EXPLORE = 7
+		self.SCAN_QR = 2
+		self.DO_NOTHING = 3
+		self.EXPLORE = 4
+
+		# ----------------------- Current Information -------------------------
 		self.current_shelf_centre = None
 		self.current_shelf_orientation = None
 		self.shelf_info = None
-
+		self.current_pos = None
 		self.current_state = -1
 		self.current_shelf_id	= 1
 		self.current_angle = self.initial_angle
 		self.world_centre = (150,150)
+		self.current_qr_data = None
+
+		# ----------------------- State Variables -----------------------
 		self.navigation_started = False
 		self.current_shelf_objects = None
 		self.should_detect_objects = False
 		self.should_detect_qr = False
-		
-		# Data storage
-		self.current_qr_data = None
 		self.qr_code_str = ""
-		
-		# Detection timers
 		self.detection_start_time = 0
 		self.qr_scan_start_time = 0
 		self.qr_reached = False
@@ -254,481 +256,46 @@ class WarehouseExplore(Node):
 		self.qr_detection_available = True
 		self.goal_sent = False
 
+		# ----------------------- State Machine ----------------------- 
 		self.state_timer = self.create_timer(1.0, self.state_machine_update)
 
 	
-	def pose_callback(self, message):
-		"""Callback function to handle pose updates.
 
-		Args:
-			message: ROS2 message containing the current pose of the rover.
-
-		Returns:
-			None
-		"""
-		self.pose_curr = message
-		self.buggy_pose_x = message.pose.pose.position.x
-		self.buggy_pose_y = message.pose.pose.position.y
-		self.buggy_center = (self.buggy_pose_x, self.buggy_pose_y)
-
-	def simple_map_callback(self, message):
-		"""Callback function to handle simple map updates.
-
-		Args:
-			message: ROS2 message containing the simple map data.
-
-		Returns:
-			None
-		"""
-		self.simple_map_curr = message
-		map_info = self.simple_map_curr.info
-		self.world_center = self.get_world_coord_from_map_coord(
-			map_info.width / 2, map_info.height / 2, map_info
-		)
 	
 	def state_machine_update(self):
 		"""Main state machine logic"""
-		# if self.current_shelf_id == 3:
-		# 	height, width = self.global_map_curr.info.height, self.global_map_curr.info.width
-		# 	map_array = np.array(self.global_map_curr.data).reshape((height, width))
-		# 	np.save('warehouse.npy', map_array)
 		if self.current_state == self.EXPLORE:
 			self.frontier_explore()
 		elif self.current_state == self.NAVIGATE_TO_SHELF:
-			# height, width = self.global_map_curr.info.height, self.global_map_curr.info.width
-			# map_array = np.array(self.global_map_curr.data).reshape((height, width))
-			# np.save('after_front_global.npy', map_array)
-			self.get_logger().info('NAVIGATING')
 			self.handle_nav_to_shelf()
 		elif self.current_state == self.CAPTURE_OBJECTS:
-			self.get_logger().info('CAPTURING')
 			self.handle_capture_objects()
 		elif self.current_state == self.SCAN_QR:
 			self.should_detect_qr = True
-			self.get_logger().info('SCANNING')
 			self.handle_navigate_to_qr_side()
-			self.handle_SCAN_QR()
+			self.handle_qr_nav()
 		elif self.current_state == self.DO_NOTHING:
-			self.get_logger().info("Waiting for next command...")
-			# Do nothing, just wait for the next command
-		
-		
-	def is_free_space(self, map_array, point):
-		"""Check if a point is free space in the occupancy grid"""
-		x, y = int(point[0]), int(point[1])
-		if 0 <= x < map_array.shape[1] and 0 <= y < map_array.shape[0]:
-			return map_array[y, x] == 0
-		return False
-	
-	def handle_navigate_to_qr_side(self):
-		"""State 3: Move to side of shelf to scan QR code"""
-		if not self.goal_completed or self.qr_reached:
-			self.get_logger().info("Still moving ......")
-			return  # Still moving
-		self.get_logger().info(f"\nMoving to side of shelf {self.current_shelf_id} for QR scan")
-		map_array = np.array(self.global_map_curr.data).reshape((self.global_map_curr.info.height, self.global_map_curr.info.width))
-		if self.current_shelf_centre is None or self.current_shelf_orientation is None:
-			target_point, shelf_info = self.find_shelf_and_target_point(slam_map= map_array, robot_pos=self.world_centre, shelf_angle_deg=self.current_angle, search_distance=400)
-			if target_point is not None:
-				self.get_logger().info(f"Found target point: {target_point} shelf info: {shelf_info}")
-				self.current_shelf_centre = shelf_info['center']
-				self.current_shelf_orientation = shelf_info['rotation_angle']
-
-		left,right = self.find_front_back_points(self.current_shelf_centre, self.shelf_info, 50,True)
-		self.get_logger().info(f"Left point: {left}, Right point: {right}")
-
-		# choose left or right which is safe and navigate there
-		curr_angle = self.current_shelf_orientation
-		curr_robot_angle = self.get_current_robot_yaw()
-		curr_robot_angle = math.degrees(curr_robot_angle)
-
-		#find angle from a direction
-		direction = self.shelf_info['orientation']['primary_direction']
-		angle = math.degrees(math.atan2(direction[1], direction[0]))
-		if curr_robot_angle < 0:
-			curr_robot_angle += 360
-		# Choose the point (left or right) with the shortest distance to the robot
-		dist_left = self.calc_distance(self.buggy_center, left)
-		dist_right = self.calc_distance(self.buggy_center, right)
-
-		if dist_left < dist_right:
-			goal_x, goal_y = float(left[0]), float(left[1])
-			yaw = angle + 180
-		else:
-			goal_x, goal_y = float(right[0]), float(right[1])
-			yaw = angle
-		goal_x, goal_y = self.get_world_coord_from_map_coord(goal_x, goal_y, self.global_map_curr.info)	
-		goal = self.create_goal_from_world_coord(goal_x, goal_y, math.radians(yaw))
-		if self.send_goal_from_world_pose(goal):
-			self.get_logger().info(f"Goal sent to ({goal_x:.2f}, {goal_y:.2f}) with yaw {yaw:.2f} degree")
-			self.qr_reached = True
-		else:
-			self.get_logger().error("Failed to send navigation goal!")
-			self.goal_sent = False
-			self.qr_reached = False
-			self.current_state = self.DO_NOTHING
-		# if np.abs(yaw-curr_robot_angle) > 10:
-		# 	goal_x, goal_y = self.adjust_robot_orientation(yaw)
-		# 	self.get_logger().info(f'\nmap cords of goal: ({goal_x:.2f}, {goal_y:.2f})')
-		# 	goal = self.create_goal_from_world_coord(goal_x, goal_y, math.radians(yaw))
-		# 	if self.send_goal_from_world_pose(goal):
-		# 		self.get_logger().info(f"ADJUSTED goal sent to ({goal_x:.2f}, {goal_y:.2f})")
-		# 	else:
-		# 		self.get_logger().error("Failed to send navigation goal!")
-
-
-	def handle_SCAN_QR(self):
-		"""State 4: Capture QR code"""
-		if not self.goal_completed or self.qr_reached == False:
-			return  # Still moving to QR position
-		self.get_logger().info("Starting QR code scan...")
-		if not self.should_detect_qr:
-			
-			self.should_detect_qr = True
-			self.current_qr_data = None
-			self.qr_scan_start_time = time.time()
-			return
-		
-		# Check if we have QR data or timeout
-		if self.current_qr_data is not None:
-			self.should_detect_qr = False
-			self.get_logger().info(f"\n\nQR Code captured: {self.current_qr_data}")
-			self.shelf_objects_curr.qr_decoded = self.current_qr_data
-			self.get_logger().info(f'Shelf objects current: {self.shelf_objects_curr}')
-			#publish shel current
-			self.publisher_shelf_data.publish(self.shelf_objects_curr)
-			self.get_logger().info("Published shelf data with QR code")
-			self.current_shelf_objects = None  # Reset objects after QR scan
-			self.qr_reached = False  # Reset QR reached flag
-
-			# reset next goals
-			self.shelf_objects_curr = WarehouseShelf()
-			self.current_angle = self.parse_qr_for_next_angle(self.current_qr_data)
-			self.world_centre = self.current_shelf_centre
-			self.current_shelf_id +=1
-			self.current_shelf_centre = None
-			self.current_shelf_orientation = None
-			self.logger.info(f"Next shelf ID: {self.current_shelf_id}, Next angle: {self.current_angle}°")
-			self.logger.info(f"World centre: {self.world_centre}, Current shelf centre: {self.current_shelf_centre}")
-			self.logger.info(f"Shelf info new: {self.shelf_info}")
-			self.current_state = self.EXPLORE
-			
-			
-		elif time.time() - self.qr_scan_start_time > 5.0:  # 15 second timeout
-			self.should_detect_qr = False
-			self.get_logger().warn("QR scan timeout")
-			self.current_state = self.DO_NOTHING
-		
-	def parse_qr_for_next_angle(self, qr_data):
-		"""Parse QR code to extract next shelf angle"""
-		try:
-			parts = qr_data.split('_')
-			if len(parts) >= 2:
-				next_angle = float(parts[1])
-				return next_angle
-		except (ValueError, IndexError):
-			self.get_logger().error(f"Failed to parse QR code: {qr_data}")
-		
-		return None
-
-
-	def get_yaw_from_quaternion(self, quaternion):
-		x = quaternion.x
-		y = quaternion.y
-		z = quaternion.z
-		w = quaternion.w
-		yaw = math.atan2(
-			2.0 * (w * z + x * y),
-			1.0 - 2.0 * (y * y + z * z)
-		)
-		return yaw
-
-	def get_current_robot_yaw(self):
-		"""Get current robot orientation as yaw angle"""
-		if self.pose_curr is not None:
-			orientation = self.pose_curr.pose.pose.orientation
-			yaw_radians = self.get_yaw_from_quaternion(orientation)
-			return yaw_radians  
-		return None
-
-	def calc_distance(self, point1, point2):
-		return math.sqrt((point1[0] - point2[0]) ** 2 + (point1[1] - point2[1]) ** 2)
-
-	def adjust_robot_orientation(self, angle):
-		curr_robot_angle = self.get_current_robot_yaw()
-		if curr_robot_angle is not None:
-			# move back to 10 units
-			goal_x = self.buggy_pose_x - .5 * math.cos(angle)
-			goal_y = self.buggy_pose_y - .5 * math.sin(angle)
-			return goal_x, goal_y
-		return None, None
-
-	def handle_nav_to_shelf(self):
-		"""State 0: Navigate to the shelf"""
-		if not self.goal_completed:
-			return
-		
-		self.get_logger().info(f"Navigating to shelf number {self.current_shelf_id} at angle {self.current_angle}°")
-		map_array = np.array(self.global_map_curr.data).reshape((self.global_map_curr.info.height, self.global_map_curr.info.width))
-		target_point, shelf_info = self.find_shelf_and_target_point(slam_map= map_array, robot_pos=self.world_centre, shelf_angle_deg=self.current_angle, search_distance=400)
-		self.get_logger().info(f"Target point: {target_point}")	
-		self.shelf_info = shelf_info
-		# If a target point is found, navigate to it
-		if target_point is not None:
-			self.get_logger().info(f"Found target point: {target_point} shelf info: {shelf_info}")
-			self.current_shelf_centre = shelf_info['center']
-			self.current_shelf_orientation = shelf_info['rotation_angle']
-			curr_robot_angle = self.get_current_robot_yaw()
-			curr_robot_angle = math.degrees(curr_robot_angle)
-			self.logger.info(f"Current robot angle: {curr_robot_angle} deg")
-			
-			if curr_robot_angle < 0:
-				curr_robot_angle += 360
-			yaw = self.current_angle
-			buggy_mapcoord = self.get_map_coord_from_world_coord(self.buggy_pose_x, self.buggy_pose_y, self.global_map_curr.info)
-			front,back = self.find_front_back_points(self.current_shelf_centre, shelf_info, 45,False)
-			self.get_logger().info(f"Front Robot position in map coordinates: {buggy_mapcoord}")
-			self.get_logger().info(f"Front point: {front}, Back point: {back}")
-			self.get_logger().info(f"Distance to front: {self.calc_distance(buggy_mapcoord, front):.2f}, Back: {self.calc_distance(buggy_mapcoord, back):.2f}")
-			self.get_logger().info(f"Shelf: {self.current_angle} Robot: {curr_robot_angle} diff : {self.current_angle - curr_robot_angle}")
-			direction = self.shelf_info['orientation']['secondary_direction']
-			angle = math.degrees(math.atan2(direction[1], direction[0]))
-			if self.calc_distance(buggy_mapcoord, front) < self.calc_distance(buggy_mapcoord, back):
-				goal_x, goal_y = float(front[0]), float(front[1])
-				yaw = angle + 180
-				self.get_logger().info(f'\nNavigating to Front point: ({goal_x:.2f}, {goal_y:.2f}) with yaw {yaw:.2f}°')
-			else:
-				goal_x, goal_y = float(back[0]), float(back[1])
-				yaw = angle
-				self.get_logger().info(f'\nNavigating to Back point: ({goal_x:.2f}, {goal_y:.2f}) with yaw {yaw:.2f}°')
-			if yaw < 0:
-				yaw += 180
-			if (self.calc_distance(buggy_mapcoord, front) < 6 or self.calc_distance(buggy_mapcoord, back) < 6):
-				self.get_logger().info("\n\nRobot is aligned with shelf\n\n")
-				self.current_state = self.CAPTURE_OBJECTS
-			elif self.calc_distance(buggy_mapcoord, front) < 40 or self.calc_distance(buggy_mapcoord, back) < 40:
-				
-				if self.calc_distance(buggy_mapcoord, front) < self.calc_distance(buggy_mapcoord, back):
-					goal_x, goal_y = float(front[0]), float(front[1])
-					yaw = angle + 180
-					self.get_logger().info(f'\nNavigating to Front point: ({goal_x:.2f}, {goal_y:.2f}) with yaw {yaw:.2f}°')
-				else:
-					goal_x, goal_y = float(back[0]), float(back[1])
-					yaw = angle
-					self.get_logger().info(f'\nNavigating to Back point: ({goal_x:.2f}, {goal_y:.2f}) with yaw {yaw:.2f}°')
-				if yaw < 0:
-					yaw += 180
-				self.get_logger().info(f'\nmap cords of goal: ({goal_x:.2f}, {goal_y:.2f})')	
-				goal_x, goal_y = self.get_world_coord_from_map_coord(goal_x, goal_y, self.global_map_curr.info)
-				goal = self.create_goal_from_world_coord(goal_x, goal_y, math.radians(yaw))
-				if self.send_goal_from_world_pose(goal):
-					self.get_logger().info(f"IDEAL Goal sent to ({goal_x:.2f}, {goal_y:.2f})")
-				else:
-					self.get_logger().error("Failed to send navigation goal!")
-			else:
-				# If the robot is far from the shelf, navigate to the target point
-				goal_x, goal_y = float(target_point[0]), float(target_point[1])
-				self.get_logger().info(f'\nmap cords of goal: ({goal_x:.2f}, {goal_y:.2f})')
-				goal_x, goal_y = self.get_world_coord_from_map_coord(goal_x, goal_y, self.global_map_curr.info)
-				goal = self.create_goal_from_world_coord(goal_x, goal_y, math.radians(yaw))
-
-				if self.send_goal_from_world_pose(goal):
-					self.get_logger().info(f"TEMPORARY Goal sent to ({goal_x:.2f}, {goal_y:.2f})")
-					self.goal_sent = False
-				else:
-					self.get_logger().error("Failed to send navigation goal!")
-		else:
-			print("Use frontier logic here")
-
-
-	
-	def handle_capture_objects(self):
-		"""State 2: Capture objects from the shelf"""
-		if not self.goal_completed:
-			return  # Still navigating to shelf
-		if not self.should_detect_objects:
-			self.get_logger().info("Starting object detection...")
-			self.should_detect_objects = True
-			self.current_shelf_objects = None
-			self.detection_start_time = time.time()
-			return
-		
-		# Check if we have objects or timeout
-		if self.current_shelf_objects is not None:
-			self.should_detect_objects = False
-			self.get_logger().info(f"\n\nObjects detected: {self.current_shelf_objects.object_name}")
-			self.shelf_objects_curr.object_name = self.current_shelf_objects.object_name
-			self.shelf_objects_curr.object_count = self.current_shelf_objects.object_count
-			self.logger.info(f"shelf objects curr: {self.shelf_objects_curr}")
-			# self.publisher_shelf_data.publish(self.shelf_objects_curr)
-			# self.get_logger().info("Published shelf objects data")
-			self.current_state = self.SCAN_QR
-			if len(self.shelf_objects_curr.object_name) < 1:
-				self.current_state = self.NAVIGATE_TO_SHELF
-
-		elif time.time() - self.detection_start_time > 5.0:  # 5 second timeout
-			self.should_detect_objects = False
-			self.get_logger().warn("Object detection timeout")
-			self.get_logger().info("Moving to QR scanning anyway...")
-
-	def frontier_explore(self):
-		"""State 3: Explore the frontier"""
-		self.get_logger().info("Exploring frontier...")
-		height, width = self.global_map_curr.info.height, self.global_map_curr.info.width
-		map_array = np.array(self.global_map_curr.data).reshape((height, width))
-		frontiers = self.get_frontiers_for_space_exploration(map_array)
-		self.logger.info(f"\nFound {len(frontiers)} frontiers in the map.")
-		_, shelf_info = self.find_shelf_and_target_point(slam_map= map_array, robot_pos=self.world_centre, shelf_angle_deg=self.current_angle, search_distance=400)
-		self.shelf_info = shelf_info
-		self.get_logger().info(f"\n\nworld centre: {self.world_centre}, Current shelf info: {shelf_info}")
-		map_info = self.global_map_curr.info
-		if frontiers:
-			closest_frontier = None
-			min_distance_curr = float('inf')
-			self.shelf_info = shelf_info
-			world_self_center = self.get_world_coord_from_map_coord(
-				shelf_info['center'][0],
-				shelf_info['center'][1],
-				map_info
-			)
-			if shelf_info is not None:
-				world_self_center = self.get_world_coord_from_map_coord(
-					shelf_info['center'][0],
-					shelf_info['center'][1],
-					map_info
-				)
-			else:
-				initial_world_pos = self.get_world_coord_from_map_coord(
-					self.current_pos[0], 
-					self.current_pos[1], 
-					map_info
-				)
-
-				distance_to_shelf = 100 
-				angle_rad = math.radians(self.initial_angle)
-
-				shelf_direction_x = initial_world_pos[0] + distance_to_shelf * math.cos(angle_rad)
-				shelf_direction_y = initial_world_pos[1] + distance_to_shelf * math.sin(angle_rad)
-
-				world_self_center = (
-					(initial_world_pos[0] + shelf_direction_x) / 2,
-					(initial_world_pos[1] + shelf_direction_y) / 2
-				)
-			for fy, fx in frontiers:
-				fx_world, fy_world = self.get_world_coord_from_map_coord(fx, fy,
-											 map_info)
-				distance = euclidean((fx_world, fy_world), world_self_center)
-				if (distance < min_distance_curr and
-				    distance <= self.max_step_dist_world_meters and
-				    distance >= self.min_step_dist_world_meters):
-					min_distance_curr = distance
-					closest_frontier = (fy, fx)
-
-			if closest_frontier:
-				fy, fx = closest_frontier
-				self.get_logger().info(f'\nFound frontier closest at: ({fx}, {fy})')
-				self.get_logger().info(f'World coordinates: ({fx_world}, {fy_world})')
-				goal = self.create_goal_from_map_coord(fx, fy, map_info)
-				self.send_goal_from_world_pose(goal)
-				print("Sending goal for space exploration.")
-				self.current_state = self.NAVIGATE_TO_SHELF
-				return
-			else:
-				self.max_step_dist_world_meters += 2.0
-				new_min_step_dist = self.min_step_dist_world_meters - 1.0
-				self.min_step_dist_world_meters = max(0.25, new_min_step_dist)
-
-			self.full_map_explored_count = 0
-		else:
-			self.full_map_explored_count += 1
-			print(f"Nothing found in frontiers; count = {self.full_map_explored_count}")
-
-	def global_map_callback(self, message):
-		"""Callback function to handle global map updates.
-
-		Args:
-			message: ROS2 message containing the global map data.
-
-		Returns:
-			None
-		"""
-		self.global_map_curr = message
-		height, width = self.global_map_curr.info.height, self.global_map_curr.info.width
-		
-		if self.current_state == -1:
-			self.world_centre = self.get_map_coord_from_world_coord(0,0, self.global_map_curr.info)
-			self.get_logger().info(f"World center: {self.world_centre}")
-			self.get_logger().info(f"Map size: {width} x {height}")
-			self.current_state = self.EXPLORE
-			# self.get_logger().info(f"Detected {len(detected_lines)} lines in current direction {self.current_angle}°")
-
-		# if not self.goal_completed:
-		# 	return
-
-		
-		# save mpy file
+			self.logger.info("Waiting for next command...")
 		
 
-		# frontiers = self.get_frontiers_for_space_exploration(map_array)
 
-		# map_info = self.global_map_curr.info
-		# self.get_logger().info(f'map_info: {map_info}')
-		# self.get_logger().info(f'map_size: {width} x {height}')
-		# fx = 150
-		# fy = 150
-		# # Move to a point at initial_angle from the world center at a fixed distance
-		# # Move to a point at initial_angle (interpreted as yaw in the XY plane)
-		# distance = 40
-		# # Convert initial_angle from degrees to radians if necessary
-		# angle = math.radians(self.initial_angle)  # This is yaw (rotation about Z, in-plane)
-		# goal_x = fx + distance * math.cos(angle)
-		# goal_y = fy + distance * math.sin(angle)
-		# goal = self.create_goal_from_map_coord(goal_x, goal_y, map_info,angle)
-		# self.send_goal_from_world_pose(goal)
-		# self.get_logger().info(f"Sent goal at angle {angle} from center ({fx:.2f}, {fy:.2f}) to ({goal_x:.2f}, {goal_y:.2f})")
-		# return
-	
-		# if frontiers:
-		# 	closest_frontier = None
-		# 	min_distance_curr = float('inf')
+	# ----------------------- EXPLORE FUNCTIONS ----------------------- 
 
-		# 	for fy, fx in frontiers:
-		# 		fx_world, fy_world = self.get_world_coord_from_map_coord(fx, fy,
-		# 									 map_info)
-		# 		distance = euclidean((fx_world, fy_world), self.buggy_center)
-		# 		if (distance < min_distance_curr and
-		# 		    distance <= self.max_step_dist_world_meters and
-		# 		    distance >= self.min_step_dist_world_meters):
-		# 			min_distance_curr = distance
-		# 			closest_frontier = (fy, fx)
-
-		# 	if closest_frontier:
-		# 		fy, fx = closest_frontier
-		# 		self.get_logger().info(f'Found frontier at: ({fx}, {fy})')
-		# 		self.get_logger().info(f'World coordinates: ({fx_world}, {fy_world})')
-		# 		goal = self.create_goal_from_map_coord(fx, fy, map_info)
-		# 		self.send_goal_from_world_pose(goal)
-		# 		print("Sending goal for space exploration.")
-		# 		return
-		# 	else:
-		# 		self.max_step_dist_world_meters += 2.0
-		# 		new_min_step_dist = self.min_step_dist_world_meters - 1.0
-		# 		self.min_step_dist_world_meters = max(0.25, new_min_step_dist)
-
-		# 	self.full_map_explored_count = 0
-		# else:
-		# 	self.full_map_explored_count += 1
-		# 	print(f"Nothing found in frontiers; count = {self.full_map_explored_count}")
 
 
 	def get_frontiers_for_space_exploration(self, map_array):
-		"""Identifies frontiers for space exploration.
-
-		Args:
-			map_array: 2D numpy array representing the map.
-
-		Returns:
-			frontiers: List of tuples representing frontier coordinates.
+		"""
+		Identifies frontier cells in a 2D occupancy grid map for space exploration.
+		A frontier is defined as a cell that is adjacent to both unknown space and free space,
+		but not adjacent to obstacles. The function scans the map and returns a list of coordinates
+		representing such frontiers, which are useful for exploration tasks in robotics.
+			map_array (numpy.ndarray): 2D numpy array representing the occupancy grid map.
+				-1: Unknown space
+				 0: Free space
+				>0: Obstacles
+			list[tuple[int, int]]: List of (y, x) tuples representing the coordinates of frontier cells.
+		returns:
+			frontiers: List of (y, x) tuples representing the coordinates of frontier cells.
 		"""
 		frontiers = []
 		for y in range(1, map_array.shape[0] - 1):
@@ -766,8 +333,1138 @@ class WarehouseExplore(Node):
 							break
 
 		return frontiers
+	
+	def frontier_explore(self):
+		"""
+		Handles the robot's frontier exploration state.
+		This method is responsible for exploring unknown areas (frontiers) in the map.
+		It performs the following tasks:
+		  - Checks if the robot is close to the current frontier goal and, if so, cancels exploration and switches to navigation towards the shelf.
+		  - If the robot is still moving towards a frontier, the method returns early.
+		  - If the map is mostly free space or the area around the shelf is sufficiently explored, skips further exploration and switches to navigation.
+		  - Identifies frontiers (boundaries between known and unknown space) in the map.
+		  - Selects the closest valid frontier to the shelf or a calculated direction, considering minimum and maximum step distances.
+		  - Sends a navigation goal to the selected frontier and stores the goal for distance checking.
+		  - Adjusts exploration parameters if no suitable frontier is found.
+		  - Tracks the number of times no frontiers are found to determine if the map is fully explored.
+		Returns:
+			None
+		"""
+		
+		# NEW: Check if robot is close to current goal and switch to navigation
+		if not self.goal_completed and self.goal_handle_curr is not None:
+			# Get current robot position in map coordinates
+			robot_map_pos = self.get_map_coord_from_world_coord(
+				self.buggy_pose_x, self.buggy_pose_y, self.global_map_curr.info
+			)
+			
+			# Calculate distance to current goal (you'll need to store the goal position)
+			if hasattr(self, 'current_frontier_goal'):
+				distance_to_goal = self.calc_distance(robot_map_pos, self.current_frontier_goal)
+				self.logger.info(f"Distance to current frontier goal: {distance_to_goal:.2f}")
+				if self.goal_completed:
+					self.current_state = self.NAVIGATE_TO_SHELF
+					return
+				if distance_to_goal < 20:  # Within 20 units of frontier goal
+					self.logger.info(f"Robot within 20 units of frontier goal (distance: {distance_to_goal:.2f})")
+					self.logger.info("Cancelling frontier exploration and switching to NAVIGATE_TO_SHELF")
+					map_array = np.array(self.global_map_curr.data).reshape((self.global_map_curr.info.height, self.global_map_curr.info.width))
+					# Save the current map for debugging
+					np.save('frontier_exploration.npy', map_array)
+					# Cancel current goal
+					self.cancel_current_goal()
+					self.current_frontier_goal = None
+					# Switch to navigation state
+					self.current_state = self.NAVIGATE_TO_SHELF
+					return
+		
+		if not self.goal_completed :
+			return  # Still moving to current frontier
+		
+		self.logger.info("Exploring frontier...")
+		height, width = self.global_map_curr.info.height, self.global_map_curr.info.width
+		map_array = np.array(self.global_map_curr.data).reshape((height, width))
+		_, shelf_info = self.find_shelf_and_target_point(slam_map=map_array, robot_pos=self.world_centre, shelf_angle_deg=self.current_angle, search_distance=400)
+		self.shelf_info = shelf_info
+		if self.find_percentage_of_free_space(map_array) >90 or (self.shelf_info is not None and self.find_percentage_of_free_space_around_point(map_array, shelf_info['center'], radius=75)>94):
+			self.logger.info("Map is mostly free space, skipping exploration")
+			self.current_state = self.NAVIGATE_TO_SHELF
+			return
+		frontiers = self.get_frontiers_for_space_exploration(map_array)
+		self.logger.info(f"\nFound {len(frontiers)} frontiers in the map.")
+		self.logger.info(f"\n\nworld centre: {self.world_centre}, Current shelf info: {shelf_info}")
+		map_info = self.global_map_curr.info
+		if frontiers:
+			closest_frontier = None
+			min_distance_curr = float('inf')
+			self.shelf_info = shelf_info
+			
+			if shelf_info is not None:
+				world_self_center = self.get_world_coord_from_map_coord(
+					shelf_info['center'][0],
+					shelf_info['center'][1],
+					map_info
+				)
+			else:
+				self.logger.info(f"\n\nInitial world position: {self.current_pos}")
+				distance_to_shelf = self.global_map_curr.info.height
+				if self.global_map_curr.info.width < self.global_map_curr.info.height:
+					distance_to_shelf = self.global_map_curr.info.width
+				distance_to_shelf /= 2
+				angle_rad = math.radians(self.current_angle)
+				self.logger.info(f"Initial angle: {self.current_angle}°")
+				shelf_direction_x = self.current_pos[0] + distance_to_shelf * math.cos(angle_rad)
+				shelf_direction_y = self.current_pos[1] + distance_to_shelf * math.sin(angle_rad)
+
+				world_self_center = self.get_world_coord_from_map_coord(
+					shelf_direction_x, 
+					shelf_direction_y, 
+					map_info
+				)
+				self.logger.info(f"Calculated world self center: {world_self_center}")
+
+			for fy, fx in frontiers:
+				fx_world, fy_world = self.get_world_coord_from_map_coord(fx, fy, map_info)
+				distance = euclidean((fx_world, fy_world), world_self_center)
+				if (distance < min_distance_curr and
+					distance <= self.max_step_dist_world_meters and
+					distance >= self.min_step_dist_world_meters):
+					min_distance_curr = distance
+					closest_frontier = (fy, fx)
+
+			if closest_frontier:
+				fy, fx = closest_frontier
+				
+				# NEW: Store the frontier goal for distance checking
+				self.current_frontier_goal = (fx, fy)
+				
+				self.logger.info(f'\nFound frontier closest at: ({fx}, {fy})')
+				self.logger.info(f'World coordinates: ({fx_world}, {fy_world})')
+				goal = self.create_goal_from_map_coord(fx, fy, map_info)
+				self.send_goal_from_world_pose(goal)
+				return
+			else:
+				self.max_step_dist_world_meters += 2.0
+				new_min_step_dist = self.min_step_dist_world_meters - 1.0
+				self.min_step_dist_world_meters = max(0.25, new_min_step_dist)
+
+			self.full_map_explored_count = 0
+		else:
+			self.full_map_explored_count += 1
 
 
+
+	# ----------------------- NAVIGATION FUNCTIONS ----------------------- 
+
+
+
+	def handle_nav_to_shelf(self):
+		"""
+		Handles the navigation logic for moving the robot to a specified shelf location.
+		This method determines the appropriate navigation goal for the robot based on its current position,
+		the location and orientation of the target shelf, and the robot's alignment with the shelf. It computes
+		front and back approach points for the shelf, selects the optimal goal, and sends navigation commands.
+		The method also manages state transitions based on proximity to the shelf and handles error cases where
+		the shelf or target point cannot be found.
+		Parameters:
+			None (operates on instance attributes):
+				- self.current_shelf_id (int): The ID of the shelf to navigate to.
+				- self.current_angle (float): The desired approach angle to the shelf in degrees.
+				- self.global_map_curr (OccupancyGrid): The current global map.
+				- self.world_centre (tuple): The robot's current position in world coordinates.
+				- self.buggy_pose_x (float): The robot's current x position.
+				- self.buggy_pose_y (float): The robot's current y position.
+				- self.goal_completed (bool): Whether the previous goal has been completed.
+				- self.logger (Logger): Logger for status and error messages.
+				- Other instance attributes used for navigation and state management.
+		Returns:
+			None
+		"""
+		
+		if not self.goal_completed:
+			return
+		
+		self.logger.info(f"Navigating to shelf number {self.current_shelf_id} at angle {self.current_angle}°")
+		map_array = np.array(self.global_map_curr.data).reshape((self.global_map_curr.info.height, self.global_map_curr.info.width))
+		target_point, shelf_info = self.find_shelf_and_target_point(slam_map= map_array, robot_pos=self.world_centre, shelf_angle_deg=self.current_angle, search_distance=400)
+		self.logger.info(f"Target point: {target_point}")	
+		self.shelf_info = shelf_info
+		# If a target point is found, navigate to it
+		if target_point is not None:
+			self.logger.info(f"Found target point: {target_point} shelf info: {shelf_info}")
+			self.current_shelf_centre = shelf_info['center']
+			self.current_shelf_orientation = shelf_info['rotation_angle']
+			yaw = self.current_angle
+			buggy_mapcoord = self.get_map_coord_from_world_coord(self.buggy_pose_x, self.buggy_pose_y, self.global_map_curr.info)
+			front,back = self.find_front_back_points(self.current_shelf_centre, shelf_info, 45,False)
+			direction = self.shelf_info['orientation']['secondary_direction']
+			angle = math.degrees(math.atan2(direction[1], direction[0]))
+			if self.calc_distance(buggy_mapcoord, front) < self.calc_distance(buggy_mapcoord, back):
+				goal_x, goal_y = float(front[0]), float(front[1])
+				yaw = self.find_angle_point_direction(self.shelf_info['center'], front, direction)
+				self.logger.info(f'\nNavigating to Front point: ({goal_x:.2f}, {goal_y:.2f}) with yaw {yaw:.2f}°')
+			else:
+				goal_x, goal_y = float(back[0]), float(back[1])
+				yaw = self.find_angle_point_direction(self.shelf_info['center'], back, direction)
+				self.logger.info(f'\nNavigating to Back point: ({goal_x:.2f}, {goal_y:.2f}) with yaw {yaw:.2f}°')
+		
+			if (self.calc_distance(buggy_mapcoord, front) < 6 or self.calc_distance(buggy_mapcoord, back) < 6):
+				self.logger.info("\n\nRobot is aligned with shelf\n\n")
+				self.current_state = self.CAPTURE_OBJECTS
+
+			elif self.calc_distance(buggy_mapcoord, front) < 40 or self.calc_distance(buggy_mapcoord, back) < 40:
+				
+				if self.calc_distance(buggy_mapcoord, front) < self.calc_distance(buggy_mapcoord, back):
+					goal_x, goal_y = float(front[0]), float(front[1])
+					yaw = self.find_angle_point_direction(self.shelf_info['center'], front, direction)
+					self.logger.info(f'\nNavigating to Front point: ({goal_x:.2f}, {goal_y:.2f}) with yaw {yaw:.2f}°')
+				else:
+					goal_x, goal_y = float(back[0]), float(back[1])
+					yaw = self.find_angle_point_direction(self.shelf_info['center'], back, direction)
+					self.logger.info(f'\nNavigating to Back point: ({goal_x:.2f}, {goal_y:.2f}) with yaw {yaw:.2f}°')
+				self.logger.info(f'\nmap cords of goal: ({goal_x:.2f}, {goal_y:.2f})')
+				goal_x, goal_y = self.get_world_coord_from_map_coord(goal_x, goal_y, self.global_map_curr.info)
+				goal = self.create_goal_from_world_coord(goal_x, goal_y, math.radians(yaw))
+				if self.send_goal_from_world_pose(goal):
+					self.logger.info(f"IDEAL Goal sent to ({goal_x:.2f}, {goal_y:.2f}) with yaw {yaw:.2f}°")
+				else:
+					self.logger.error("Failed to send navigation goal!")
+			else:
+				# If the robot is far from the shelf, navigate to the target point
+				goal_x, goal_y = float(target_point[0]), float(target_point[1])
+				self.logger.info(f'\nmap cords of goal: ({goal_x:.2f}, {goal_y:.2f})')
+				# update yaw if target is closer to front  or back
+				if self.calc_distance(target_point, front) < self.calc_distance(target_point, back):
+					yaw = self.find_angle_point_direction(self.shelf_info['center'], front, direction)
+				else:
+					yaw = self.find_angle_point_direction(self.shelf_info['center'], back, direction)
+				goal_x, goal_y = self.get_world_coord_from_map_coord(goal_x, goal_y, self.global_map_curr.info)
+				goal = self.create_goal_from_world_coord(goal_x, goal_y, math.radians(yaw))
+
+				if self.send_goal_from_world_pose(goal):
+					self.logger.info(f"TEMPORARY Goal sent to ({goal_x:.2f}, {goal_y:.2f}) with yaw {yaw:.2f}°")
+					self.goal_sent = False
+				else:
+					self.logger.error("Failed to send navigation goal!")
+		else:
+			self.logger.error("No target point found for shelf navigation!")
+			self.logger.info(f"world centre: {self.world_centre}, current shelf centre: {self.current_shelf_centre}")
+			map_array = np.array(self.global_map_curr.data).reshape((self.global_map_curr.info.height, self.global_map_curr.info.width))
+			np.save('shelf_not_found.npy', map_array)
+			self.current_state = self.EXPLORE
+
+
+
+	# ----------------------- OBJECT DETECTION FUNCTIONS ----------------------- 
+
+
+
+	def handle_capture_objects(self):
+		"""
+		Handles the object detection process when the robot reaches the shelf.
+		This method manages the state where the robot attempts to detect objects on a shelf.
+		It initiates object detection if not already started, checks for detection results or timeout,
+		and transitions to the next state based on the outcome.
+		Parameters:
+			self: The instance of the class containing state, logger, and detection attributes.
+		Returns:
+			None. Updates internal state and attributes based on detection results or timeout.
+		"""
+
+		if not self.goal_completed:
+			return  # Still navigating to shelf
+		if not self.should_detect_objects:
+			self.logger.info("Starting object detection...")
+			self.should_detect_objects = True
+			self.current_shelf_objects = None
+			self.detection_start_time = time.time()
+			return
+		
+		# Check if we have objects or timeout
+		if self.current_shelf_objects is not None:
+			self.should_detect_objects = False
+			self.logger.info(f"\n\nObjects detected: {self.current_shelf_objects.object_name}")
+			self.shelf_objects_curr.object_name = self.current_shelf_objects.object_name
+			self.shelf_objects_curr.object_count = self.current_shelf_objects.object_count
+			self.logger.info(f"shelf objects curr: {self.shelf_objects_curr}")
+			self.current_state = self.SCAN_QR
+			if len(self.shelf_objects_curr.object_name) < 6:
+				# Handle fix alignment again -- not implemented yet
+				pass
+
+		elif time.time() - self.detection_start_time > 5.0:  # 5 second timeout
+			self.should_detect_objects = False
+			self.logger.warn("Object detection timeout")
+			self.logger.info("Moving to QR scanning anyway...")
+
+
+
+	# ----------------------- QR CODE FUNCTIONS ----------------------- 
+
+
+
+	def handle_navigate_to_qr_side(self):
+		"""
+		Handles navigation of the robot to the side of the current shelf for QR code scanning.
+		This method checks if the robot has reached the correct shelf based on the QR code data.
+		If the QR code matches the current shelf, it cancels the navigation goal if necessary.
+		Otherwise, it computes the optimal side (left or right) of the shelf to approach for scanning,
+		based on the robot's current position and the shelf's orientation. It then sends a navigation
+		goal to move the robot to the selected side of the shelf.
+		Parameters:
+			None (uses instance attributes such as current_qr_data, current_shelf_id, global_map_curr, etc.)
+		Returns:
+			None
+		"""
+
+
+		if (self.current_qr_data is not None and 
+			self.validate_qr_format(self.current_qr_data)):
+			try:
+				qr_shelf_id = int(self.current_qr_data.split('_')[0])
+				if qr_shelf_id == self.current_shelf_id:
+					self.logger.info("Cancelling QR navigation and moving on..")
+					if not self.goal_completed and self.goal_handle_curr is not None:
+						self.cancel_current_goal()
+						return
+				
+					return
+			except (ValueError, IndexError):
+				self.logger.warn(f"Failed to parse QR shelf ID from: {self.current_qr_data}")
+		
+		if not self.goal_completed or self.qr_reached:
+			return  # Still moving
+			
+		self.logger.info(f"\nMoving to side of shelf {self.current_shelf_id} for QR scan")
+		map_array = np.array(self.global_map_curr.data).reshape((self.global_map_curr.info.height, self.global_map_curr.info.width))
+		if self.current_shelf_centre is None or self.current_shelf_orientation is None:
+			target_point, shelf_info = self.find_shelf_and_target_point(slam_map= map_array, robot_pos=self.world_centre, shelf_angle_deg=self.current_angle, search_distance=400)
+			if target_point is not None:
+				self.logger.info(f"Found target point: {target_point} shelf info: {shelf_info}")
+				self.current_shelf_centre = shelf_info['center']
+				self.current_shelf_orientation = shelf_info['rotation_angle']
+
+		left,right = self.find_front_back_points(self.current_shelf_centre, self.shelf_info, 50,True)
+		self.logger.info(f"Left point: {left}, Right point: {right}")
+		direction = self.shelf_info['orientation']['primary_direction']
+		# Choose the point (left or right) with the shortest distance to the robot
+		dist_left = self.calc_distance(self.buggy_center, left)
+		dist_right = self.calc_distance(self.buggy_center, right)
+
+		if dist_left < dist_right:
+			goal_x, goal_y = float(left[0]), float(left[1])
+			yaw = self.find_angle_point_direction(self.shelf_info['center'], left, direction)
+		else:
+			goal_x, goal_y = float(right[0]), float(right[1])
+			yaw = self.find_angle_point_direction(self.shelf_info['center'], right, direction)
+		
+		goal_x, goal_y = self.get_world_coord_from_map_coord(goal_x, goal_y, self.global_map_curr.info)	
+		goal = self.create_goal_from_world_coord(goal_x, goal_y, math.radians(yaw))
+		if self.send_goal_from_world_pose(goal):
+			self.logger.info(f"Goal sent to ({goal_x:.2f}, {goal_y:.2f}) with yaw {yaw:.2f} degree")
+			self.qr_reached = True
+		else:
+			self.logger.error("Failed to send navigation goal!")
+			self.goal_sent = False
+			self.qr_reached = False
+			self.current_state = self.DO_NOTHING
+
+	def handle_qr_nav(self):
+		"""
+		Handles the process of scanning a QR code at a designated shelf location.
+		This method manages the state transitions and logic for initiating a QR scan, 
+		handling the scan result, publishing the decoded QR data, and updating the robot's 
+		exploration state. It also manages timeouts if a QR code is not detected within a 
+		specified duration.
+		Parameters:
+			None (operates on instance variables of the class)
+		Returns:
+			None
+		Workflow:
+			- Checks if the robot has reached the QR position and if the goal is completed.
+			- Initiates QR scanning if not already started.
+			- If QR data is captured, processes and publishes the data, updates exploration state, 
+			  and prepares for the next shelf.
+			- If QR data is not captured within the timeout period, logs a warning and halts further actions.
+		"""
+		
+		if not self.goal_completed or self.qr_reached == False:
+			return  # Still moving to QR position
+		
+		self.logger.info("Starting QR code scan...")
+		if not self.should_detect_qr:
+			
+			self.should_detect_qr = True
+			self.current_qr_data = None
+			self.qr_scan_start_time = time.time()
+			return
+		
+		# Check if we have QR data or timeout
+		if self.current_qr_data is not None:
+			self.should_detect_qr = False
+			self.logger.info(f"\n\nQR Code captured: {self.current_qr_data}")
+			self.shelf_objects_curr.qr_decoded = self.current_qr_data
+			#publish shel current
+			self.publisher_shelf_data.publish(self.shelf_objects_curr)
+			self.current_shelf_objects = None  # Reset objects after QR scan
+			self.qr_reached = False  # Reset QR reached flag
+
+			# reset next goals
+			self.shelf_objects_curr = WarehouseShelf()
+			self.current_angle = self.parse_qr_for_next_angle(self.current_qr_data)
+			self.current_pos = self.world_centre
+			self.world_centre = self.current_shelf_centre
+			self.current_shelf_id +=1
+			if self.current_shelf_id > self.shelf_count:
+				self.logger.info("\n\n\nExploration complete, no more shelves to process.\n\n\n")
+				self.current_state = self.DO_NOTHING
+				return
+			self.current_shelf_centre = None
+			self.current_shelf_orientation = None
+			self.current_state = self.EXPLORE
+			
+			
+		elif time.time() - self.qr_scan_start_time > 5.0:  # 15 second timeout
+			self.should_detect_qr = False
+			self.logger.warn("QR scan timeout")
+			self.current_state = self.DO_NOTHING
+
+
+
+	# ----------------------- SHELF FUNCTIONS ----------------------- 
+
+
+
+	def find_angle_point_direction(self,center, point, direction):
+		"""
+		Calculates the angle (in degrees) from a given point to a center, normalized to the [0, 360) range.
+		This function computes the direction that a point should face to look towards a specified center, 
+		taking into account the provided direction. The result is logged and returned as a degree value.
+		Args:
+			center (tuple): A tuple (cx, cy) representing the coordinates of the center point.
+			point (tuple): A tuple (px, py) representing the coordinates of the point whose direction is being calculated.
+			direction: Unused parameter, reserved for future use or interface compatibility.
+		Returns:
+			float: The angle in degrees from the point to the center, normalized to the [0, 360) range.
+		"""
+		
+		cx, cy = center
+		px, py = point
+		
+		# Vector from point to center (where point should look)
+		to_center_x = cx - px  
+		to_center_y = cy - py  
+		
+		# Calculate angle of "point to center" vector
+		angle_to_center = np.arctan2(to_center_y, to_center_x)
+		relative_angle_deg = np.degrees(angle_to_center)
+
+		# Normalize to [-180, 180] range
+		if relative_angle_deg > 180:
+			relative_angle_deg -= 360
+		elif relative_angle_deg < -180:
+			relative_angle_deg += 360
+		if relative_angle_deg < 0:
+			relative_angle_deg += 360
+		self.logger.info(f" ANGLE to center: {relative_angle_deg}°")
+		return relative_angle_deg
+
+	def find_shelf_and_target_point(self, slam_map, robot_pos, shelf_angle_deg, search_distance=100):
+		"""
+		Detects a shelf within a specified corridor in a SLAM map and determines a safe target point for the robot to approach.
+		This method searches for obstacles (representing shelves) along a corridor extending from the robot's current position
+		in a specified direction. It validates detected obstacles based on distance from the robot and map edges, then attempts
+		to identify a shelf with expected dimensions. If a valid shelf is found, it computes a safe approach point for the robot.
+		Parameters:
+			slam_map (np.ndarray): 2D numpy array representing the SLAM occupancy grid map. 
+									Obstacles (shelves) are expected to have values 99 or 100.
+			robot_pos (tuple): (x, y) coordinates of the robot's current position in map units.
+			shelf_angle_deg (float): Angle in degrees indicating the direction to search for the shelf, relative to the robot.
+			search_distance (int, optional): Maximum distance (in map units) to search for the shelf. Default is 100.
+		Returns:
+			tuple:
+				target_point (tuple or None): (x, y) coordinates of a safe point to approach the detected shelf, or None if not found.
+				shelf_info (dict or None): Dictionary containing shelf properties (center, dimensions, etc.), or None if no valid shelf is detected.
+		"""
+		
+		# Convert angle to radians
+		angle_rad = np.radians(shelf_angle_deg)
+		
+		# Create a mask for obstacles (shelves are typically obstacles)
+		obstacle_mask = (slam_map == 99) | (slam_map == 100)
+		
+		# Create search line in the specified direction
+		robot_x, robot_y = robot_pos
+		min_search_distance = 25  # Exclude 25-unit margin around robot
+		edge_margin = 7  # Exclude 5-unit margin from map edges
+		map_height, map_width = slam_map.shape
+		search_width = 3  # Search ±3 units perpendicular to the main direction
+		perp_angle = angle_rad + np.pi/2  # 90 degrees perpendicular
+		perp_dx = np.cos(perp_angle)
+		perp_dy = np.sin(perp_angle)
+		
+		# Generate points along the search corridor
+		search_points = []
+		for distance in range(min_search_distance, search_distance + 1):
+			# Main search line point
+			main_x = robot_x + distance * np.cos(angle_rad)
+			main_y = robot_y + distance * np.sin(angle_rad)
+			
+			# Create points across the search width
+			for offset in range(-search_width, search_width + 1):
+				x = int(main_x + offset * perp_dx)
+				y = int(main_y + offset * perp_dy)
+				
+				# Check bounds WITH edge margins
+				if (edge_margin <= x < map_width - edge_margin and 
+					edge_margin <= y < map_height - edge_margin):
+					search_points.append((x, y))
+		
+		# Remove duplicates while preserving order
+		search_points = list(dict.fromkeys(search_points))
+		
+		# Find obstacles along the search corridor
+		obstacles_on_line = []
+		for x, y in search_points:
+			if obstacle_mask[y, x]:  # Note: y first for numpy array indexing
+				obstacles_on_line.append((x, y))
+		
+		if not obstacles_on_line:
+			return None, None
+		
+		# Additional validation: Ensure detected obstacles meet both distance criteria
+		valid_obstacles = []
+		for obs_x, obs_y in obstacles_on_line:
+			# Check distance from robot
+			distance_from_robot = np.sqrt((obs_x - robot_x)**2 + (obs_y - robot_y)**2)
+			
+			# Check distance from map edges
+			distance_from_edges = min(
+				obs_x,                          # Distance from left edge
+				obs_y,                          # Distance from top edge
+				map_width - 1 - obs_x,         # Distance from right edge
+				map_height - 1 - obs_y         # Distance from bottom edge
+			)
+			
+			# Keep obstacle only if it meets both criteria
+			if (distance_from_robot >= min_search_distance and 
+				distance_from_edges >= edge_margin):
+				valid_obstacles.append((obs_x, obs_y))
+		
+		if not valid_obstacles:
+			return None, None
+		# Use valid obstacles (beyond both margins) for shelf detection
+		shelf_info = self.detect_shelf_with_orientation(slam_map, valid_obstacles, robot_pos, angle_rad)
+		if shelf_info:
+			h = shelf_info['dimensions']['height']
+			w = shelf_info['dimensions']['width']
+			if h>w: h,w=w,h
+			if 26<w<=40 and 9<h<=22:
+				pass
+				self.logger.info(f"Detected shelf with height {h} and width {w} in the search corridor")
+			else:
+				return self.find_shelf_and_target_point(slam_map,shelf_info['center'],shelf_angle_deg,search_distance)
+		else:
+			return None, None
+		# Find a safe point to move towards the shelf
+		target_point = None
+		if shelf_info and shelf_info['center']:
+			target_point = self.find_safe_approach_point(slam_map, robot_pos, shelf_info, angle_rad)
+		
+		return target_point, shelf_info
+
+	def detect_shelf_with_orientation(self, slam_map, obstacles_on_line, robot_pos, angle_rad):
+		"""
+		Detects a shelf in a SLAM map along a specified search line and estimates its orientation.
+		This method processes a list of obstacle points (typically detected along a search line)
+		to identify the most likely shelf structure within the map. It filters out obstacles near
+		the map edges, clusters the remaining obstacles, selects the cluster (connected component)
+		closest to the search line, and computes the shelf's center and orientation using PCA and
+		minimum area rectangle fitting.
+		Parameters:
+			slam_map (np.ndarray): 2D numpy array representing the SLAM occupancy grid map.
+									Obstacle cells are expected to have values 99 or 100.
+			obstacles_on_line (list of tuple): List of (x, y) tuples representing obstacle coordinates
+												detected along the search line.
+			robot_pos (tuple): (x, y) coordinates of the robot's current position in map coordinates.
+			angle_rad (float): Angle (in radians) of the search line along which obstacles were detected.
+		Returns:
+			dict or None: Dictionary containing shelf information if a shelf is detected, else None.
+				The dictionary contains:
+					- 'center': (x, y) coordinates of the shelf center (int, int)
+					- 'orientation': Output of self.calculate_shelf_orientation(shelf_points)
+					- 'corners': List of 4 (x, y) tuples for the corners of the minimum area rectangle
+					- 'dimensions': Dict with 'width', 'height', and 'area' (number of pixels)
+					- 'rotation_angle': Rotation angle (degrees) of the minimum area rectangle [0, 180)
+					- 'rect_center': (x, y) center of the minimum area rectangle (float, float)
+		"""
+		
+		if not obstacles_on_line:
+			return None
+		
+		# Map boundary margins (same as in find_shelf_and_target_point)
+		edge_margin = 5  # Exclude 5-unit margin from map edges
+		map_height, map_width = slam_map.shape
+		
+		# Filter obstacles_on_line to exclude those near map edges
+		filtered_obstacles = []
+		for obs_x, obs_y in obstacles_on_line:
+			# Check distance from map edges
+			distance_from_edges = min(
+				obs_x,                          # Distance from left edge
+				obs_y,                          # Distance from top edge
+				map_width - 1 - obs_x,         # Distance from right edge
+				map_height - 1 - obs_y         # Distance from bottom edge
+			)
+			
+			# Keep obstacle only if it's away from edges
+			if distance_from_edges >= edge_margin:
+				filtered_obstacles.append((obs_x, obs_y))
+		
+		if not filtered_obstacles:
+			return None
+		
+		
+		# Create a region of interest around the FILTERED obstacles
+		obstacle_points = np.array(filtered_obstacles)  # Use filtered list
+		min_x, min_y = np.min(obstacle_points, axis=0)
+		max_x, max_y = np.max(obstacle_points, axis=0)
+		
+		# Simple margin
+		margin = 30
+		roi_x1 = max(edge_margin, min_x - margin)          # Respect edge margin
+		roi_y1 = max(edge_margin, min_y - margin)          # Respect edge margin
+		roi_x2 = min(map_width - edge_margin, max_x + margin)   # Respect edge margin
+		roi_y2 = min(map_height - edge_margin, max_y + margin)  # Respect edge margin
+
+		
+		# Extract ROI
+		roi = slam_map[roi_y1:roi_y2, roi_x1:roi_x2]
+		
+		# Create obstacle mask for ROI
+		obstacle_roi = (roi == 99) | (roi == 100)
+		
+		# Find connected components
+		num_features, labeled = cv2.connectedComponents(obstacle_roi.astype(np.uint8))
+		
+		if num_features == 0:
+			return None
+		
+		# NEW: Find component whose center is closest to the search line
+		robot_x, robot_y = robot_pos
+		search_line_dx = np.cos(angle_rad)
+		search_line_dy = np.sin(angle_rad)
+		
+		component_info = []
+		for i in range(1, num_features + 1):
+			component_mask = (labeled == i)
+			size = np.sum(component_mask)
+			
+			# Skip very small components
+			if size < 10:
+				continue
+				
+			# Get component coordinates
+			y_coords, x_coords = np.where(component_mask)
+			
+			# Convert to global coordinates
+			global_x_coords = x_coords + roi_x1
+			global_y_coords = y_coords + roi_y1
+			
+			# Calculate component center
+			center_x = np.mean(global_x_coords)
+			center_y = np.mean(global_y_coords)
+			
+			# Calculate distance from component center to search line
+			# Vector from robot to component center
+			to_center_x = center_x - robot_x
+			to_center_y = center_y - robot_y
+			
+			# Project onto search line direction to get along-line distance
+			along_line_distance = to_center_x * search_line_dx + to_center_y * search_line_dy
+			
+			# Calculate perpendicular distance from center to search line
+			# Point on search line closest to component center
+			closest_point_x = robot_x + along_line_distance * search_line_dx
+			closest_point_y = robot_y + along_line_distance * search_line_dy
+			
+			# Distance from component center to closest point on search line
+			perp_distance = np.sqrt(
+				(center_x - closest_point_x)**2 + (center_y - closest_point_y)**2
+			)
+			
+			component_info.append({
+				'label': i,
+				'size': size,
+				'center': (center_x, center_y),
+				'perp_distance': perp_distance,
+				'along_line_distance': along_line_distance
+			})
+			
+		
+		if not component_info:
+			return None
+		
+		# Select component closest to search line (minimum perpendicular distance)
+		best_component = min(component_info, key=lambda x: x['perp_distance'])
+		selected_label = best_component['label']
+		
+		
+		# Get the selected component
+		largest_component = (labeled == selected_label)
+		
+		# Get coordinates of the shelf pixels
+		y_coords, x_coords = np.where(largest_component)
+		
+		if len(x_coords) == 0:
+			return None
+		
+		# Convert back to global coordinates
+		global_x_coords = x_coords + roi_x1
+		global_y_coords = y_coords + roi_y1
+		
+		# ADDITIONAL FILTERING: Remove any points that are still too close to edges
+		final_x_coords = []
+		final_y_coords = []
+		for x, y in zip(global_x_coords, global_y_coords):
+			distance_from_edges = min(x, y, map_width - 1 - x, map_height - 1 - y)
+			if distance_from_edges >= edge_margin:
+				final_x_coords.append(x)
+				final_y_coords.append(y)
+		
+		if len(final_x_coords) == 0:
+			return None
+		
+		global_x_coords = np.array(final_x_coords)
+		global_y_coords = np.array(final_y_coords)
+		
+		# Calculate shelf center
+		center_x = int(np.mean(global_x_coords))
+		center_y = int(np.mean(global_y_coords))
+		
+		
+		# Find shelf orientation using PCA
+		shelf_points = np.column_stack([global_x_coords, global_y_coords])
+		orientation_info = self.calculate_shelf_orientation(shelf_points)
+		
+		# Find minimum area rectangle for better shape analysis
+		contour_points = np.column_stack([global_x_coords, global_y_coords]).astype(np.int32)
+		rect_info = cv2.minAreaRect(contour_points)
+		
+		# Extract rectangle information
+		(rect_center_x, rect_center_y), (width, height), rotation_angle = rect_info
+		
+		# Get corner points of the rotated rectangle
+		box_points = cv2.boxPoints(rect_info)
+		box_points = np.int32(box_points)
+		
+		# Normalize rotation angle to [0, 180) degrees
+		rotation_angle = rotation_angle % 180
+		
+		# Create shelf info dictionary
+		shelf_info = {
+			'center': (center_x, center_y),
+			'orientation': orientation_info,
+			'corners': box_points.tolist(),
+			'dimensions': {
+				'width': width,
+				'height': height,
+				'area': len(global_x_coords)
+			},
+			'rotation_angle': rotation_angle,
+			'rect_center': (rect_center_x, rect_center_y)
+		}
+		
+		return shelf_info
+
+	def calculate_shelf_orientation(self, points):
+		"""
+		Calculates the orientation and geometric properties of a shelf given a set of 2D points.
+		This method performs Principal Component Analysis (PCA) on the input points to determine the primary and secondary orientation angles of the shelf, as well as its aspect ratio and elongation. The primary and secondary directions correspond to the eigenvectors of the covariance matrix of the points, representing the main axes of the point distribution.
+		Parameters:
+			points (np.ndarray): A 2D NumPy array of shape (N, 2), where each row represents the (x, y) coordinates of a point on the shelf.
+		Returns:
+			dict: A dictionary containing the following keys:
+				- 'primary_angle' (float): The angle (in degrees, [0, 180)) of the primary axis with respect to the x-axis.
+				- 'secondary_angle' (float): The angle (in degrees, [0, 180)) of the secondary axis with respect to the x-axis.
+				- 'primary_direction' (np.ndarray): The unit vector representing the primary axis direction.
+				- 'secondary_direction' (np.ndarray): The unit vector representing the secondary axis direction.
+				- 'aspect_ratio' (float): The ratio of the largest to the second largest eigenvalue, indicating the spread along the primary axis relative to the secondary.
+				- 'elongation' (float): The square root of the aspect ratio, representing the elongation of the point distribution.
+		"""
+		
+		mean_point = np.mean(points, axis=0)
+		centered_points = points - mean_point
+		cov_matrix = np.cov(centered_points.T)
+		eigenvalues, eigenvectors = np.linalg.eig(cov_matrix)
+		idx = np.argsort(eigenvalues)[::-1]
+		eigenvalues = eigenvalues[idx]
+		eigenvectors = eigenvectors[:, idx]
+
+		primary_direction = eigenvectors[:, 0]
+		secondary_direction = eigenvectors[:, 1]
+		primary_angle = np.degrees(np.arctan2(primary_direction[1], primary_direction[0]))
+		secondary_angle = np.degrees(np.arctan2(secondary_direction[1], secondary_direction[0]))
+		primary_angle = primary_angle % 180
+		secondary_angle = secondary_angle % 180
+		aspect_ratio = eigenvalues[0] / eigenvalues[1] if eigenvalues[1] != 0 else float('inf')
+		
+		return {
+			'primary_angle': primary_angle,
+			'secondary_angle': secondary_angle,
+			'primary_direction': primary_direction,
+			'secondary_direction': secondary_direction,
+			'aspect_ratio': aspect_ratio,
+			'elongation': np.sqrt(eigenvalues[0] / eigenvalues[1]) if eigenvalues[1] != 0 else float('inf')
+		}
+
+
+
+	# ----------------------- UTILITY FUNCTIONS ----------------------- 
+
+
+
+	def find_front_back_points(self, shelf_center, shelf_info, distance, use_primary=True):
+		"""
+		Calculates the front and back points at a specified distance from the center of a shelf,
+		along a given orientation direction.
+		This method uses the orientation information from the shelf_info dictionary to determine
+		the direction in which to compute the front and back points relative to the shelf center.
+		The direction can be either the primary or secondary orientation, as specified.
+		Args:
+			shelf_center (tuple): The (x, y) coordinates of the shelf center.
+			shelf_info (dict): Dictionary containing shelf metadata, must include an 'orientation'
+				key with 'primary_direction' and 'secondary_direction' as (dx, dy) tuples.
+			distance (float): The distance from the shelf center to compute the front and back points.
+			use_primary (bool, optional): If True, use the primary direction; otherwise, use the secondary direction.
+				Defaults to True.
+		Returns:
+			tuple: A tuple containing two (x, y) integer coordinate tuples:
+				- front_point: The point at the specified distance in the chosen direction from the center.
+				- back_point: The point at the specified distance in the opposite direction from the center.
+		"""
+		
+		x, y = shelf_center
+		
+		# Get the orientation information from shelf_info
+		if 'orientation' not in shelf_info:
+			self.logger.warn("No orientation information in shelf_info")
+			return (x, y), (x, y)
+		
+		orientation = shelf_info['orientation']
+		
+		# Choose which direction to use
+		if use_primary:
+			direction_vector = orientation['primary_direction']
+			direction_name = "primary"
+		else:
+			direction_vector = orientation['secondary_direction']
+			direction_name = "secondary"
+		
+		# Extract direction components
+		dx, dy = direction_vector[0], direction_vector[1]
+		
+		# Normalize the direction vector (should already be normalized from PCA, but ensure it)
+		magnitude = np.sqrt(dx**2 + dy**2)
+		if magnitude == 0:
+			self.logger.warn("Zero magnitude direction vector")
+			return (x, y), (x, y)
+		
+		dx_norm = dx / magnitude
+		dy_norm = dy / magnitude
+		
+		front_point = (
+			int(x + distance * dx_norm),
+			int(y + distance * dy_norm)
+		)
+		back_point = (
+			int(x - distance * dx_norm),
+			int(y - distance * dy_norm)
+		)
+
+		return front_point, back_point
+	
+	def is_free_space(self, map_array, point):
+		"""
+		Checks if a given point corresponds to free space in a 2D occupancy grid map.
+		Args:
+			map_array (np.ndarray): A 2D numpy array representing the occupancy grid map,
+				where 0 indicates free space and non-zero values indicate obstacles or unknown space.
+			point (tuple or list): A tuple or list of two numeric values (x, y) representing
+				the coordinates to check in the map.
+		Returns:
+			bool: True if the specified point is within the bounds of the map and corresponds
+				to free space (i.e., the value at that location is 0), False otherwise.
+		"""
+		
+		x, y = int(point[0]), int(point[1])
+		if 0 <= x < map_array.shape[1] and 0 <= y < map_array.shape[0]:
+			return map_array[y, x] == 0
+		return False
+		
+	def parse_qr_for_next_angle(self, qr_data):
+		"""
+		Parses the QR code data to extract the next angle value.
+		The method expects the QR code data to be a string with parts separated by underscores ('_').
+		It attempts to extract the second part (index 1) and convert it to a float, which represents the next angle.
+		Args:
+			qr_data (str): The QR code data string, expected in the format 'prefix_angle[_...]'.
+		Returns:
+			float or None: The extracted angle as a float if parsing is successful; otherwise, None.
+		"""
+		
+		try:
+			parts = qr_data.split('_')
+			if len(parts) >= 2:
+				next_angle = float(parts[1])
+				return next_angle
+		except (ValueError, IndexError):
+			self.logger.error(f"Failed to parse QR code: {qr_data}")
+		return None
+
+	def get_yaw_from_quaternion(self, quaternion):
+		x = quaternion.x
+		y = quaternion.y
+		z = quaternion.z
+		w = quaternion.w
+		yaw = math.atan2(
+			2.0 * (w * z + x * y),
+			1.0 - 2.0 * (y * y + z * z)
+		)
+		return yaw
+
+	def get_current_robot_yaw(self):
+		"""
+		Retrieves the current yaw (rotation around the Z-axis) of the robot in radians.
+		This method extracts the orientation from the current pose, converts the quaternion
+		orientation to a yaw angle in radians, and returns it. If the current pose is not available,
+		it returns None.
+		Returns:
+			float or None: The current yaw of the robot in radians if the pose is available,
+			otherwise None.
+		"""
+		
+		if self.pose_curr is not None:
+			orientation = self.pose_curr.pose.pose.orientation
+			yaw_radians = self.get_yaw_from_quaternion(orientation)
+			return yaw_radians  
+		return None
+
+	def calc_distance(self, point1, point2):
+		"""
+		Calculates the Euclidean distance between two 2D points.
+		Args:
+			point1 (tuple or list): The (x, y) coordinates of the first point.
+			point2 (tuple or list): The (x, y) coordinates of the second point.
+		Returns:
+			float: The Euclidean distance between point1 and point2.
+		"""
+
+		return math.sqrt((point1[0] - point2[0]) ** 2 + (point1[1] - point2[1]) ** 2)
+
+	def adjust_robot_orientation(self, angle):
+		"""
+		Adjusts the robot's orientation by calculating a new goal position based on the specified angle.
+		This method computes a target (x, y) position that is 0.5 units behind the robot's current position
+		in the direction opposite to the given angle. It uses the robot's current yaw to determine if the
+		operation can proceed.
+		Parameters:
+			angle (float): The target orientation angle in radians, relative to the global frame.
+		Returns:
+			tuple:
+				goal_x (float or None): The computed x-coordinate for the robot to move to, or None if the current yaw is unavailable.
+				goal_y (float or None): The computed y-coordinate for the robot to move to, or None if the current yaw is unavailable.
+		"""
+
+		curr_robot_angle = self.get_current_robot_yaw()
+		if curr_robot_angle is not None:
+			# move back to 10 units
+			goal_x = self.buggy_pose_x - .5 * math.cos(angle)
+			goal_y = self.buggy_pose_y - .5 * math.sin(angle)
+			return goal_x, goal_y
+		return None, None
+	
+	def find_percentage_of_free_space(self, map_array):
+		"""
+		Calculates the percentage of free space in a given occupancy grid map.
+		This method assumes that free space in the map is represented by the value 0.
+		It computes the ratio of free cells to the total number of cells in the map and returns it as a percentage.
+		Parameters:
+			map_array (np.ndarray): A NumPy array representing the occupancy grid map,
+									where free space is indicated by 0.
+		Returns:
+			float: The percentage of free space in the map.
+		"""
+		
+		free_space_count = np.sum(map_array == 0)
+		total_cells = map_array.size
+		return (free_space_count / total_cells) * 100
+	
+	def find_percentage_of_free_space_around_point(self, map_array, point, radius):
+		"""
+		Calculates the percentage of free space (cells with value 0) within a circular area around a given point in a 2D map array.
+		Parameters:
+			map_array (np.ndarray): 2D numpy array representing the map, where 0 indicates free space and other values indicate obstacles or unknown areas.
+			point (tuple): (x, y) coordinates of the center point around which to calculate free space.
+			radius (int or float): Radius of the circular area (in cells) to consider around the point.
+		Returns:
+			float: Percentage of free space within the specified circular area. Returns 0 if no valid cells are found within the area.
+		"""
+		
+		x, y = int(point[0]), int(point[1])
+		radius = int(radius)
+		free_space_count = 0
+		total_cells = 0
+		
+		for dy in range(-radius, radius + 1):
+			for dx in range(-radius, radius + 1):
+				if dx**2 + dy**2 <= radius**2:
+					ny, nx = y + dy, x + dx
+					if 0 <= nx < map_array.shape[1] and 0 <= ny < map_array.shape[0]:
+						total_cells += 1
+						if map_array[ny, nx] == 0:
+							free_space_count += 1
+		if total_cells > 0:
+			return (free_space_count / total_cells) * 100
+		return 0
+
+	def find_safe_approach_point(self,slam_map, robot_pos, shelf_info, angle_rad):
+		"""
+		Parameters:
+		slam_map: 2D numpy array with pixel values
+		robot_pos: (x, y) robot position
+		shelf_info: dict with shelf information including center and orientation
+		angle_rad: search angle in radians
+		
+		Returns:
+		(x, y) coordinates of best safe point closest to the 30-unit front position
+		"""
+		if shelf_info is None or shelf_info['center'] is None:
+			return None
+		
+		shelf_center = shelf_info['center']
+		shelf_x, shelf_y = shelf_center
+		robot_x, robot_y = robot_pos
+		
+		# Get shelf orientation information
+		orientation = shelf_info['orientation']
+		primary_direction = orientation['primary_direction']
+		secondary_direction = orientation['secondary_direction']
+		target_distance = 45
+		front_candidates = []
+		
+		for direction in [secondary_direction, -secondary_direction]:
+			direction = direction / np.linalg.norm(direction)
+			target_x = shelf_x + target_distance * direction[0]
+			target_y = shelf_y + target_distance * direction[1]
+			if (0 <= target_x < slam_map.shape[1] and 0 <= target_y < slam_map.shape[0]):
+				front_candidates.append((target_x, target_y))
+		
+		if not front_candidates:
+			return None
+		
+		# Find the best target point (closest to robot or most accessible)
+		best_target = min(front_candidates, key=lambda t: np.sqrt((t[0] - robot_x)**2 + (t[1] - robot_y)**2))
+		target_x, target_y = best_target
+		best_approach_point = None
+		best_distance_to_target = float('inf')
+		
+		# Search in expanding circles around the robot
+		for search_radius in range(10, 301, 5):
+			num_points = max(12, search_radius // 2)
+			for i in range(num_points):
+				angle = i * 2 * np.pi / num_points
+				# Calculate candidate position around robot
+				candidate_x = int(robot_x + search_radius * np.cos(angle))
+				candidate_y = int(robot_y + search_radius * np.sin(angle))
+				if (0 <= candidate_x < slam_map.shape[1] and 
+					0 <= candidate_y < slam_map.shape[0]):
+					# Check if this point is free space and safe
+					if (slam_map[candidate_y, candidate_x] == 0 and 
+						self.is_safe_area(slam_map, (candidate_x, candidate_y), radius=5)):
+						# Calculate distance from this candidate to the target point (30 units in front of shelf)
+						distance_to_target = np.sqrt(
+							(candidate_x - target_x)**2 + (candidate_y - target_y)**2
+						)
+						if distance_to_target < best_distance_to_target:
+							best_distance_to_target = distance_to_target
+							best_approach_point = (candidate_x, candidate_y)
+		
+		return best_approach_point
+
+
+
+	def is_safe_area(self,slam_map, point, radius=3):
+		"""
+		Checks if a given point and its surrounding area within a specified radius are free (safe) on the SLAM map.
+		This function iterates over a square region centered at the given point and checks if all cells within the radius are free (i.e., have a value of 0 in the SLAM map).
+		Parameters:
+			slam_map (np.ndarray): 2D numpy array representing the SLAM map, where 0 indicates a free cell and non-zero indicates an obstacle or unknown area.
+			point (tuple): (x, y) coordinates of the center point to check for safety.
+			radius (int, optional): The radius (in cells) around the point to check. Defaults to 3.
+		Returns:
+			bool: True if all cells within the specified radius are free (safe), False if any cell is occupied or out of bounds.
+		"""
+		
+		x, y = point
+		for dx in range(-radius, radius + 1):
+			for dy in range(-radius, radius + 1):
+				check_x, check_y = x + dx, y + dy
+				if 0 <= check_x < slam_map.shape[1] and 0 <= check_y < slam_map.shape[0]:
+					if slam_map[check_y, check_x] != 0:
+						return False
+		return True
+
+
+
+# ----------------------- CALLBACK/DEBUG FUNCTIONS -----------------------
+
+
+
+	def pose_callback(self, message):
+		"""Callback function to handle pose updates.
+
+		Args:
+			message: ROS2 message containing the current pose of the rover.
+
+		Returns:
+			None
+		"""
+		self.pose_curr = message
+		self.buggy_pose_x = message.pose.pose.position.x
+		self.buggy_pose_y = message.pose.pose.position.y
+		self.buggy_center = (self.buggy_pose_x, self.buggy_pose_y)
+
+	def simple_map_callback(self, message):
+		"""Callback function to handle simple map updates.
+
+		Args:
+			message: ROS2 message containing the simple map data.
+
+		Returns:
+			None
+		"""
+		self.simple_map_curr = message
+		map_info = self.simple_map_curr.info
+		self.world_center = self.get_world_coord_from_map_coord(
+			map_info.width / 2, map_info.height / 2, map_info
+		)
+
+	def global_map_callback(self, message):
+		"""Callback function to handle global map updates.
+
+		Args:
+			message: ROS2 message containing the global map data.
+
+		Returns:
+			None
+		"""
+		self.global_map_curr = message
+		
+		if self.current_state == -1:
+			self.world_centre = self.get_map_coord_from_world_coord(0,0, self.global_map_curr.info)
+			self.current_pos = self.world_centre
+			self.current_state = self.EXPLORE
 
 	def publish_debug_image(self, publisher, image):
 		"""Publishes images for debugging purposes.
@@ -809,7 +1506,7 @@ class WarehouseExplore(Node):
 					# Validate QR format: 'shelfid_nextangle_uniquecode'
 					if self.validate_qr_format(qr_data):
 						self.current_qr_data = qr_data
-						self.get_logger().info(f"info: {qr_data}")
+						self.logger.info(f"info: {qr_data}")
 						# Draw bounding box for visualization
 						points = qr_code.polygon
 						if len(points) == 4:
@@ -886,11 +1583,6 @@ class WarehouseExplore(Node):
 		if self.should_detect_objects:
 			self.current_shelf_objects = message
 		
-		# self.logger.info("Received shelf objects data:")
-		# self.logger.info(f"Object names: {self.shelf_objects_curr.object_name}")
-		# self.logger.info(f"Object counts: {self.shelf_objects_curr.object_count}")
-		# self.logger.info(f"QR Decoded: {self.shelf_objects_curr.qr_decoded}")
-		# How to send WarehouseShelf messages for evaluation.
 		"""
 		
 		* Example for sending WarehouseShelf messages for evaluation.
@@ -1151,7 +1843,6 @@ class WarehouseExplore(Node):
 		goal_pose.pose.orientation = self._create_quaternion_from_yaw(yaw)
 
 		pose = goal_pose.pose.position
-		print(f"Goal created: ({pose.x:.2f}, {pose.y:.2f}, yaw={yaw:.2f})")
 		return goal_pose
 
 	def create_goal_from_map_coord(self, map_x: int, map_y: int, map_info,
@@ -1160,468 +1851,6 @@ class WarehouseExplore(Node):
 		world_x, world_y = self.get_world_coord_from_map_coord(map_x, map_y, map_info)
 
 		return self.create_goal_from_world_coord(world_x, world_y, yaw)
-
-
-	def find_shelf_and_target_point(self,slam_map, robot_pos, shelf_angle_deg, search_distance=100):
-		"""
-		Find shelf in specified direction and locate a safe point to move towards it.
-		NOW INCLUDES:
-		- 30-unit margin around robot position
-		- 20-unit margin from map edges
-		- WIDER SEARCH CORRIDOR (±3 units perpendicular to search direction)
-		"""
-		# Convert angle to radians
-		angle_rad = np.radians(shelf_angle_deg)
-		
-		# Create a mask for obstacles (shelves are typically obstacles)
-		obstacle_mask = (slam_map == 99) | (slam_map == 100)
-		
-		# Create search line in the specified direction
-		robot_x, robot_y = robot_pos
-		
-		# MODIFICATION: Start search from 30 units away from robot
-		min_search_distance = 25  # Exclude 25-unit margin around robot
-
-		# Map boundary margins
-		edge_margin = 3  # Exclude 20-unit margin from map edges
-		map_height, map_width = slam_map.shape
-		
-		# WIDER SEARCH: Create a corridor instead of just a line
-		search_width = 3  # Search ±3 units perpendicular to the main direction
-		
-		# Calculate perpendicular direction
-		perp_angle = angle_rad + np.pi/2  # 90 degrees perpendicular
-		perp_dx = np.cos(perp_angle)
-		perp_dy = np.sin(perp_angle)
-		
-		# Generate points along the search corridor
-		search_points = []
-		for distance in range(min_search_distance, search_distance + 1):
-			# Main search line point
-			main_x = robot_x + distance * np.cos(angle_rad)
-			main_y = robot_y + distance * np.sin(angle_rad)
-			
-			# Create points across the search width
-			for offset in range(-search_width, search_width + 1):
-				x = int(main_x + offset * perp_dx)
-				y = int(main_y + offset * perp_dy)
-				
-				# Check bounds WITH edge margins
-				if (edge_margin <= x < map_width - edge_margin and 
-					edge_margin <= y < map_height - edge_margin):
-					search_points.append((x, y))
-		
-		# Remove duplicates while preserving order
-		search_points = list(dict.fromkeys(search_points))
-		
-		print(f"Generated {len(search_points)} search points in {2*search_width+1}-unit wide corridor")
-		
-		# Find obstacles along the search corridor
-		obstacles_on_line = []
-		for x, y in search_points:
-			if obstacle_mask[y, x]:  # Note: y first for numpy array indexing
-				obstacles_on_line.append((x, y))
-		
-		if not obstacles_on_line:
-			print(f"No obstacles found in {2*search_width+1}-unit wide search corridor")
-			print(f"Beyond {min_search_distance} units from robot and {edge_margin} units from map edges")
-			return None, None
-		
-		print(f"Found {len(obstacles_on_line)} obstacle points in search corridor")
-		
-		# Additional validation: Ensure detected obstacles meet both distance criteria
-		valid_obstacles = []
-		for obs_x, obs_y in obstacles_on_line:
-			# Check distance from robot
-			distance_from_robot = np.sqrt((obs_x - robot_x)**2 + (obs_y - robot_y)**2)
-			
-			# Check distance from map edges
-			distance_from_edges = min(
-				obs_x,                          # Distance from left edge
-				obs_y,                          # Distance from top edge
-				map_width - 1 - obs_x,         # Distance from right edge
-				map_height - 1 - obs_y         # Distance from bottom edge
-			)
-			
-			# Keep obstacle only if it meets both criteria
-			if (distance_from_robot >= min_search_distance and 
-				distance_from_edges >= edge_margin):
-				valid_obstacles.append((obs_x, obs_y))
-		
-		if not valid_obstacles:
-			print(f"All detected obstacles are either:")
-			print(f"  - Within {min_search_distance}-unit exclusion zone around robot, OR")
-			print(f"  - Within {edge_margin}-unit margin from map edges")
-			return None, None
-		
-		print(f"Found {len(valid_obstacles)} valid obstacles (excluding robot vicinity and map edges)")
-		
-		# Use valid obstacles (beyond both margins) for shelf detection
-		shelf_info = self.detect_shelf_with_orientation(slam_map, valid_obstacles, robot_pos, angle_rad)
-		
-		# Find a safe point to move towards the shelf
-		target_point = None
-		if shelf_info and shelf_info['center']:
-			target_point = self.find_safe_approach_point(slam_map, robot_pos, shelf_info, angle_rad)
-		
-		return target_point, shelf_info
-
-	def detect_shelf_with_orientation(self,slam_map, obstacles_on_line, robot_pos, angle_rad):
-		"""
-		Detect shelf and determine its orientation/rotation.
-		NOW INCLUDES: Edge margin filtering to exclude map boundary pixels
-		"""
-		if not obstacles_on_line:
-			return None
-		
-		# Map boundary margins (same as in find_shelf_and_target_point)
-		edge_margin = 5  # Exclude 5-unit margin from map edges
-		map_height, map_width = slam_map.shape
-		
-		# Filter obstacles_on_line to exclude those near map edges
-		filtered_obstacles = []
-		for obs_x, obs_y in obstacles_on_line:
-			# Check distance from map edges
-			distance_from_edges = min(
-				obs_x,                          # Distance from left edge
-				obs_y,                          # Distance from top edge
-				map_width - 1 - obs_x,         # Distance from right edge
-				map_height - 1 - obs_y         # Distance from bottom edge
-			)
-			
-			# Keep obstacle only if it's away from edges
-			if distance_from_edges >= edge_margin:
-				filtered_obstacles.append((obs_x, obs_y))
-		
-		if not filtered_obstacles:
-			print(f"No obstacles found after excluding {edge_margin}-unit margin from map edges")
-			return None
-		
-		print(f"Filtered obstacles: {len(obstacles_on_line)} -> {len(filtered_obstacles)} (removed edge obstacles)")
-		
-		# Create a region of interest around the FILTERED obstacles
-		obstacle_points = np.array(filtered_obstacles)  # Use filtered list
-		min_x, min_y = np.min(obstacle_points, axis=0)
-		max_x, max_y = np.max(obstacle_points, axis=0)
-		
-		# Simple margin
-		margin = 30
-		roi_x1 = max(edge_margin, min_x - margin)          # Respect edge margin
-		roi_y1 = max(edge_margin, min_y - margin)          # Respect edge margin
-		roi_x2 = min(map_width - edge_margin, max_x + margin)   # Respect edge margin
-		roi_y2 = min(map_height - edge_margin, max_y + margin)  # Respect edge margin
-		
-		print(f"ROI bounds (with edge margins): ({roi_x1}, {roi_y1}) to ({roi_x2}, {roi_y2})")
-		
-		# Extract ROI
-		roi = slam_map[roi_y1:roi_y2, roi_x1:roi_x2]
-		
-		# Create obstacle mask for ROI
-		obstacle_roi = (roi == 99) | (roi == 100)
-		
-		# Find connected components
-		num_features, labeled = cv2.connectedComponents(obstacle_roi.astype(np.uint8))
-		
-		if num_features == 0:
-			return None
-		
-		# SIMPLE: Just find the largest component
-		component_sizes = []
-		for i in range(1, num_features + 1):
-			component_mask = (labeled == i)
-			size = np.sum(component_mask)
-			component_sizes.append((size, i))
-		
-		# Get the largest component
-		largest_size, largest_label = max(component_sizes)
-		largest_component = (labeled == largest_label)
-		
-		# Get coordinates of the shelf pixels
-		y_coords, x_coords = np.where(largest_component)
-		
-		if len(x_coords) == 0:
-			return None
-		
-		# Convert back to global coordinates
-		global_x_coords = x_coords + roi_x1
-		global_y_coords = y_coords + roi_y1
-		
-		# ADDITIONAL FILTERING: Remove any points that are still too close to edges
-		final_x_coords = []
-		final_y_coords = []
-		for x, y in zip(global_x_coords, global_y_coords):
-			distance_from_edges = min(x, y, map_width - 1 - x, map_height - 1 - y)
-			if distance_from_edges >= edge_margin:
-				final_x_coords.append(x)
-				final_y_coords.append(y)
-		
-		if len(final_x_coords) == 0:
-			print("No shelf pixels found after edge filtering")
-			return None
-		
-		global_x_coords = np.array(final_x_coords)
-		global_y_coords = np.array(final_y_coords)
-		
-		# Calculate shelf center
-		center_x = int(np.mean(global_x_coords))
-		center_y = int(np.mean(global_y_coords))
-		
-		print(f"Shelf center: ({center_x}, {center_y})")
-		print(f"Shelf contains {len(global_x_coords)} pixels (after edge filtering)")
-		
-		# Find shelf orientation using PCA
-		shelf_points = np.column_stack([global_x_coords, global_y_coords])
-		orientation_info = self.calculate_shelf_orientation(shelf_points)
-		
-		# Find minimum area rectangle for better shape analysis
-		contour_points = np.column_stack([global_x_coords, global_y_coords]).astype(np.int32)
-		rect_info = cv2.minAreaRect(contour_points)
-		
-		# Extract rectangle information
-		(rect_center_x, rect_center_y), (width, height), rotation_angle = rect_info
-		
-		# Get corner points of the rotated rectangle
-		box_points = cv2.boxPoints(rect_info)
-		box_points = np.int32(box_points)
-		
-		# Normalize rotation angle to [0, 180) degrees
-		rotation_angle = rotation_angle % 180
-		
-		# Create shelf info dictionary
-		shelf_info = {
-			'center': (center_x, center_y),
-			'orientation': orientation_info,
-			'corners': box_points.tolist(),
-			'dimensions': {
-				'width': width,
-				'height': height,
-				'area': len(global_x_coords)
-			},
-			'rotation_angle': rotation_angle,
-			'rect_center': (rect_center_x, rect_center_y)
-		}
-		
-		return shelf_info
-
-	def calculate_shelf_orientation(self,points):
-		"""
-		Parameters:
-		points: numpy array of (x, y) coordinates
-		
-		Returns:
-		dict with orientation information
-		"""
-		
-		mean_point = np.mean(points, axis=0)
-		centered_points = points - mean_point
-		cov_matrix = np.cov(centered_points.T)
-		eigenvalues, eigenvectors = np.linalg.eig(cov_matrix)
-		idx = np.argsort(eigenvalues)[::-1]
-		eigenvalues = eigenvalues[idx]
-		eigenvectors = eigenvectors[:, idx]
-
-		primary_direction = eigenvectors[:, 0]
-		secondary_direction = eigenvectors[:, 1]
-		primary_angle = np.degrees(np.arctan2(primary_direction[1], primary_direction[0]))
-		secondary_angle = np.degrees(np.arctan2(secondary_direction[1], secondary_direction[0]))
-		primary_angle = primary_angle % 180
-		secondary_angle = secondary_angle % 180
-		aspect_ratio = eigenvalues[0] / eigenvalues[1] if eigenvalues[1] != 0 else float('inf')
-		
-		return {
-			'primary_angle': primary_angle,
-			'secondary_angle': secondary_angle,
-			'primary_direction': primary_direction,
-			'secondary_direction': secondary_direction,
-			'aspect_ratio': aspect_ratio,
-			'elongation': np.sqrt(eigenvalues[0] / eigenvalues[1]) if eigenvalues[1] != 0 else float('inf')
-		}
-
-	def find_safe_approach_point(self,slam_map, robot_pos, shelf_info, angle_rad):
-		"""
-		Parameters:
-		slam_map: 2D numpy array with pixel values
-		robot_pos: (x, y) robot position
-		shelf_info: dict with shelf information including center and orientation
-		angle_rad: search angle in radians
-		
-		Returns:
-		(x, y) coordinates of best safe point closest to the 30-unit front position
-		"""
-		if shelf_info is None or shelf_info['center'] is None:
-			return None
-		
-		shelf_center = shelf_info['center']
-		shelf_x, shelf_y = shelf_center
-		robot_x, robot_y = robot_pos
-		
-		# Get shelf orientation information
-		orientation = shelf_info['orientation']
-		primary_direction = orientation['primary_direction']
-		secondary_direction = orientation['secondary_direction']
-		target_distance = 45
-		front_candidates = []
-		
-		for direction in [secondary_direction, -secondary_direction]:
-			direction = direction / np.linalg.norm(direction)
-			target_x = shelf_x + target_distance * direction[0]
-			target_y = shelf_y + target_distance * direction[1]
-			if (0 <= target_x < slam_map.shape[1] and 0 <= target_y < slam_map.shape[0]):
-				front_candidates.append((target_x, target_y))
-		
-		if not front_candidates:
-			return None
-		
-		# Find the best target point (closest to robot or most accessible)
-		best_target = min(front_candidates, key=lambda t: np.sqrt((t[0] - robot_x)**2 + (t[1] - robot_y)**2))
-		target_x, target_y = best_target
-		best_approach_point = None
-		best_distance_to_target = float('inf')
-		
-		# Search in expanding circles around the robot
-		for search_radius in range(10, 301, 5):
-			num_points = max(12, search_radius // 2)
-			for i in range(num_points):
-				angle = i * 2 * np.pi / num_points
-				# Calculate candidate position around robot
-				candidate_x = int(robot_x + search_radius * np.cos(angle))
-				candidate_y = int(robot_y + search_radius * np.sin(angle))
-				if (0 <= candidate_x < slam_map.shape[1] and 
-					0 <= candidate_y < slam_map.shape[0]):
-					# Check if this point is free space and safe
-					if (slam_map[candidate_y, candidate_x] == 0 and 
-						self.is_safe_area(slam_map, (candidate_x, candidate_y), radius=5)):
-						# Calculate distance from this candidate to the target point (30 units in front of shelf)
-						distance_to_target = np.sqrt(
-							(candidate_x - target_x)**2 + (candidate_y - target_y)**2
-						)
-						if distance_to_target < best_distance_to_target:
-							best_distance_to_target = distance_to_target
-							best_approach_point = (candidate_x, candidate_y)
-		
-		return best_approach_point
-
-
-
-	def is_safe_area(self,slam_map, point, radius=3):
-		# Check if an area around a point is safe (all pixels are 0).
-		x, y = point
-		for dx in range(-radius, radius + 1):
-			for dy in range(-radius, radius + 1):
-				check_x, check_y = x + dx, y + dy
-				if 0 <= check_x < slam_map.shape[1] and 0 <= check_y < slam_map.shape[0]:
-					if slam_map[check_y, check_x] != 0:
-						return False
-		return True
-
-	# def find_front_back_points(self,point, direction, distance):
-	# 	"""
-	# 	Find points in front and back of a given point in a specific direction.
-		
-	# 	Parameters:
-	# 	point: tuple (x, y) - the reference point
-	# 	direction: tuple (dx, dy) or angle in radians or degrees
-	# 	distance: float - how far in front/back to place the points
-		
-	# 	Returns:
-	# 	front_point: (x, y) - point in front
-	# 	back_point: (x, y) - point behind
-	# 	"""
-	# 	x, y = point
-		
-	# 	# Handle different direction formats
-	# 	if isinstance(direction, (int, float)):
-	# 		# If direction is an angle (assume radians, convert if needed)
-	# 		if abs(direction) > 2 * np.pi:  # Likely degrees
-	# 			direction = np.radians(direction)
-			
-	# 		# Convert angle to direction vector
-	# 		dx = np.cos(direction)
-	# 		dy = np.sin(direction)
-	# 	else:
-	# 		# If direction is a vector (dx, dy)
-	# 		dx, dy = direction
-		
-	# 	# Normalize the direction vector
-	# 	magnitude = np.sqrt(dx**2 + dy**2)
-	# 	if magnitude == 0:
-	# 		return point, point  # No movement if no direction
-		
-	# 	dx_norm = dx / magnitude
-	# 	dy_norm = dy / magnitude
-	# 	front_point = (
-	# 		x + distance * dx_norm,
-	# 		y - distance * dy_norm
-	# 	)
-	# 	back_point = (
-	# 		x - distance * dx_norm,
-	# 		y + distance * dy_norm
-	# 	)
-	# 	return front_point, back_point
-
-	def find_front_back_points(self, shelf_center, shelf_info, distance, use_primary=True):
-		"""
-		Find points in front and back of the shelf center using shelf's principal directions.
-		
-		Parameters:
-		shelf_center: tuple (x, y) - the shelf center point
-		shelf_info: dict - shelf information containing orientation data
-		distance: float - how far in front/back to place the points from shelf center
-		use_primary: bool - if True, use primary direction; if False, use secondary direction
-		
-		Returns:
-		front_point: (x, y) - point in front along the chosen direction
-		back_point: (x, y) - point behind along the chosen direction
-		"""
-		x, y = shelf_center
-		
-		# Get the orientation information from shelf_info
-		if 'orientation' not in shelf_info:
-			self.get_logger().warn("No orientation information in shelf_info")
-			return (x, y), (x, y)
-		
-		orientation = shelf_info['orientation']
-		
-		# Choose which direction to use
-		if use_primary:
-			direction_vector = orientation['primary_direction']
-			direction_name = "primary"
-		else:
-			direction_vector = orientation['secondary_direction']
-			direction_name = "secondary"
-		
-		# Extract direction components
-		dx, dy = direction_vector[0], direction_vector[1]
-		
-		# Normalize the direction vector (should already be normalized from PCA, but ensure it)
-		magnitude = np.sqrt(dx**2 + dy**2)
-		if magnitude == 0:
-			self.get_logger().warn("Zero magnitude direction vector")
-			return (x, y), (x, y)
-		
-		dx_norm = dx / magnitude
-		dy_norm = dy / magnitude
-		
-		# Calculate front and back points along the chosen direction
-		# Front point: move in the direction of the vector
-		front_point = (
-			int(x + distance * dx_norm),
-			int(y + distance * dy_norm)
-		)
-		
-		# Back point: move in the opposite direction
-		back_point = (
-			int(x - distance * dx_norm),
-			int(y - distance * dy_norm)
-		)
-
-		
-		self.get_logger().info(f"Using {direction_name} direction: [{dx_norm:.3f}, {dy_norm:.3f}]")
-		self.get_logger().info(f"Shelf center: ({x}, {y})")
-		self.get_logger().info(f"Front point ({distance} units ahead): {front_point}")
-		self.get_logger().info(f"Back point ({distance} units behind): {back_point}")
-		
-		return front_point, back_point
 
 
 def main(args=None):
