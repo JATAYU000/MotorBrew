@@ -1,7 +1,3 @@
-# nav2.yaml
-# xy_goal_tolerance: 0.27
-# yaw_goal_tolerance: 0.15
-
 # Copyright 2025 NXP
 
 # Copyright 2016 Open Source Robotics Foundation, Inc.
@@ -231,7 +227,9 @@ class WarehouseExplore(Node):
 		self.SCAN_QR = 2
 		self.DO_NOTHING = 3
 		self.EXPLORE = 4
+		self.ADJUST = 5
 
+		self.adjusting = +1
 		# ----------------------- Current Information -------------------------
 		self.current_shelf_centre = None
 		self.current_shelf_orientation = None
@@ -274,14 +272,31 @@ class WarehouseExplore(Node):
 			self.should_detect_qr = True
 			self.handle_navigate_to_qr_side()
 			self.handle_qr_nav()
+		elif self.current_state == self.ADJUST:
+			self.handle_adjusting_shelf()
 		elif self.current_state == self.DO_NOTHING:
-			self.logger.info("Waiting for next command...")
+			self.logger.info(f"Doing Nothing its been {self.state_timer.get_clock().now().seconds_nanoseconds()[0]} seconds")
 		
 
 
 	# ----------------------- EXPLORE FUNCTIONS ----------------------- 
 
 
+
+	def handle_adjusting_shelf(self,d=10):
+		if not self.goal_completed:
+			return
+		
+		x,y = self.get_map_coord_from_world_coord(self.buggy_pose_x, self.buggy_pose_y, self.global_map_curr.info)
+		# current angle of robot
+		rob_angle = math.degrees(self.get_current_robot_yaw())
+		if rob_angle < 0:
+			rob_angle +=360
+		x_goal, y_goal = x + self.adjusting * d * math.cos(math.radians(rob_angle)), y + self.adjusting * d * math.sin(math.radians(rob_angle))
+		goal = self.create_goal_from_map_coord(x_goal, y_goal, self.global_map_curr.info, math.radians(rob_angle))
+		self.send_goal_from_world_pose(goal)
+		self.current_state = self.CAPTURE_OBJECTS
+		self.adjusting *= -1 
 
 	def get_frontiers_for_space_exploration(self, map_array):
 		"""
@@ -331,7 +346,6 @@ class WarehouseExplore(Node):
 						if map_array[ny, nx] == 0:  # Free space.
 							frontiers.append((ny, nx))
 							break
-
 		return frontiers
 	
 	def frontier_explore(self):
@@ -392,7 +406,7 @@ class WarehouseExplore(Node):
 			return
 		frontiers = self.get_frontiers_for_space_exploration(map_array)
 		self.logger.info(f"\nFound {len(frontiers)} frontiers in the map.")
-		self.logger.info(f"\n\nworld centre: {self.world_centre}, Current shelf info: {shelf_info}")
+		self.logger.info(f"world centre: {self.world_centre}, Current shelf info: {shelf_info}")
 		map_info = self.global_map_curr.info
 		if frontiers:
 			closest_frontier = None
@@ -406,7 +420,7 @@ class WarehouseExplore(Node):
 					map_info
 				)
 			else:
-				self.logger.info(f"\n\nInitial world position: {self.current_pos}")
+				self.logger.info(f"Initial world position: {self.current_pos}")
 				distance_to_shelf = self.global_map_curr.info.height
 				if self.global_map_curr.info.width < self.global_map_curr.info.height:
 					distance_to_shelf = self.global_map_curr.info.width
@@ -588,9 +602,9 @@ class WarehouseExplore(Node):
 			self.shelf_objects_curr.object_count = self.current_shelf_objects.object_count
 			self.logger.info(f"shelf objects curr: {self.shelf_objects_curr}")
 			self.current_state = self.SCAN_QR
-			if len(self.shelf_objects_curr.object_name) < 6:
+			if sum(self.shelf_objects_curr.object_count) != 6:
 				# Handle fix alignment again -- not implemented yet
-				pass
+				self.current_state = self.ADJUST
 
 		elif time.time() - self.detection_start_time > 5.0:  # 5 second timeout
 			self.should_detect_objects = False
@@ -1579,9 +1593,26 @@ class WarehouseExplore(Node):
 			None
 		"""
 		#self.shelf_objects_curr = message
-		# Process the shelf objects as needed.
+		# Process the shelf objects as needed
+		predicates = {'horse','car','banana','potted plant','clock','cup','zebra','teddy bear'}
+		mapping = {'potted plant': 'plant', 'teddy bear': 'teddy','zebra': 'zebra', 'cup': 'cup', 'clock': 'clock','horse':'horse','car':'car','banana':'banana'}
 		if self.should_detect_objects:
-			self.current_shelf_objects = message
+			filtered_object_names = []
+			filtered_object_counts = []
+			
+			for obj_name, obj_count in zip(message.object_name, message.object_count):
+				obj_name_lower = obj_name.lower()
+				
+				if obj_name_lower in predicates:
+					filtered_object_names.append(mapping[obj_name])
+					filtered_object_counts.append(obj_count)
+			
+			if filtered_object_names:
+				# Create filtered message with only warehouse objects
+				filtered_message = WarehouseShelf()
+				filtered_message.object_name = filtered_object_names
+				filtered_message.object_count = filtered_object_counts
+				self.current_shelf_objects = filtered_message
 		
 		"""
 		
