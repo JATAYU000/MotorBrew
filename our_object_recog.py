@@ -55,8 +55,8 @@ def xywh2xyxy(x):
 
 def non_max_suppression(
 	prediction,
-	conf_thres=0.2,
-	iou_thres=0.45,
+	conf_thres=0.14,
+	iou_thres=0.3,
 	classes=None,
 	agnostic=False,
 	multi_label=False,
@@ -284,7 +284,7 @@ class ObjectRecognizer(Node):
 			pred = torch.tensor(pred)
 
 			max_det = 1000
-			conf_thres = 0.2
+			conf_thres = 0.14
 			pred = non_max_suppression(pred, conf_thres, False, max_det=max_det)
 
 			for i, det in enumerate(pred):
