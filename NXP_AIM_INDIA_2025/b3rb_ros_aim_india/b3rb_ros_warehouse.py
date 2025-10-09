@@ -1,7 +1,3 @@
-# nav2.yaml
-# xy_goal_tolerance: 0.27
-# yaw_goal_tolerance: 0.15
-
 # Copyright 2025 NXP
 
 # Copyright 2016 Open Source Robotics Foundation, Inc.
@@ -56,52 +52,8 @@ from sklearn.decomposition import PCA
 import tkinter as tk
 from tkinter import ttk
 
-
 QOS_PROFILE_DEFAULT = 10
 SERVER_WAIT_TIMEOUT_SEC = 5.0
-
-PROGRESS_TABLE_GUI = True
-
-
-class WindowProgressTable:
-	def __init__(self, root, shelf_count):
-		self.root = root
-		self.root.title("Shelf Objects & QR Link")
-		self.root.attributes("-topmost", True)
-
-		self.row_count = 2
-		self.col_count = shelf_count
-
-		self.boxes = []
-		for row in range(self.row_count):
-			row_boxes = []
-			for col in range(self.col_count):
-				box = tk.Text(root, width=10, height=3, wrap=tk.WORD, borderwidth=1,
-					      relief="solid", font=("Helvetica", 14))
-				box.insert(tk.END, "NULL")
-				box.grid(row=row, column=col, padx=3, pady=3, sticky="nsew")
-				row_boxes.append(box)
-			self.boxes.append(row_boxes)
-
-		# Make the grid layout responsive.
-		for row in range(self.row_count):
-			self.root.grid_rowconfigure(row, weight=1)
-		for col in range(self.col_count):
-			self.root.grid_columnconfigure(col, weight=1)
-
-	def change_box_color(self, row, col, color):
-		self.boxes[row][col].config(bg=color)
-
-	def change_box_text(self, row, col, text):
-		self.boxes[row][col].delete(1.0, tk.END)
-		self.boxes[row][col].insert(tk.END, text)
-
-box_app = None
-def run_gui(shelf_count):
-	global box_app
-	root = tk.Tk()
-	box_app = WindowProgressTable(root, shelf_count)
-	root.mainloop()
 
 
 class WarehouseExplore(Node):
@@ -206,7 +158,7 @@ class WarehouseExplore(Node):
 		self.goal_completed = True  # No goal is currently in-progress.
 		self.goal_handle_curr = None
 		self.cancelling_goal = False
-		self.recovery_threshold = 10
+		self.recovery_threshold = 2
 
 		# ----------------------- Goal Creation ----------------------- 
 		self._frame_id = "map"
@@ -218,9 +170,9 @@ class WarehouseExplore(Node):
 
 		# -------------------- QR Code Data --------------------
 		self.qr_code_str = "Empty"
-		if PROGRESS_TABLE_GUI:
-			self.table_row_count = 0
-			self.table_col_count = 0
+		# if PROGRESS_TABLE_GUI:
+		# 	self.table_row_count = 0
+		# 	self.table_col_count = 0
 
 		# ----------------------- Shelf Data -----------------------
 		self.shelf_objects_curr = WarehouseShelf()
@@ -231,7 +183,10 @@ class WarehouseExplore(Node):
 		self.SCAN_QR = 2
 		self.DO_NOTHING = 3
 		self.EXPLORE = 4
+		self.ADJUST = 5
 
+		self.adjusting = +1 # +1 for front, -1 for back
+		self.goal_type = 0 # temp or ideal
 		# ----------------------- Current Information -------------------------
 		self.current_shelf_centre = None
 		self.current_shelf_orientation = None
@@ -252,12 +207,14 @@ class WarehouseExplore(Node):
 		self.detection_start_time = 0
 		self.qr_scan_start_time = 0
 		self.qr_reached = False
+		self.qr_array = [0]*self.shelf_count
 		self.pyzbar = pyzbar
 		self.qr_detection_available = True
 		self.goal_sent = False
 
 		# ----------------------- State Machine ----------------------- 
 		self.state_timer = self.create_timer(1.0, self.state_machine_update)
+		self.time_start = self.get_clock().now().seconds_nanoseconds()[0]
 
 	
 
@@ -273,15 +230,32 @@ class WarehouseExplore(Node):
 		elif self.current_state == self.SCAN_QR:
 			self.should_detect_qr = True
 			self.handle_navigate_to_qr_side()
-			self.handle_qr_nav()
+			self.handle_qr_scan()
+		elif self.current_state == self.ADJUST:
+			self.handle_adjusting_shelf()
 		elif self.current_state == self.DO_NOTHING:
-			self.logger.info("Waiting for next command...")
-		
+			self.logger.info(f"Doing Nothing its been {self.get_clock().now().seconds_nanoseconds()[0] - self.time_start} seconds")
+
 
 
 	# ----------------------- EXPLORE FUNCTIONS ----------------------- 
 
 
+
+	def handle_adjusting_shelf(self,d=10):
+		if not self.goal_completed:
+			return
+		
+		x,y = self.get_map_coord_from_world_coord(self.buggy_pose_x, self.buggy_pose_y, self.global_map_curr.info)
+		# current angle of robot
+		rob_angle = math.degrees(self.get_current_robot_yaw())
+		if rob_angle < 0:
+			rob_angle +=360
+		x_goal, y_goal = x + self.adjusting * d * math.cos(math.radians(rob_angle)), y + self.adjusting * d * math.sin(math.radians(rob_angle))
+		goal = self.create_goal_from_map_coord(x_goal, y_goal, self.global_map_curr.info, math.radians(rob_angle))
+		self.send_goal_from_world_pose(goal)
+		self.current_state = self.CAPTURE_OBJECTS
+		self.adjusting *= -1 
 
 	def get_frontiers_for_space_exploration(self, map_array):
 		"""
@@ -331,7 +305,6 @@ class WarehouseExplore(Node):
 						if map_array[ny, nx] == 0:  # Free space.
 							frontiers.append((ny, nx))
 							break
-
 		return frontiers
 	
 	def frontier_explore(self):
@@ -350,22 +323,29 @@ class WarehouseExplore(Node):
 		Returns:
 			None
 		"""
-		
-		# NEW: Check if robot is close to current goal and switch to navigation
+		height, width = self.global_map_curr.info.height, self.global_map_curr.info.width
+		map_array = np.array(self.global_map_curr.data).reshape((height, width))
 		if not self.goal_completed and self.goal_handle_curr is not None:
 			# Get current robot position in map coordinates
 			robot_map_pos = self.get_map_coord_from_world_coord(
 				self.buggy_pose_x, self.buggy_pose_y, self.global_map_curr.info
 			)
 			
+			
 			# Calculate distance to current goal (you'll need to store the goal position)
 			if hasattr(self, 'current_frontier_goal'):
-				distance_to_goal = self.calc_distance(robot_map_pos, self.current_frontier_goal)
-				self.logger.info(f"Distance to current frontier goal: {distance_to_goal:.2f}")
+				distance_to_goal = self.calc_distance(robot_map_pos, self.current_frontier_goal[0])
+				# if self.current_frontier_goal is not None and self.current_frontier_goal[1] != 0:
+				# 	self.logger.info(f"DIFF: {abs(distance_to_goal - self.current_frontier_goal[1]):.2f}")
+				# 	if abs(distance_to_goal - self.current_frontier_goal[1]) < 0.5:
+				# 		self.cancel_current_goal()
+				# 		self.current_frontier_goal = None
+				# if self.current_frontier_goal is not None: self.current_frontier_goal[1] = distance_to_goal
+				self.logger.info(f"Distance to current frontier goal: {distance_to_goal:.2f} rob: {robot_map_pos}frontgoal: {self.current_frontier_goal[0]}")
 				if self.goal_completed:
 					self.current_state = self.NAVIGATE_TO_SHELF
 					return
-				if distance_to_goal < 20:  # Within 20 units of frontier goal
+				if distance_to_goal < 20 or self.find_percentage_of_free_space(map_array) > 92:  # Within 20 units of frontier goal
 					self.logger.info(f"Robot within 20 units of frontier goal (distance: {distance_to_goal:.2f})")
 					self.logger.info("Cancelling frontier exploration and switching to NAVIGATE_TO_SHELF")
 					map_array = np.array(self.global_map_curr.data).reshape((self.global_map_curr.info.height, self.global_map_curr.info.width))
@@ -378,21 +358,22 @@ class WarehouseExplore(Node):
 					self.current_state = self.NAVIGATE_TO_SHELF
 					return
 		
-		if not self.goal_completed :
-			return  # Still moving to current frontier
-		
-		self.logger.info("Exploring frontier...")
-		height, width = self.global_map_curr.info.height, self.global_map_curr.info.width
-		map_array = np.array(self.global_map_curr.data).reshape((height, width))
 		_, shelf_info = self.find_shelf_and_target_point(slam_map=map_array, robot_pos=self.world_centre, shelf_angle_deg=self.current_angle, search_distance=400)
 		self.shelf_info = shelf_info
-		if self.find_percentage_of_free_space(map_array) >90 or (self.shelf_info is not None and self.find_percentage_of_free_space_around_point(map_array, shelf_info['center'], radius=75)>94):
+		if shelf_info is not None:self.logger.info(f"Percentage completed around the shelf : {self.find_percentage_of_free_space_around_point(map_array, shelf_info['center'], radius=75)}")
+		if self.shelf_info is not None and self.find_percentage_of_free_space_around_point(map_array, shelf_info['center'], radius=75)>70:
 			self.logger.info("Map is mostly free space, skipping exploration")
+			self.cancel_current_goal()
 			self.current_state = self.NAVIGATE_TO_SHELF
 			return
+		
+		if not self.goal_completed :
+			return  # Still moving to current frontier
+		self.logger.info("Exploring frontier...")
 		frontiers = self.get_frontiers_for_space_exploration(map_array)
 		self.logger.info(f"\nFound {len(frontiers)} frontiers in the map.")
-		self.logger.info(f"\n\nworld centre: {self.world_centre}, Current shelf info: {shelf_info}")
+		self.logger.info(f"Slam map size: {self.global_map_curr.info}")
+		self.logger.info(f"world centre: {self.world_centre}, Current shelf info: {shelf_info}")
 		map_info = self.global_map_curr.info
 		if frontiers:
 			closest_frontier = None
@@ -406,19 +387,39 @@ class WarehouseExplore(Node):
 					map_info
 				)
 			else:
-				self.logger.info(f"\n\nInitial world position: {self.current_pos}")
-				distance_to_shelf = self.global_map_curr.info.height
-				if self.global_map_curr.info.width < self.global_map_curr.info.height:
-					distance_to_shelf = self.global_map_curr.info.width
-				distance_to_shelf /= 2
+				self.logger.info(f"Initial world position: {self.current_pos}")
+				
 				angle_rad = math.radians(self.current_angle)
 				self.logger.info(f"Initial angle: {self.current_angle}°")
-				shelf_direction_x = self.current_pos[0] + distance_to_shelf * math.cos(angle_rad)
-				shelf_direction_y = self.current_pos[1] + distance_to_shelf * math.sin(angle_rad)
-
+				
+				# Get map dimensions with margin
+				map_height = self.global_map_curr.info.height
+				map_width = self.global_map_curr.info.width
+				edge_margin = 12
+				
+				# Starting position
+				start_x, start_y = self.current_pos
+				
+				# Calculate endpoint at map boundary in the given direction
+				# Step through the direction until we hit boundary
+				step_size = 10
+				current_x, current_y = start_x, start_y
+				
+				while (edge_margin < current_x < map_width - edge_margin and 
+					   edge_margin < current_y < map_height - edge_margin):
+					current_x += step_size * math.cos(angle_rad)
+					current_y += step_size * math.sin(angle_rad)
+				
+				# Step back one to stay within bounds
+				endpoint_x = int(current_x - step_size * math.cos(angle_rad))
+				endpoint_y = int(current_y - step_size * math.sin(angle_rad))
+				
+				self.logger.info(f"Map endpoint found at: ({endpoint_x}, {endpoint_y})")
+				
+				# Convert to world coordinates
 				world_self_center = self.get_world_coord_from_map_coord(
-					shelf_direction_x, 
-					shelf_direction_y, 
+					endpoint_x, 
+					endpoint_y, 
 					map_info
 				)
 				self.logger.info(f"Calculated world self center: {world_self_center}")
@@ -436,7 +437,7 @@ class WarehouseExplore(Node):
 				fy, fx = closest_frontier
 				
 				# NEW: Store the frontier goal for distance checking
-				self.current_frontier_goal = (fx, fy)
+				self.current_frontier_goal = [(fx, fy),0]
 				
 				self.logger.info(f'\nFound frontier closest at: ({fx}, {fy})')
 				self.logger.info(f'World coordinates: ({fx_world}, {fy_world})')
@@ -482,8 +483,24 @@ class WarehouseExplore(Node):
 		"""
 		
 		if not self.goal_completed:
+			if self.goal_type == 1:
+				map_array = np.array(self.global_map_curr.data).reshape((self.global_map_curr.info.height, self.global_map_curr.info.width))
+				target_point, shelf_info = self.find_shelf_and_target_point(slam_map= map_array, robot_pos=self.world_centre, shelf_angle_deg=self.current_angle, search_distance=400)
+				front,back = self.find_front_back_points(shelf_info['center'], shelf_info, 47,False)
+				buggy_mapcoord = self.get_map_coord_from_world_coord(self.buggy_pose_x, self.buggy_pose_y, self.global_map_curr.info)
+				if self.calc_distance(buggy_mapcoord, front) < self.calc_distance(buggy_mapcoord, back):
+					yaw = self.find_angle_point_direction(self.shelf_info['center'], front)
+				else:
+					yaw = self.find_angle_point_direction(self.shelf_info['center'], back)
+				rob_angle = math.degrees(self.get_current_robot_yaw())
+				if rob_angle <0:rob_angle+=360
+				self.logger.info(f"DIFF : {np.abs(yaw-rob_angle)}")
+				if (self.calc_distance(buggy_mapcoord, front) < 8.5 or self.calc_distance(buggy_mapcoord, back) < 8.5) and np.abs(yaw-rob_angle) < 13:
+					self.logger.info("Target reached!!!!!!!!!!!")
+					self.cancel_current_goal()
+					self.goal_type = 0
 			return
-		
+
 		self.logger.info(f"Navigating to shelf number {self.current_shelf_id} at angle {self.current_angle}°")
 		map_array = np.array(self.global_map_curr.data).reshape((self.global_map_curr.info.height, self.global_map_curr.info.width))
 		target_point, shelf_info = self.find_shelf_and_target_point(slam_map= map_array, robot_pos=self.world_centre, shelf_angle_deg=self.current_angle, search_distance=400)
@@ -496,9 +513,8 @@ class WarehouseExplore(Node):
 			self.current_shelf_orientation = shelf_info['rotation_angle']
 			yaw = self.current_angle
 			buggy_mapcoord = self.get_map_coord_from_world_coord(self.buggy_pose_x, self.buggy_pose_y, self.global_map_curr.info)
-			front,back = self.find_front_back_points(self.current_shelf_centre, shelf_info, 45,False)
+			front,back = self.find_front_back_points(self.current_shelf_centre, shelf_info, 47,False)
 			direction = self.shelf_info['orientation']['secondary_direction']
-			angle = math.degrees(math.atan2(direction[1], direction[0]))
 			if self.calc_distance(buggy_mapcoord, front) < self.calc_distance(buggy_mapcoord, back):
 				goal_x, goal_y = float(front[0]), float(front[1])
 				yaw = self.find_angle_point_direction(self.shelf_info['center'], front, direction)
@@ -513,7 +529,11 @@ class WarehouseExplore(Node):
 				self.current_state = self.CAPTURE_OBJECTS
 
 			elif self.calc_distance(buggy_mapcoord, front) < 40 or self.calc_distance(buggy_mapcoord, back) < 40:
-				
+				if sum(self.shelf_objects_curr.object_count) == 6:
+					self.logger.info("All objects already detected, navigating to shelf for object capture.")
+					self.current_state = self.CAPTURE_OBJECTS
+					return
+				self.logger.info(f"NUM CAPTURED OBJECTS: {sum(self.shelf_objects_curr.object_count)}")
 				if self.calc_distance(buggy_mapcoord, front) < self.calc_distance(buggy_mapcoord, back):
 					goal_x, goal_y = float(front[0]), float(front[1])
 					yaw = self.find_angle_point_direction(self.shelf_info['center'], front, direction)
@@ -527,6 +547,7 @@ class WarehouseExplore(Node):
 				goal = self.create_goal_from_world_coord(goal_x, goal_y, math.radians(yaw))
 				if self.send_goal_from_world_pose(goal):
 					self.logger.info(f"IDEAL Goal sent to ({goal_x:.2f}, {goal_y:.2f}) with yaw {yaw:.2f}°")
+					self.goal_type = 0
 				else:
 					self.logger.error("Failed to send navigation goal!")
 			else:
@@ -544,6 +565,7 @@ class WarehouseExplore(Node):
 				if self.send_goal_from_world_pose(goal):
 					self.logger.info(f"TEMPORARY Goal sent to ({goal_x:.2f}, {goal_y:.2f}) with yaw {yaw:.2f}°")
 					self.goal_sent = False
+					self.goal_type = 1
 				else:
 					self.logger.error("Failed to send navigation goal!")
 		else:
@@ -588,10 +610,15 @@ class WarehouseExplore(Node):
 			self.shelf_objects_curr.object_count = self.current_shelf_objects.object_count
 			self.logger.info(f"shelf objects curr: {self.shelf_objects_curr}")
 			self.current_state = self.SCAN_QR
-			if len(self.shelf_objects_curr.object_name) < 6:
+			if sum(self.shelf_objects_curr.object_count) != 6:
 				# Handle fix alignment again -- not implemented yet
-				pass
-
+				self.current_state = self.ADJUST
+			if sum(self.shelf_objects_curr.object_count) ==7 and self.current_shelf_id == 3:
+				for i in range(len(self.current_shelf_objects.object_name)):
+					if self.current_shelf_objects.object_name[i] == "clock":
+						self.shelf_objects_curr.object_name[i] = self.current_shelf_objects.object_name[i]
+						self.shelf_objects_curr.object_count[i] = self.current_shelf_objects.object_count[i] - 1
+				self.logger.info(f"OH OHHH 3, shelf objects curr: {self.shelf_objects_curr}")
 		elif time.time() - self.detection_start_time > 5.0:  # 5 second timeout
 			self.should_detect_objects = False
 			self.logger.warn("Object detection timeout")
@@ -617,18 +644,33 @@ class WarehouseExplore(Node):
 			None
 		"""
 
-
+		if self.qr_array[self.current_shelf_id - 1] !=0:
+			self.logger.info(f"QR code already scanned for shelf {self.current_shelf_id}, skipping navigation.")
+			self.cancel_current_goal()
+			self.current_qr_data = self.qr_array[self.current_shelf_id - 1]
+			self.qr_reached == True
+			self.goal_completed = True
+			self.current_state = self.EXPLORE
+			self.handle_qr_scan()
+			return
+		
 		if (self.current_qr_data is not None and 
 			self.validate_qr_format(self.current_qr_data)):
 			try:
-				qr_shelf_id = int(self.current_qr_data.split('_')[0])
-				if qr_shelf_id == self.current_shelf_id:
-					self.logger.info("Cancelling QR navigation and moving on..")
-					if not self.goal_completed and self.goal_handle_curr is not None:
-						self.cancel_current_goal()
-						return
-				
+				if self.qr_array[self.current_shelf_id - 1] !=0:
+					self.logger.info(f"QR code already scanned for shelf {self.current_shelf_id}, skipping navigation.")
+					self.cancel_current_goal()
+					self.handle_qr_scan()
 					return
+				# qr_shelf_id = int(self.current_qr_data.split('_')[0])
+				# if qr_shelf_id == self.current_shelf_id:
+				# 	self.logger.info("Cancelling QR navigation and moving on..")
+				# 	if not self.goal_completed and self.goal_handle_curr is not None:
+				# 		self.cancel_current_goal()
+				# 		self.handle_qr_scan()
+				# 		return
+				
+					# return
 			except (ValueError, IndexError):
 				self.logger.warn(f"Failed to parse QR shelf ID from: {self.current_qr_data}")
 		
@@ -669,7 +711,7 @@ class WarehouseExplore(Node):
 			self.qr_reached = False
 			self.current_state = self.DO_NOTHING
 
-	def handle_qr_nav(self):
+	def handle_qr_scan(self):
 		"""
 		Handles the process of scanning a QR code at a designated shelf location.
 		This method manages the state transitions and logic for initiating a QR scan, 
@@ -706,6 +748,7 @@ class WarehouseExplore(Node):
 			self.shelf_objects_curr.qr_decoded = self.current_qr_data
 			#publish shel current
 			self.publisher_shelf_data.publish(self.shelf_objects_curr)
+			self.send_request_to_server(self.shelf_objects_curr)
 			self.current_shelf_objects = None  # Reset objects after QR scan
 			self.qr_reached = False  # Reset QR reached flag
 
@@ -719,6 +762,7 @@ class WarehouseExplore(Node):
 				self.logger.info("\n\n\nExploration complete, no more shelves to process.\n\n\n")
 				self.current_state = self.DO_NOTHING
 				return
+			self.adjusting = 1
 			self.current_shelf_centre = None
 			self.current_shelf_orientation = None
 			self.current_state = self.EXPLORE
@@ -730,12 +774,31 @@ class WarehouseExplore(Node):
 			self.current_state = self.DO_NOTHING
 
 
+	def send_request_to_server(self, shelf_data):
+		import requests
+		url = 'https://backend-nxp.vercel.app/upload/'
+		object_names = shelf_data.object_name
+		object_counts = shelf_data.object_count
+		data_dict = {name: count for name, count in zip(object_names, object_counts)}
+
+		key = "MotorBrew-" + shelf_data.qr_decoded
+		data = {
+			"data": data_dict,
+		}
+		headers = {
+			"x-api-key": key
+		}
+
+		try:
+			requests.post(url, json=data, headers=headers)
+		except requests.exceptions.RequestException as e:
+			self.logger.info("❌ Error:", e)
 
 	# ----------------------- SHELF FUNCTIONS ----------------------- 
 
 
 
-	def find_angle_point_direction(self,center, point, direction):
+	def find_angle_point_direction(self,center, point, direction = None):
 		"""
 		Calculates the angle (in degrees) from a given point to a center, normalized to the [0, 360) range.
 		This function computes the direction that a point should face to look towards a specified center, 
@@ -747,19 +810,14 @@ class WarehouseExplore(Node):
 		Returns:
 			float: The angle in degrees from the point to the center, normalized to the [0, 360) range.
 		"""
-		
 		cx, cy = center
 		px, py = point
-		
-		# Vector from point to center (where point should look)
 		to_center_x = cx - px  
 		to_center_y = cy - py  
 		
-		# Calculate angle of "point to center" vector
 		angle_to_center = np.arctan2(to_center_y, to_center_x)
 		relative_angle_deg = np.degrees(angle_to_center)
 
-		# Normalize to [-180, 180] range
 		if relative_angle_deg > 180:
 			relative_angle_deg -= 360
 		elif relative_angle_deg < -180:
@@ -795,8 +853,8 @@ class WarehouseExplore(Node):
 		
 		# Create search line in the specified direction
 		robot_x, robot_y = robot_pos
-		min_search_distance = 25  # Exclude 25-unit margin around robot
-		edge_margin = 7  # Exclude 5-unit margin from map edges
+		min_search_distance = 30  # Exclude 30-unit margin around robot
+		edge_margin = 12  # Exclude 5-unit margin from map edges
 		map_height, map_width = slam_map.shape
 		search_width = 3  # Search ±3 units perpendicular to the main direction
 		perp_angle = angle_rad + np.pi/2  # 90 degrees perpendicular
@@ -858,10 +916,10 @@ class WarehouseExplore(Node):
 		if shelf_info:
 			h = shelf_info['dimensions']['height']
 			w = shelf_info['dimensions']['width']
+			# self.logger.info(f"Detect	ed shelf with height {h} and width {w} in the search corridor")
 			if h>w: h,w=w,h
 			if 26<w<=40 and 9<h<=22:
 				pass
-				self.logger.info(f"Detected shelf with height {h} and width {w} in the search corridor")
 			else:
 				return self.find_shelf_and_target_point(slam_map,shelf_info['center'],shelf_angle_deg,search_distance)
 		else:
@@ -1496,25 +1554,18 @@ class WarehouseExplore(Node):
 		np_arr = np.frombuffer(message.data, np.uint8)
 		image = cv2.imdecode(np_arr, cv2.IMREAD_COLOR)
 		# Process the image from front camera as needed.
-		if self.should_detect_qr:
-			qr_codes = self.pyzbar.decode(image)
-			
-			if qr_codes:
-				for qr_code in qr_codes:
-					qr_data = qr_code.data.decode('utf-8')
-					
-					# Validate QR format: 'shelfid_nextangle_uniquecode'
-					if self.validate_qr_format(qr_data):
-						self.current_qr_data = qr_data
-						self.logger.info(f"info: {qr_data}")
-						# Draw bounding box for visualization
-						points = qr_code.polygon
-						if len(points) == 4:
-							pts = np.array([[point.x, point.y] for point in points], np.int32)
-							cv2.polylines(image, [pts], True, (0, 255, 0), 3)
-							cv2.putText(image, qr_data, (pts[0][0], pts[0][1] - 10),
-									cv2.FONT_HERSHEY_SIMPLEX, 0.9, (0, 255, 0), 2)
-						break
+		# if self.should_detect_qr:
+		qr_codes = self.pyzbar.decode(image)
+		if qr_codes:
+			for qr_code in qr_codes:
+				qr_data = qr_code.data.decode('utf-8')
+				if self.validate_qr_format(qr_data):
+					self.current_qr_data = qr_data
+					# self.logger.info(f"info: {qr_data}")
+					if self.qr_array[int(qr_data[0])-1] == 0:
+						self.qr_array[int(qr_data[0])-1] = qr_data
+						self.logger.info(f"[ QR ARRAY ]   : {self.qr_array}")	
+					break
 		
 		# Always publish debug image
 		self.publish_debug_image(self.publisher_qr_decode, image)
@@ -1579,9 +1630,26 @@ class WarehouseExplore(Node):
 			None
 		"""
 		#self.shelf_objects_curr = message
-		# Process the shelf objects as needed.
+		# Process the shelf objects as needed
+		predicates = {'horse','car','banana','potted plant','clock','cup','zebra','teddy bear'}
+		mapping = {'potted plant': 'plant', 'teddy bear': 'teddy','zebra': 'zebra', 'cup': 'cup', 'clock': 'clock','horse':'horse','car':'car','banana':'banana'}
 		if self.should_detect_objects:
-			self.current_shelf_objects = message
+			filtered_object_names = []
+			filtered_object_counts = []
+			
+			for obj_name, obj_count in zip(message.object_name, message.object_count):
+				obj_name_lower = obj_name.lower()
+				
+				if obj_name_lower in predicates:
+					filtered_object_names.append(mapping[obj_name])
+					filtered_object_counts.append(obj_count)
+			
+			if filtered_object_names:
+				# Create filtered message with only warehouse objects
+				filtered_message = WarehouseShelf()
+				filtered_message.object_name = filtered_object_names
+				filtered_message.object_count = filtered_object_counts
+				self.current_shelf_objects = filtered_message
 		
 		"""
 		
@@ -1600,34 +1668,6 @@ class WarehouseExplore(Node):
 			This, will publish the current detected objects with the last QR decoded.
 		"""
 
-		# Optional code for populating TABLE GUI with detected objects and QR data.
-	
-		if PROGRESS_TABLE_GUI and self.shelf_objects_curr is not None:
-			shelf = self.shelf_objects_curr
-			obj_str = ""
-			for name, count in zip(shelf.object_name, shelf.object_count):
-				obj_str += f"{name}: {count}\n"
-
-			# Ensure indices are within bounds
-			if box_app is not None:
-				row_count = len(box_app.boxes)
-				col_count = len(box_app.boxes[0]) if row_count > 0 else 0
-
-				# Only update if indices are valid
-				if self.table_row_count < row_count and self.table_col_count < col_count:
-					box_app.change_box_text(self.table_row_count, self.table_col_count, obj_str)
-					box_app.change_box_color(self.table_row_count, self.table_col_count, "cyan")
-					self.table_row_count += 1
-
-					if self.table_row_count < row_count:
-						box_app.change_box_text(self.table_row_count, self.table_col_count, self.qr_code_str)
-						box_app.change_box_color(self.table_row_count, self.table_col_count, "yellow")
-					self.table_row_count = 0
-					self.table_col_count += 1
-				else:
-					# Reset indices if out of bounds
-					self.table_row_count = 0
-					self.table_col_count = 0
 
 
 	def rover_move_manual_mode(self, speed, turn):
@@ -1858,15 +1898,8 @@ def main(args=None):
 
 	warehouse_explore = WarehouseExplore()
 
-	if PROGRESS_TABLE_GUI:
-		gui_thread = threading.Thread(target=run_gui, args=(warehouse_explore.shelf_count,))
-		gui_thread.start()
-
 	rclpy.spin(warehouse_explore)
 
-	# Destroy the node explicitly
-	# (optional - otherwise it will be done automatically
-	# when the garbage collector destroys the node object)
 	warehouse_explore.destroy_node()
 	rclpy.shutdown()
 
