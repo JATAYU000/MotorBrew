@@ -1504,6 +1504,7 @@ class WarehouseExplore(Node):
 		"""
 		self.simple_map_curr = message
 		map_info = self.simple_map_curr.info
+		self.logger.info(map_info)
 		self.world_center = self.get_world_coord_from_map_coord(
 			map_info.width / 2, map_info.height / 2, map_info
 		)
@@ -1591,13 +1592,13 @@ class WarehouseExplore(Node):
 		Returns:
 			None
 		"""
+		self.logger.info("CEREBRI STATUS CALLBACK")
+		self.logger.info("MODE: ", message.mode, "ARMING: ", message.arming)
 		if message.mode == 3 and message.arming == 2:
 			self.armed = True
 		else:
 			# Initialize and arm the CMD_VEL mode.
-
 			# CHANGING TO MANUAL JATAYU : msg.buttons from [0, 1, 0, 0, 0, 0, 0, 1] to [1, 0, 0, 0, 0, 0, 0, 1]
-
 			msg = Joy()
 			msg.buttons = [0, 1, 0, 0, 0, 0, 0, 1]
 			msg.axes = [0.0, 0.0, 0.0, 0.0]
