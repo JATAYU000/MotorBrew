@@ -792,7 +792,7 @@ class WarehouseExplore(Node):
 		try:
 			requests.post(url, json=data, headers=headers)
 		except requests.exceptions.RequestException as e:
-			self.logger.info("❌ Error:", e)
+			self.logger.info(f"❌ Error: {e}")
 
 	# ----------------------- SHELF FUNCTIONS ----------------------- 
 
@@ -1504,7 +1504,7 @@ class WarehouseExplore(Node):
 		"""
 		self.simple_map_curr = message
 		map_info = self.simple_map_curr.info
-		self.logger.info(map_info)
+		self.logger.info(f"Map info: {map_info}")
 		self.world_center = self.get_world_coord_from_map_coord(
 			map_info.width / 2, map_info.height / 2, map_info
 		)
@@ -1593,7 +1593,7 @@ class WarehouseExplore(Node):
 			None
 		"""
 		self.logger.info("CEREBRI STATUS CALLBACK")
-		self.logger.info("MODE: ", message.mode, "ARMING: ", message.arming)
+		self.logger.info(f"MODE: {message.mode}, ARMING: {message.arming}")
 		if message.mode == 3 and message.arming == 2:
 			self.armed = True
 		else:
