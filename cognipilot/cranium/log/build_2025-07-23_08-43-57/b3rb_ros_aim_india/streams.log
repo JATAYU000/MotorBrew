@@ -1,0 +1,25 @@
+[6.620s] Invoking command in '/home/user/cognipilot/cranium/src/NXP_AIM_INDIA_2025': CMAKE_PREFIX_PATH=/home/user/cognipilot/cranium/install/synapse_msgs:/home/user/cognipilot/cranium/install/b3rb_robot:/home/user/cognipilot/cranium/install/b3rb_bringup:/home/user/cognipilot/cranium/install/synapse_ros:/home/user/cognipilot/cranium/install/synapse_tinyframe:/home/user/cognipilot/cranium/install/synapse_protobuf:/home/user/cognipilot/cranium/install/corti:/home/user/cognipilot/cranium/install/ldlidar_stl_ros2:/home/user/cognipilot/cranium/install/b3rb_nav2:/home/user/cognipilot/cranium/install/b3rb_description LD_LIBRARY_PATH=/home/user/cognipilot/cranium/install/synapse_msgs/lib:/home/user/cognipilot/cranium/install/synapse_tinyframe/lib:/home/user/cognipilot/cranium/install/synapse_protobuf/lib:/opt/ros/humble/opt/rviz_ogre_vendor/lib:/opt/ros/humble/lib/aarch64-linux-gnu:/opt/ros/humble/lib PYTHONPATH=/home/user/cognipilot/cranium/build/b3rb_ros_aim_india/prefix_override:/usr/lib/python3/dist-packages/colcon_core/task/python/colcon_distutils_commands:/home/user/cognipilot/cranium/install/b3rb_ros_aim_india/lib/python3.10/site-packages:${PYTHONPATH} /usr/bin/python3 -W ignore:setup.py install is deprecated -W ignore:easy_install command is deprecated setup.py egg_info --egg-base ../../build/b3rb_ros_aim_india build --build-base /home/user/cognipilot/cranium/build/b3rb_ros_aim_india/build install --record /home/user/cognipilot/cranium/build/b3rb_ros_aim_india/install.log --single-version-externally-managed install_data
+[9.148s] running egg_info
+[9.154s] writing ../../build/b3rb_ros_aim_india/b3rb_ros_aim_india.egg-info/PKG-INFO
+[9.155s] writing dependency_links to ../../build/b3rb_ros_aim_india/b3rb_ros_aim_india.egg-info/dependency_links.txt
+[9.157s] writing entry points to ../../build/b3rb_ros_aim_india/b3rb_ros_aim_india.egg-info/entry_points.txt
+[9.158s] writing requirements to ../../build/b3rb_ros_aim_india/b3rb_ros_aim_india.egg-info/requires.txt
+[9.159s] writing top-level names to ../../build/b3rb_ros_aim_india/b3rb_ros_aim_india.egg-info/top_level.txt
+[9.183s] reading manifest file '../../build/b3rb_ros_aim_india/b3rb_ros_aim_india.egg-info/SOURCES.txt'
+[9.185s] adding license file 'LICENSE'
+[9.191s] writing manifest file '../../build/b3rb_ros_aim_india/b3rb_ros_aim_india.egg-info/SOURCES.txt'
+[9.192s] running build
+[9.193s] running build_py
+[9.196s] running install
+[9.199s] running install_lib
+[9.208s] running install_data
+[9.210s] running install_egg_info
+[9.224s] removing '/home/user/cognipilot/cranium/install/b3rb_ros_aim_india/lib/python3.10/site-packages/b3rb_ros_aim_india-0.0.0-py3.10.egg-info' (and everything under it)
+[9.226s] Copying ../../build/b3rb_ros_aim_india/b3rb_ros_aim_india.egg-info to /home/user/cognipilot/cranium/install/b3rb_ros_aim_india/lib/python3.10/site-packages/b3rb_ros_aim_india-0.0.0-py3.10.egg-info
+[9.232s] running install_scripts
+[9.391s] Installing detect script to /home/user/cognipilot/cranium/install/b3rb_ros_aim_india/lib/b3rb_ros_aim_india
+[9.392s] Installing explore script to /home/user/cognipilot/cranium/install/b3rb_ros_aim_india/lib/b3rb_ros_aim_india
+[9.393s] Installing remover script to /home/user/cognipilot/cranium/install/b3rb_ros_aim_india/lib/b3rb_ros_aim_india
+[9.394s] Installing visualize script to /home/user/cognipilot/cranium/install/b3rb_ros_aim_india/lib/b3rb_ros_aim_india
+[9.397s] writing list of installed files to '/home/user/cognipilot/cranium/build/b3rb_ros_aim_india/install.log'
+[9.623s] Invoked command in '/home/user/cognipilot/cranium/src/NXP_AIM_INDIA_2025' returned '0': CMAKE_PREFIX_PATH=/home/user/cognipilot/cranium/install/synapse_msgs:/home/user/cognipilot/cranium/install/b3rb_robot:/home/user/cognipilot/cranium/install/b3rb_bringup:/home/user/cognipilot/cranium/install/synapse_ros:/home/user/cognipilot/cranium/install/synapse_tinyframe:/home/user/cognipilot/cranium/install/synapse_protobuf:/home/user/cognipilot/cranium/install/corti:/home/user/cognipilot/cranium/install/ldlidar_stl_ros2:/home/user/cognipilot/cranium/install/b3rb_nav2:/home/user/cognipilot/cranium/install/b3rb_description LD_LIBRARY_PATH=/home/user/cognipilot/cranium/install/synapse_msgs/lib:/home/user/cognipilot/cranium/install/synapse_tinyframe/lib:/home/user/cognipilot/cranium/install/synapse_protobuf/lib:/opt/ros/humble/opt/rviz_ogre_vendor/lib:/opt/ros/humble/lib/aarch64-linux-gnu:/opt/ros/humble/lib PYTHONPATH=/home/user/cognipilot/cranium/build/b3rb_ros_aim_india/prefix_override:/usr/lib/python3/dist-packages/colcon_core/task/python/colcon_distutils_commands:/home/user/cognipilot/cranium/install/b3rb_ros_aim_india/lib/python3.10/site-packages:${PYTHONPATH} /usr/bin/python3 -W ignore:setup.py install is deprecated -W ignore:easy_install command is deprecated setup.py egg_info --egg-base ../../build/b3rb_ros_aim_india build --build-base /home/user/cognipilot/cranium/build/b3rb_ros_aim_india/build install --record /home/user/cognipilot/cranium/build/b3rb_ros_aim_india/install.log --single-version-externally-managed install_data

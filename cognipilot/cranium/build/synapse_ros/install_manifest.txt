@@ -1,0 +1,17 @@
+/home/user/cognipilot/cranium/install/synapse_ros/lib/synapse_ros/synapse_ros
+/home/user/cognipilot/cranium/install/synapse_ros/share/synapse_ros/launch/synapse_ros.launch.py
+/home/user/cognipilot/cranium/install/synapse_ros/share/ament_index/resource_index/package_run_dependencies/synapse_ros
+/home/user/cognipilot/cranium/install/synapse_ros/share/ament_index/resource_index/parent_prefix_path/synapse_ros
+/home/user/cognipilot/cranium/install/synapse_ros/share/synapse_ros/environment/ament_prefix_path.sh
+/home/user/cognipilot/cranium/install/synapse_ros/share/synapse_ros/environment/ament_prefix_path.dsv
+/home/user/cognipilot/cranium/install/synapse_ros/share/synapse_ros/environment/path.sh
+/home/user/cognipilot/cranium/install/synapse_ros/share/synapse_ros/environment/path.dsv
+/home/user/cognipilot/cranium/install/synapse_ros/share/synapse_ros/local_setup.bash
+/home/user/cognipilot/cranium/install/synapse_ros/share/synapse_ros/local_setup.sh
+/home/user/cognipilot/cranium/install/synapse_ros/share/synapse_ros/local_setup.zsh
+/home/user/cognipilot/cranium/install/synapse_ros/share/synapse_ros/local_setup.dsv
+/home/user/cognipilot/cranium/install/synapse_ros/share/synapse_ros/package.dsv
+/home/user/cognipilot/cranium/install/synapse_ros/share/ament_index/resource_index/packages/synapse_ros
+/home/user/cognipilot/cranium/install/synapse_ros/share/synapse_ros/cmake/synapse_rosConfig.cmake
+/home/user/cognipilot/cranium/install/synapse_ros/share/synapse_ros/cmake/synapse_rosConfig-version.cmake
+/home/user/cognipilot/cranium/install/synapse_ros/share/synapse_ros/package.xml

@@ -1,0 +1,2 @@
+/usr/bin/ar qc libbezier6.a CMakeFiles/bezier6.dir/src/casadi/bezier6.c.o
+/usr/bin/ranlib libbezier6.a

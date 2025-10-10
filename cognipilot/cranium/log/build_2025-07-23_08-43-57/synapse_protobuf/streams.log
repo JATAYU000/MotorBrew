@@ -1,0 +1,55 @@
+[0.156s] Invoking command in '/home/user/cognipilot/cranium/build/synapse_protobuf': CMAKE_PREFIX_PATH=${CMAKE_PREFIX_PATH}:/home/user/cognipilot/cranium/install/b3rb_ros_aim_india:/opt/ros/humble /usr/bin/cmake --build /home/user/cognipilot/cranium/build/synapse_protobuf -- -j4 -l4
+[0.672s] [100%] Built target synapse_protobuf
+[1.102s] Invoked command in '/home/user/cognipilot/cranium/build/synapse_protobuf' returned '0': CMAKE_PREFIX_PATH=${CMAKE_PREFIX_PATH}:/home/user/cognipilot/cranium/install/b3rb_ros_aim_india:/opt/ros/humble /usr/bin/cmake --build /home/user/cognipilot/cranium/build/synapse_protobuf -- -j4 -l4
+[1.106s] Invoking command in '/home/user/cognipilot/cranium/build/synapse_protobuf': CMAKE_PREFIX_PATH=${CMAKE_PREFIX_PATH}:/home/user/cognipilot/cranium/install/b3rb_ros_aim_india:/opt/ros/humble /usr/bin/cmake --install /home/user/cognipilot/cranium/build/synapse_protobuf
+[1.174s] -- Install configuration: ""
+[1.175s] -- Up-to-date: /home/user/cognipilot/cranium/install/synapse_protobuf/share/synapse_protobuf/environment/library_path.sh
+[1.176s] -- Up-to-date: /home/user/cognipilot/cranium/install/synapse_protobuf/share/synapse_protobuf/environment/library_path.dsv
+[1.178s] -- Up-to-date: /home/user/cognipilot/cranium/install/synapse_protobuf/share/ament_index/resource_index/package_run_dependencies/synapse_protobuf
+[1.181s] -- Up-to-date: /home/user/cognipilot/cranium/install/synapse_protobuf/share/ament_index/resource_index/parent_prefix_path/synapse_protobuf
+[1.183s] -- Up-to-date: /home/user/cognipilot/cranium/install/synapse_protobuf/share/synapse_protobuf/environment/ament_prefix_path.sh
+[1.185s] -- Up-to-date: /home/user/cognipilot/cranium/install/synapse_protobuf/share/synapse_protobuf/environment/ament_prefix_path.dsv
+[1.187s] -- Up-to-date: /home/user/cognipilot/cranium/install/synapse_protobuf/share/synapse_protobuf/environment/path.sh
+[1.193s] -- Up-to-date: /home/user/cognipilot/cranium/install/synapse_protobuf/share/synapse_protobuf/environment/path.dsv
+[1.194s] -- Up-to-date: /home/user/cognipilot/cranium/install/synapse_protobuf/share/synapse_protobuf/local_setup.bash
+[1.196s] -- Up-to-date: /home/user/cognipilot/cranium/install/synapse_protobuf/share/synapse_protobuf/local_setup.sh
+[1.197s] -- Up-to-date: /home/user/cognipilot/cranium/install/synapse_protobuf/share/synapse_protobuf/local_setup.zsh
+[1.198s] -- Up-to-date: /home/user/cognipilot/cranium/install/synapse_protobuf/share/synapse_protobuf/local_setup.dsv
+[1.199s] -- Installing: /home/user/cognipilot/cranium/install/synapse_protobuf/share/synapse_protobuf/package.dsv
+[1.200s] -- Up-to-date: /home/user/cognipilot/cranium/install/synapse_protobuf/share/ament_index/resource_index/packages/synapse_protobuf
+[1.201s] -- Up-to-date: /home/user/cognipilot/cranium/install/synapse_protobuf/share/synapse_protobuf/cmake/synapse_protobufExport.cmake
+[1.202s] -- Up-to-date: /home/user/cognipilot/cranium/install/synapse_protobuf/share/synapse_protobuf/cmake/synapse_protobufExport-noconfig.cmake
+[1.203s] -- Up-to-date: /home/user/cognipilot/cranium/install/synapse_protobuf/share/synapse_protobuf/cmake/ament_cmake_export_targets-extras.cmake
+[1.204s] -- Up-to-date: /home/user/cognipilot/cranium/install/synapse_protobuf/share/synapse_protobuf/cmake/ament_cmake_export_dependencies-extras.cmake
+[1.212s] -- Up-to-date: /home/user/cognipilot/cranium/install/synapse_protobuf/share/synapse_protobuf/cmake/synapse_protobufConfig.cmake
+[1.228s] -- Up-to-date: /home/user/cognipilot/cranium/install/synapse_protobuf/share/synapse_protobuf/cmake/synapse_protobufConfig-version.cmake
+[1.229s] -- Up-to-date: /home/user/cognipilot/cranium/install/synapse_protobuf/share/synapse_protobuf/package.xml
+[1.232s] -- Up-to-date: /home/user/cognipilot/cranium/install/synapse_protobuf/lib/libsynapse_protobuf.a
+[1.233s] -- Up-to-date: /home/user/cognipilot/cranium/install/synapse_protobuf/include/synapse_protobuf/actuators.pb.h
+[1.234s] -- Up-to-date: /home/user/cognipilot/cranium/install/synapse_protobuf/include/synapse_protobuf/altimeter.pb.h
+[1.235s] -- Up-to-date: /home/user/cognipilot/cranium/install/synapse_protobuf/include/synapse_protobuf/battery_state.pb.h
+[1.236s] -- Up-to-date: /home/user/cognipilot/cranium/install/synapse_protobuf/include/synapse_protobuf/bezier_curve.pb.h
+[1.237s] -- Up-to-date: /home/user/cognipilot/cranium/install/synapse_protobuf/include/synapse_protobuf/bezier_trajectory.pb.h
+[1.238s] -- Up-to-date: /home/user/cognipilot/cranium/install/synapse_protobuf/include/synapse_protobuf/can.pb.h
+[1.239s] -- Up-to-date: /home/user/cognipilot/cranium/install/synapse_protobuf/include/synapse_protobuf/header.pb.h
+[1.240s] -- Up-to-date: /home/user/cognipilot/cranium/install/synapse_protobuf/include/synapse_protobuf/imu.pb.h
+[1.241s] -- Up-to-date: /home/user/cognipilot/cranium/install/synapse_protobuf/include/synapse_protobuf/joy.pb.h
+[1.249s] -- Up-to-date: /home/user/cognipilot/cranium/install/synapse_protobuf/include/synapse_protobuf/led.pb.h
+[1.250s] -- Up-to-date: /home/user/cognipilot/cranium/install/synapse_protobuf/include/synapse_protobuf/led_array.pb.h
+[1.251s] -- Up-to-date: /home/user/cognipilot/cranium/install/synapse_protobuf/include/synapse_protobuf/magnetic_field.pb.h
+[1.252s] -- Up-to-date: /home/user/cognipilot/cranium/install/synapse_protobuf/include/synapse_protobuf/nav_sat_fix.pb.h
+[1.253s] -- Up-to-date: /home/user/cognipilot/cranium/install/synapse_protobuf/include/synapse_protobuf/nav_sat_status.pb.h
+[1.254s] -- Up-to-date: /home/user/cognipilot/cranium/install/synapse_protobuf/include/synapse_protobuf/odometry.pb.h
+[1.255s] -- Up-to-date: /home/user/cognipilot/cranium/install/synapse_protobuf/include/synapse_protobuf/point.pb.h
+[1.256s] -- Up-to-date: /home/user/cognipilot/cranium/install/synapse_protobuf/include/synapse_protobuf/pose.pb.h
+[1.258s] -- Up-to-date: /home/user/cognipilot/cranium/install/synapse_protobuf/include/synapse_protobuf/pose_with_covariance.pb.h
+[1.259s] -- Up-to-date: /home/user/cognipilot/cranium/install/synapse_protobuf/include/synapse_protobuf/quaternion.pb.h
+[1.260s] -- Up-to-date: /home/user/cognipilot/cranium/install/synapse_protobuf/include/synapse_protobuf/safety.pb.h
+[1.261s] -- Up-to-date: /home/user/cognipilot/cranium/install/synapse_protobuf/include/synapse_protobuf/sim_clock.pb.h
+[1.279s] -- Up-to-date: /home/user/cognipilot/cranium/install/synapse_protobuf/include/synapse_protobuf/status.pb.h
+[1.280s] -- Up-to-date: /home/user/cognipilot/cranium/install/synapse_protobuf/include/synapse_protobuf/time.pb.h
+[1.281s] -- Up-to-date: /home/user/cognipilot/cranium/install/synapse_protobuf/include/synapse_protobuf/twist.pb.h
+[1.282s] -- Up-to-date: /home/user/cognipilot/cranium/install/synapse_protobuf/include/synapse_protobuf/twist_with_covariance.pb.h
+[1.283s] -- Up-to-date: /home/user/cognipilot/cranium/install/synapse_protobuf/include/synapse_protobuf/vector3.pb.h
+[1.284s] -- Up-to-date: /home/user/cognipilot/cranium/install/synapse_protobuf/include/synapse_protobuf/wheel_odometry.pb.h
+[1.299s] Invoked command in '/home/user/cognipilot/cranium/build/synapse_protobuf' returned '0': CMAKE_PREFIX_PATH=${CMAKE_PREFIX_PATH}:/home/user/cognipilot/cranium/install/b3rb_ros_aim_india:/opt/ros/humble /usr/bin/cmake --install /home/user/cognipilot/cranium/build/synapse_protobuf

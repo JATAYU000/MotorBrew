@@ -1,0 +1,4 @@
+source;share/corti/local_setup.bash
+source;share/corti/local_setup.dsv
+source;share/corti/local_setup.sh
+source;share/corti/local_setup.zsh

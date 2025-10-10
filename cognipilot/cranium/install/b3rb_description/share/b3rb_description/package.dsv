@@ -1,0 +1,8 @@
+source;share/b3rb_description/hook/cmake_prefix_path.ps1
+source;share/b3rb_description/hook/cmake_prefix_path.dsv
+source;share/b3rb_description/hook/cmake_prefix_path.sh
+source;share/b3rb_description/local_setup.bash
+source;share/b3rb_description/local_setup.dsv
+source;share/b3rb_description/local_setup.ps1
+source;share/b3rb_description/local_setup.sh
+source;share/b3rb_description/local_setup.zsh

@@ -1,0 +1,9 @@
+/home/user/cognipilot/cranium/build/b3rb_bringup/CMakeFiles/uninstall.dir
+/home/user/cognipilot/cranium/build/b3rb_bringup/CMakeFiles/b3rb_bringup_uninstall.dir
+/home/user/cognipilot/cranium/build/b3rb_bringup/CMakeFiles/test.dir
+/home/user/cognipilot/cranium/build/b3rb_bringup/CMakeFiles/edit_cache.dir
+/home/user/cognipilot/cranium/build/b3rb_bringup/CMakeFiles/rebuild_cache.dir
+/home/user/cognipilot/cranium/build/b3rb_bringup/CMakeFiles/list_install_components.dir
+/home/user/cognipilot/cranium/build/b3rb_bringup/CMakeFiles/install.dir
+/home/user/cognipilot/cranium/build/b3rb_bringup/CMakeFiles/install/local.dir
+/home/user/cognipilot/cranium/build/b3rb_bringup/CMakeFiles/install/strip.dir

@@ -1,0 +1,10 @@
+/home/user/cognipilot/cranium/build/synapse_tinyframe/CMakeFiles/uninstall.dir
+/home/user/cognipilot/cranium/build/synapse_tinyframe/CMakeFiles/synapse_tinyframe_uninstall.dir
+/home/user/cognipilot/cranium/build/synapse_tinyframe/CMakeFiles/synapse_tinyframe.dir
+/home/user/cognipilot/cranium/build/synapse_tinyframe/CMakeFiles/test.dir
+/home/user/cognipilot/cranium/build/synapse_tinyframe/CMakeFiles/edit_cache.dir
+/home/user/cognipilot/cranium/build/synapse_tinyframe/CMakeFiles/rebuild_cache.dir
+/home/user/cognipilot/cranium/build/synapse_tinyframe/CMakeFiles/list_install_components.dir
+/home/user/cognipilot/cranium/build/synapse_tinyframe/CMakeFiles/install.dir
+/home/user/cognipilot/cranium/build/synapse_tinyframe/CMakeFiles/install/local.dir
+/home/user/cognipilot/cranium/build/synapse_tinyframe/CMakeFiles/install/strip.dir

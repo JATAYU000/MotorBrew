@@ -1,0 +1,51 @@
+[ 25%] Built target bezier6
+[ 25%] Built target ament_cmake_python_copy_corti
+[ 50%] Built target odom_to_tf
+[ 75%] Built target tf_to_odom
+[100%] Built target rover_planner
+running egg_info
+writing corti.egg-info/PKG-INFO
+writing dependency_links to corti.egg-info/dependency_links.txt
+writing top-level names to corti.egg-info/top_level.txt
+reading manifest file 'corti.egg-info/SOURCES.txt'
+writing manifest file 'corti.egg-info/SOURCES.txt'
+[100%] Built target ament_cmake_python_build_corti_egg
+-- Install configuration: ""
+-- Up-to-date: /home/user/cognipilot/cranium/install/corti/share/corti/environment/pythonpath.sh
+-- Up-to-date: /home/user/cognipilot/cranium/install/corti/share/corti/environment/pythonpath.dsv
+-- Up-to-date: /home/user/cognipilot/cranium/install/corti/local/lib/python3.10/dist-packages/corti-0.0.0-py3.10.egg-info
+-- Installing: /home/user/cognipilot/cranium/install/corti/local/lib/python3.10/dist-packages/corti-0.0.0-py3.10.egg-info/dependency_links.txt
+-- Installing: /home/user/cognipilot/cranium/install/corti/local/lib/python3.10/dist-packages/corti-0.0.0-py3.10.egg-info/top_level.txt
+-- Installing: /home/user/cognipilot/cranium/install/corti/local/lib/python3.10/dist-packages/corti-0.0.0-py3.10.egg-info/SOURCES.txt
+-- Installing: /home/user/cognipilot/cranium/install/corti/local/lib/python3.10/dist-packages/corti-0.0.0-py3.10.egg-info/PKG-INFO
+-- Up-to-date: /home/user/cognipilot/cranium/install/corti/local/lib/python3.10/dist-packages/corti
+-- Up-to-date: /home/user/cognipilot/cranium/install/corti/local/lib/python3.10/dist-packages/corti/rover_control.py
+-- Up-to-date: /home/user/cognipilot/cranium/install/corti/local/lib/python3.10/dist-packages/corti/TimeOptBez.py
+-- Up-to-date: /home/user/cognipilot/cranium/install/corti/local/lib/python3.10/dist-packages/corti/bezier_rover_planning.py
+-- Up-to-date: /home/user/cognipilot/cranium/install/corti/local/lib/python3.10/dist-packages/corti/SE2Lie.py
+-- Up-to-date: /home/user/cognipilot/cranium/install/corti/local/lib/python3.10/dist-packages/corti/rover_planning.py
+-- Up-to-date: /home/user/cognipilot/cranium/install/corti/local/lib/python3.10/dist-packages/corti/__init__.py
+Listing '/home/user/cognipilot/cranium/install/corti/local/lib/python3.10/dist-packages/corti'...
+-- Up-to-date: /home/user/cognipilot/cranium/install/corti/lib/corti/rover_planner
+-- Up-to-date: /home/user/cognipilot/cranium/install/corti/lib/corti/odom_to_tf
+-- Up-to-date: /home/user/cognipilot/cranium/install/corti/lib/corti/tf_to_odom
+-- Up-to-date: /home/user/cognipilot/cranium/install/corti/share/corti/launch
+-- Up-to-date: /home/user/cognipilot/cranium/install/corti/share/corti/launch/virtual_joy.launch.py
+-- Up-to-date: /home/user/cognipilot/cranium/install/corti/share/corti/launch/corti.launch.py
+-- Up-to-date: /home/user/cognipilot/cranium/install/corti/lib/corti/virtual_joy.py
+-- Up-to-date: /home/user/cognipilot/cranium/install/corti/lib/corti/rover_fixed_trajectory.py
+-- Up-to-date: /home/user/cognipilot/cranium/install/corti/share/ament_index/resource_index/package_run_dependencies/corti
+-- Up-to-date: /home/user/cognipilot/cranium/install/corti/share/ament_index/resource_index/parent_prefix_path/corti
+-- Up-to-date: /home/user/cognipilot/cranium/install/corti/share/corti/environment/ament_prefix_path.sh
+-- Up-to-date: /home/user/cognipilot/cranium/install/corti/share/corti/environment/ament_prefix_path.dsv
+-- Up-to-date: /home/user/cognipilot/cranium/install/corti/share/corti/environment/path.sh
+-- Up-to-date: /home/user/cognipilot/cranium/install/corti/share/corti/environment/path.dsv
+-- Up-to-date: /home/user/cognipilot/cranium/install/corti/share/corti/local_setup.bash
+-- Up-to-date: /home/user/cognipilot/cranium/install/corti/share/corti/local_setup.sh
+-- Up-to-date: /home/user/cognipilot/cranium/install/corti/share/corti/local_setup.zsh
+-- Up-to-date: /home/user/cognipilot/cranium/install/corti/share/corti/local_setup.dsv
+-- Installing: /home/user/cognipilot/cranium/install/corti/share/corti/package.dsv
+-- Up-to-date: /home/user/cognipilot/cranium/install/corti/share/ament_index/resource_index/packages/corti
+-- Up-to-date: /home/user/cognipilot/cranium/install/corti/share/corti/cmake/cortiConfig.cmake
+-- Up-to-date: /home/user/cognipilot/cranium/install/corti/share/corti/cmake/cortiConfig-version.cmake
+-- Up-to-date: /home/user/cognipilot/cranium/install/corti/share/corti/package.xml

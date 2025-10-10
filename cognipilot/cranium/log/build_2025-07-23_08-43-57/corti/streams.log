@@ -1,0 +1,55 @@
+[0.138s] Invoking command in '/home/user/cognipilot/cranium/build/corti': CMAKE_PREFIX_PATH=/home/user/cognipilot/cranium/install/synapse_msgs:/home/user/cognipilot/cranium/install/b3rb_robot:/home/user/cognipilot/cranium/install/b3rb_bringup:/home/user/cognipilot/cranium/install/synapse_ros:/home/user/cognipilot/cranium/install/synapse_tinyframe:/home/user/cognipilot/cranium/install/synapse_protobuf:/home/user/cognipilot/cranium/install/corti:/home/user/cognipilot/cranium/install/ldlidar_stl_ros2:/home/user/cognipilot/cranium/install/b3rb_nav2:/home/user/cognipilot/cranium/install/b3rb_description:/home/user/cognipilot/cranium/install/b3rb_ros_aim_india:/opt/ros/humble LD_LIBRARY_PATH=/home/user/cognipilot/cranium/install/synapse_msgs/lib:/home/user/cognipilot/cranium/install/synapse_tinyframe/lib:/home/user/cognipilot/cranium/install/synapse_protobuf/lib:/opt/ros/humble/opt/rviz_ogre_vendor/lib:/opt/ros/humble/lib/aarch64-linux-gnu:/opt/ros/humble/lib /usr/bin/cmake --build /home/user/cognipilot/cranium/build/corti -- -j4 -l4
+[0.477s] [ 25%] Built target bezier6
+[0.518s] [ 50%] Built target odom_to_tf
+[0.618s] [ 75%] Built target tf_to_odom
+[0.649s] [ 75%] Built target ament_cmake_python_copy_corti
+[0.669s] [100%] Built target rover_planner
+[3.211s] running egg_info
+[3.218s] writing corti.egg-info/PKG-INFO
+[3.220s] writing dependency_links to corti.egg-info/dependency_links.txt
+[3.221s] writing top-level names to corti.egg-info/top_level.txt
+[3.251s] reading manifest file 'corti.egg-info/SOURCES.txt'
+[3.256s] writing manifest file 'corti.egg-info/SOURCES.txt'
+[3.499s] [100%] Built target ament_cmake_python_build_corti_egg
+[3.558s] Invoked command in '/home/user/cognipilot/cranium/build/corti' returned '0': CMAKE_PREFIX_PATH=/home/user/cognipilot/cranium/install/synapse_msgs:/home/user/cognipilot/cranium/install/b3rb_robot:/home/user/cognipilot/cranium/install/b3rb_bringup:/home/user/cognipilot/cranium/install/synapse_ros:/home/user/cognipilot/cranium/install/synapse_tinyframe:/home/user/cognipilot/cranium/install/synapse_protobuf:/home/user/cognipilot/cranium/install/corti:/home/user/cognipilot/cranium/install/ldlidar_stl_ros2:/home/user/cognipilot/cranium/install/b3rb_nav2:/home/user/cognipilot/cranium/install/b3rb_description:/home/user/cognipilot/cranium/install/b3rb_ros_aim_india:/opt/ros/humble LD_LIBRARY_PATH=/home/user/cognipilot/cranium/install/synapse_msgs/lib:/home/user/cognipilot/cranium/install/synapse_tinyframe/lib:/home/user/cognipilot/cranium/install/synapse_protobuf/lib:/opt/ros/humble/opt/rviz_ogre_vendor/lib:/opt/ros/humble/lib/aarch64-linux-gnu:/opt/ros/humble/lib /usr/bin/cmake --build /home/user/cognipilot/cranium/build/corti -- -j4 -l4
+[3.566s] Invoking command in '/home/user/cognipilot/cranium/build/corti': CMAKE_PREFIX_PATH=/home/user/cognipilot/cranium/install/synapse_msgs:/home/user/cognipilot/cranium/install/b3rb_robot:/home/user/cognipilot/cranium/install/b3rb_bringup:/home/user/cognipilot/cranium/install/synapse_ros:/home/user/cognipilot/cranium/install/synapse_tinyframe:/home/user/cognipilot/cranium/install/synapse_protobuf:/home/user/cognipilot/cranium/install/corti:/home/user/cognipilot/cranium/install/ldlidar_stl_ros2:/home/user/cognipilot/cranium/install/b3rb_nav2:/home/user/cognipilot/cranium/install/b3rb_description:/home/user/cognipilot/cranium/install/b3rb_ros_aim_india:/opt/ros/humble LD_LIBRARY_PATH=/home/user/cognipilot/cranium/install/synapse_msgs/lib:/home/user/cognipilot/cranium/install/synapse_tinyframe/lib:/home/user/cognipilot/cranium/install/synapse_protobuf/lib:/opt/ros/humble/opt/rviz_ogre_vendor/lib:/opt/ros/humble/lib/aarch64-linux-gnu:/opt/ros/humble/lib /usr/bin/cmake --install /home/user/cognipilot/cranium/build/corti
+[3.608s] -- Install configuration: ""
+[3.609s] -- Up-to-date: /home/user/cognipilot/cranium/install/corti/share/corti/environment/pythonpath.sh
+[3.610s] -- Up-to-date: /home/user/cognipilot/cranium/install/corti/share/corti/environment/pythonpath.dsv
+[3.611s] -- Up-to-date: /home/user/cognipilot/cranium/install/corti/local/lib/python3.10/dist-packages/corti-0.0.0-py3.10.egg-info
+[3.612s] -- Installing: /home/user/cognipilot/cranium/install/corti/local/lib/python3.10/dist-packages/corti-0.0.0-py3.10.egg-info/dependency_links.txt
+[3.614s] -- Installing: /home/user/cognipilot/cranium/install/corti/local/lib/python3.10/dist-packages/corti-0.0.0-py3.10.egg-info/top_level.txt
+[3.615s] -- Installing: /home/user/cognipilot/cranium/install/corti/local/lib/python3.10/dist-packages/corti-0.0.0-py3.10.egg-info/SOURCES.txt
+[3.616s] -- Installing: /home/user/cognipilot/cranium/install/corti/local/lib/python3.10/dist-packages/corti-0.0.0-py3.10.egg-info/PKG-INFO
+[3.616s] -- Up-to-date: /home/user/cognipilot/cranium/install/corti/local/lib/python3.10/dist-packages/corti
+[3.617s] -- Up-to-date: /home/user/cognipilot/cranium/install/corti/local/lib/python3.10/dist-packages/corti/rover_control.py
+[3.618s] -- Up-to-date: /home/user/cognipilot/cranium/install/corti/local/lib/python3.10/dist-packages/corti/TimeOptBez.py
+[3.620s] -- Up-to-date: /home/user/cognipilot/cranium/install/corti/local/lib/python3.10/dist-packages/corti/bezier_rover_planning.py
+[3.620s] -- Up-to-date: /home/user/cognipilot/cranium/install/corti/local/lib/python3.10/dist-packages/corti/SE2Lie.py
+[3.621s] -- Up-to-date: /home/user/cognipilot/cranium/install/corti/local/lib/python3.10/dist-packages/corti/rover_planning.py
+[3.622s] -- Up-to-date: /home/user/cognipilot/cranium/install/corti/local/lib/python3.10/dist-packages/corti/__init__.py
+[3.862s] Listing '/home/user/cognipilot/cranium/install/corti/local/lib/python3.10/dist-packages/corti'...
+[3.913s] -- Up-to-date: /home/user/cognipilot/cranium/install/corti/lib/corti/rover_planner
+[3.915s] -- Up-to-date: /home/user/cognipilot/cranium/install/corti/lib/corti/odom_to_tf
+[3.916s] -- Up-to-date: /home/user/cognipilot/cranium/install/corti/lib/corti/tf_to_odom
+[3.918s] -- Up-to-date: /home/user/cognipilot/cranium/install/corti/share/corti/launch
+[3.920s] -- Up-to-date: /home/user/cognipilot/cranium/install/corti/share/corti/launch/virtual_joy.launch.py
+[3.921s] -- Up-to-date: /home/user/cognipilot/cranium/install/corti/share/corti/launch/corti.launch.py
+[3.923s] -- Up-to-date: /home/user/cognipilot/cranium/install/corti/lib/corti/virtual_joy.py
+[3.924s] -- Up-to-date: /home/user/cognipilot/cranium/install/corti/lib/corti/rover_fixed_trajectory.py
+[3.925s] -- Up-to-date: /home/user/cognipilot/cranium/install/corti/share/ament_index/resource_index/package_run_dependencies/corti
+[3.926s] -- Up-to-date: /home/user/cognipilot/cranium/install/corti/share/ament_index/resource_index/parent_prefix_path/corti
+[3.927s] -- Up-to-date: /home/user/cognipilot/cranium/install/corti/share/corti/environment/ament_prefix_path.sh
+[3.928s] -- Up-to-date: /home/user/cognipilot/cranium/install/corti/share/corti/environment/ament_prefix_path.dsv
+[3.928s] -- Up-to-date: /home/user/cognipilot/cranium/install/corti/share/corti/environment/path.sh
+[3.929s] -- Up-to-date: /home/user/cognipilot/cranium/install/corti/share/corti/environment/path.dsv
+[3.930s] -- Up-to-date: /home/user/cognipilot/cranium/install/corti/share/corti/local_setup.bash
+[3.932s] -- Up-to-date: /home/user/cognipilot/cranium/install/corti/share/corti/local_setup.sh
+[3.934s] -- Up-to-date: /home/user/cognipilot/cranium/install/corti/share/corti/local_setup.zsh
+[3.941s] -- Up-to-date: /home/user/cognipilot/cranium/install/corti/share/corti/local_setup.dsv
+[3.943s] -- Installing: /home/user/cognipilot/cranium/install/corti/share/corti/package.dsv
+[3.944s] -- Up-to-date: /home/user/cognipilot/cranium/install/corti/share/ament_index/resource_index/packages/corti
+[3.945s] -- Up-to-date: /home/user/cognipilot/cranium/install/corti/share/corti/cmake/cortiConfig.cmake
+[3.946s] -- Up-to-date: /home/user/cognipilot/cranium/install/corti/share/corti/cmake/cortiConfig-version.cmake
+[3.947s] -- Up-to-date: /home/user/cognipilot/cranium/install/corti/share/corti/package.xml
+[3.949s] Invoked command in '/home/user/cognipilot/cranium/build/corti' returned '0': CMAKE_PREFIX_PATH=/home/user/cognipilot/cranium/install/synapse_msgs:/home/user/cognipilot/cranium/install/b3rb_robot:/home/user/cognipilot/cranium/install/b3rb_bringup:/home/user/cognipilot/cranium/install/synapse_ros:/home/user/cognipilot/cranium/install/synapse_tinyframe:/home/user/cognipilot/cranium/install/synapse_protobuf:/home/user/cognipilot/cranium/install/corti:/home/user/cognipilot/cranium/install/ldlidar_stl_ros2:/home/user/cognipilot/cranium/install/b3rb_nav2:/home/user/cognipilot/cranium/install/b3rb_description:/home/user/cognipilot/cranium/install/b3rb_ros_aim_india:/opt/ros/humble LD_LIBRARY_PATH=/home/user/cognipilot/cranium/install/synapse_msgs/lib:/home/user/cognipilot/cranium/install/synapse_tinyframe/lib:/home/user/cognipilot/cranium/install/synapse_protobuf/lib:/opt/ros/humble/opt/rviz_ogre_vendor/lib:/opt/ros/humble/lib/aarch64-linux-gnu:/opt/ros/humble/lib /usr/bin/cmake --install /home/user/cognipilot/cranium/build/corti

@@ -1,0 +1,2 @@
+/usr/bin/ar qc libsynapse_tinyframe.a CMakeFiles/synapse_tinyframe.dir/src/TinyFrame.c.o CMakeFiles/synapse_tinyframe.dir/src/utils.c.o
+/usr/bin/ranlib libsynapse_tinyframe.a

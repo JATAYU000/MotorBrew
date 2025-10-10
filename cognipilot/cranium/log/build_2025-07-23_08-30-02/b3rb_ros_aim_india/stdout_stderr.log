@@ -1,0 +1,26 @@
+running egg_info
+writing ../../build/b3rb_ros_aim_india/b3rb_ros_aim_india.egg-info/PKG-INFO
+writing dependency_links to ../../build/b3rb_ros_aim_india/b3rb_ros_aim_india.egg-info/dependency_links.txt
+writing entry points to ../../build/b3rb_ros_aim_india/b3rb_ros_aim_india.egg-info/entry_points.txt
+writing requirements to ../../build/b3rb_ros_aim_india/b3rb_ros_aim_india.egg-info/requires.txt
+writing top-level names to ../../build/b3rb_ros_aim_india/b3rb_ros_aim_india.egg-info/top_level.txt
+reading manifest file '../../build/b3rb_ros_aim_india/b3rb_ros_aim_india.egg-info/SOURCES.txt'
+adding license file 'LICENSE'
+writing manifest file '../../build/b3rb_ros_aim_india/b3rb_ros_aim_india.egg-info/SOURCES.txt'
+running build
+running build_py
+copying b3rb_ros_aim_india/b3rb_ros_warehouse.py -> /home/user/cognipilot/cranium/build/b3rb_ros_aim_india/build/lib/b3rb_ros_aim_india
+running install
+running install_lib
+copying /home/user/cognipilot/cranium/build/b3rb_ros_aim_india/build/lib/b3rb_ros_aim_india/b3rb_ros_warehouse.py -> /home/user/cognipilot/cranium/install/b3rb_ros_aim_india/lib/python3.10/site-packages/b3rb_ros_aim_india
+byte-compiling /home/user/cognipilot/cranium/install/b3rb_ros_aim_india/lib/python3.10/site-packages/b3rb_ros_aim_india/b3rb_ros_warehouse.py to b3rb_ros_warehouse.cpython-310.pyc
+running install_data
+running install_egg_info
+removing '/home/user/cognipilot/cranium/install/b3rb_ros_aim_india/lib/python3.10/site-packages/b3rb_ros_aim_india-0.0.0-py3.10.egg-info' (and everything under it)
+Copying ../../build/b3rb_ros_aim_india/b3rb_ros_aim_india.egg-info to /home/user/cognipilot/cranium/install/b3rb_ros_aim_india/lib/python3.10/site-packages/b3rb_ros_aim_india-0.0.0-py3.10.egg-info
+running install_scripts
+Installing detect script to /home/user/cognipilot/cranium/install/b3rb_ros_aim_india/lib/b3rb_ros_aim_india
+Installing explore script to /home/user/cognipilot/cranium/install/b3rb_ros_aim_india/lib/b3rb_ros_aim_india
+Installing remover script to /home/user/cognipilot/cranium/install/b3rb_ros_aim_india/lib/b3rb_ros_aim_india
+Installing visualize script to /home/user/cognipilot/cranium/install/b3rb_ros_aim_india/lib/b3rb_ros_aim_india
+writing list of installed files to '/home/user/cognipilot/cranium/build/b3rb_ros_aim_india/install.log'

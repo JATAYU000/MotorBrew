@@ -1,0 +1,17 @@
+/home/user/cognipilot/cranium/build/synapse_protobuf/CMakeFiles/uninstall.dir
+/home/user/cognipilot/cranium/build/synapse_protobuf/CMakeFiles/synapse_protobuf_uninstall.dir
+/home/user/cognipilot/cranium/build/synapse_protobuf/CMakeFiles/test.dir
+/home/user/cognipilot/cranium/build/synapse_protobuf/CMakeFiles/edit_cache.dir
+/home/user/cognipilot/cranium/build/synapse_protobuf/CMakeFiles/rebuild_cache.dir
+/home/user/cognipilot/cranium/build/synapse_protobuf/CMakeFiles/list_install_components.dir
+/home/user/cognipilot/cranium/build/synapse_protobuf/CMakeFiles/install.dir
+/home/user/cognipilot/cranium/build/synapse_protobuf/CMakeFiles/install/local.dir
+/home/user/cognipilot/cranium/build/synapse_protobuf/CMakeFiles/install/strip.dir
+/home/user/cognipilot/cranium/build/synapse_protobuf/proto/CMakeFiles/synapse_protobuf.dir
+/home/user/cognipilot/cranium/build/synapse_protobuf/proto/CMakeFiles/test.dir
+/home/user/cognipilot/cranium/build/synapse_protobuf/proto/CMakeFiles/edit_cache.dir
+/home/user/cognipilot/cranium/build/synapse_protobuf/proto/CMakeFiles/rebuild_cache.dir
+/home/user/cognipilot/cranium/build/synapse_protobuf/proto/CMakeFiles/list_install_components.dir
+/home/user/cognipilot/cranium/build/synapse_protobuf/proto/CMakeFiles/install.dir
+/home/user/cognipilot/cranium/build/synapse_protobuf/proto/CMakeFiles/install/local.dir
+/home/user/cognipilot/cranium/build/synapse_protobuf/proto/CMakeFiles/install/strip.dir

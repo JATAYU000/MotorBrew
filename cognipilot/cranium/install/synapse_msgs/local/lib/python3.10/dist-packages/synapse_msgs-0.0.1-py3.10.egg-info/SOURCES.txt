@@ -1,0 +1,13 @@
+setup.py
+synapse_msgs/__init__.py
+synapse_msgs.egg-info/PKG-INFO
+synapse_msgs.egg-info/SOURCES.txt
+synapse_msgs.egg-info/dependency_links.txt
+synapse_msgs.egg-info/top_level.txt
+synapse_msgs/msg/__init__.py
+synapse_msgs/msg/_bezier_curve.py
+synapse_msgs/msg/_bezier_trajectory.py
+synapse_msgs/msg/_edge_vectors.py
+synapse_msgs/msg/_status.py
+synapse_msgs/msg/_traffic_status.py
+synapse_msgs/msg/_warehouse_shelf.py

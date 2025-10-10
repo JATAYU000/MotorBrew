@@ -1,0 +1,15 @@
+/home/user/cognipilot/cranium/build/corti/CMakeFiles/uninstall.dir
+/home/user/cognipilot/cranium/build/corti/CMakeFiles/corti_uninstall.dir
+/home/user/cognipilot/cranium/build/corti/CMakeFiles/bezier6.dir
+/home/user/cognipilot/cranium/build/corti/CMakeFiles/rover_planner.dir
+/home/user/cognipilot/cranium/build/corti/CMakeFiles/odom_to_tf.dir
+/home/user/cognipilot/cranium/build/corti/CMakeFiles/tf_to_odom.dir
+/home/user/cognipilot/cranium/build/corti/CMakeFiles/ament_cmake_python_copy_corti.dir
+/home/user/cognipilot/cranium/build/corti/CMakeFiles/ament_cmake_python_build_corti_egg.dir
+/home/user/cognipilot/cranium/build/corti/CMakeFiles/test.dir
+/home/user/cognipilot/cranium/build/corti/CMakeFiles/edit_cache.dir
+/home/user/cognipilot/cranium/build/corti/CMakeFiles/rebuild_cache.dir
+/home/user/cognipilot/cranium/build/corti/CMakeFiles/list_install_components.dir
+/home/user/cognipilot/cranium/build/corti/CMakeFiles/install.dir
+/home/user/cognipilot/cranium/build/corti/CMakeFiles/install/local.dir
+/home/user/cognipilot/cranium/build/corti/CMakeFiles/install/strip.dir

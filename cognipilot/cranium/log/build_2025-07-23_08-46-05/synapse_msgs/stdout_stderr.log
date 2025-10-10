@@ -1,0 +1,236 @@
+[  1%] Built target synapse_msgs__cpp
+[ 12%] Built target synapse_msgs__rosidl_generator_c
+[ 12%] Built target ament_cmake_python_copy_synapse_msgs
+[ 23%] Built target synapse_msgs__rosidl_typesupport_fastrtps_cpp
+[ 34%] Built target synapse_msgs__rosidl_typesupport_introspection_cpp
+[ 45%] Built target synapse_msgs__rosidl_typesupport_cpp
+[ 56%] Built target synapse_msgs__rosidl_typesupport_fastrtps_c
+[ 67%] Built target synapse_msgs__rosidl_typesupport_introspection_c
+[ 78%] Built target synapse_msgs__rosidl_typesupport_c
+[ 78%] Built target synapse_msgs
+[ 80%] Built target synapse_msgs__py
+[ 89%] Built target synapse_msgs__rosidl_generator_py
+[ 92%] Built target synapse_msgs__rosidl_typesupport_c__pyext
+[ 96%] Built target synapse_msgs__rosidl_typesupport_introspection_c__pyext
+[100%] Built target synapse_msgs__rosidl_typesupport_fastrtps_c__pyext
+running egg_info
+writing synapse_msgs.egg-info/PKG-INFO
+writing dependency_links to synapse_msgs.egg-info/dependency_links.txt
+writing top-level names to synapse_msgs.egg-info/top_level.txt
+reading manifest file 'synapse_msgs.egg-info/SOURCES.txt'
+writing manifest file 'synapse_msgs.egg-info/SOURCES.txt'
+[100%] Built target ament_cmake_python_build_synapse_msgs_egg
+-- Install configuration: ""
+-- Up-to-date: /home/user/cognipilot/cranium/install/synapse_msgs/share/ament_index/resource_index/rosidl_interfaces/synapse_msgs
+-- Up-to-date: /home/user/cognipilot/cranium/install/synapse_msgs/include/synapse_msgs/synapse_msgs
+-- Up-to-date: /home/user/cognipilot/cranium/install/synapse_msgs/include/synapse_msgs/synapse_msgs/msg
+-- Up-to-date: /home/user/cognipilot/cranium/install/synapse_msgs/include/synapse_msgs/synapse_msgs/msg/warehouse_shelf.h
+-- Up-to-date: /home/user/cognipilot/cranium/install/synapse_msgs/include/synapse_msgs/synapse_msgs/msg/bezier_trajectory.h
+-- Up-to-date: /home/user/cognipilot/cranium/install/synapse_msgs/include/synapse_msgs/synapse_msgs/msg/edge_vectors.h
+-- Up-to-date: /home/user/cognipilot/cranium/install/synapse_msgs/include/synapse_msgs/synapse_msgs/msg/traffic_status.h
+-- Up-to-date: /home/user/cognipilot/cranium/install/synapse_msgs/include/synapse_msgs/synapse_msgs/msg/bezier_curve.h
+-- Up-to-date: /home/user/cognipilot/cranium/install/synapse_msgs/include/synapse_msgs/synapse_msgs/msg/status.h
+-- Up-to-date: /home/user/cognipilot/cranium/install/synapse_msgs/include/synapse_msgs/synapse_msgs/msg/detail
+-- Up-to-date: /home/user/cognipilot/cranium/install/synapse_msgs/include/synapse_msgs/synapse_msgs/msg/detail/edge_vectors__functions.c
+-- Up-to-date: /home/user/cognipilot/cranium/install/synapse_msgs/include/synapse_msgs/synapse_msgs/msg/detail/status__type_support.h
+-- Up-to-date: /home/user/cognipilot/cranium/install/synapse_msgs/include/synapse_msgs/synapse_msgs/msg/detail/status__functions.c
+-- Up-to-date: /home/user/cognipilot/cranium/install/synapse_msgs/include/synapse_msgs/synapse_msgs/msg/detail/bezier_trajectory__type_support.h
+-- Up-to-date: /home/user/cognipilot/cranium/install/synapse_msgs/include/synapse_msgs/synapse_msgs/msg/detail/traffic_status__functions.c
+-- Up-to-date: /home/user/cognipilot/cranium/install/synapse_msgs/include/synapse_msgs/synapse_msgs/msg/detail/status__functions.h
+-- Up-to-date: /home/user/cognipilot/cranium/install/synapse_msgs/include/synapse_msgs/synapse_msgs/msg/detail/traffic_status__struct.h
+-- Up-to-date: /home/user/cognipilot/cranium/install/synapse_msgs/include/synapse_msgs/synapse_msgs/msg/detail/bezier_curve__functions.h
+-- Up-to-date: /home/user/cognipilot/cranium/install/synapse_msgs/include/synapse_msgs/synapse_msgs/msg/detail/traffic_status__functions.h
+-- Up-to-date: /home/user/cognipilot/cranium/install/synapse_msgs/include/synapse_msgs/synapse_msgs/msg/detail/bezier_curve__type_support.h
+-- Up-to-date: /home/user/cognipilot/cranium/install/synapse_msgs/include/synapse_msgs/synapse_msgs/msg/detail/warehouse_shelf__type_support.h
+-- Up-to-date: /home/user/cognipilot/cranium/install/synapse_msgs/include/synapse_msgs/synapse_msgs/msg/detail/status__struct.h
+-- Up-to-date: /home/user/cognipilot/cranium/install/synapse_msgs/include/synapse_msgs/synapse_msgs/msg/detail/edge_vectors__type_support.h
+-- Up-to-date: /home/user/cognipilot/cranium/install/synapse_msgs/include/synapse_msgs/synapse_msgs/msg/detail/traffic_status__type_support.h
+-- Up-to-date: /home/user/cognipilot/cranium/install/synapse_msgs/include/synapse_msgs/synapse_msgs/msg/detail/bezier_curve__struct.h
+-- Up-to-date: /home/user/cognipilot/cranium/install/synapse_msgs/include/synapse_msgs/synapse_msgs/msg/detail/bezier_trajectory__functions.c
+-- Up-to-date: /home/user/cognipilot/cranium/install/synapse_msgs/include/synapse_msgs/synapse_msgs/msg/detail/bezier_curve__functions.c
+-- Up-to-date: /home/user/cognipilot/cranium/install/synapse_msgs/include/synapse_msgs/synapse_msgs/msg/detail/warehouse_shelf__functions.c
+-- Up-to-date: /home/user/cognipilot/cranium/install/synapse_msgs/include/synapse_msgs/synapse_msgs/msg/detail/edge_vectors__functions.h
+-- Up-to-date: /home/user/cognipilot/cranium/install/synapse_msgs/include/synapse_msgs/synapse_msgs/msg/detail/edge_vectors__struct.h
+-- Up-to-date: /home/user/cognipilot/cranium/install/synapse_msgs/include/synapse_msgs/synapse_msgs/msg/detail/bezier_trajectory__struct.h
+-- Up-to-date: /home/user/cognipilot/cranium/install/synapse_msgs/include/synapse_msgs/synapse_msgs/msg/detail/bezier_trajectory__functions.h
+-- Up-to-date: /home/user/cognipilot/cranium/install/synapse_msgs/include/synapse_msgs/synapse_msgs/msg/detail/warehouse_shelf__struct.h
+-- Up-to-date: /home/user/cognipilot/cranium/install/synapse_msgs/include/synapse_msgs/synapse_msgs/msg/detail/warehouse_shelf__functions.h
+-- Up-to-date: /home/user/cognipilot/cranium/install/synapse_msgs/include/synapse_msgs/synapse_msgs/msg/rosidl_generator_c__visibility_control.h
+-- Up-to-date: /home/user/cognipilot/cranium/install/synapse_msgs/share/synapse_msgs/environment/library_path.sh
+-- Up-to-date: /home/user/cognipilot/cranium/install/synapse_msgs/share/synapse_msgs/environment/library_path.dsv
+-- Up-to-date: /home/user/cognipilot/cranium/install/synapse_msgs/lib/libsynapse_msgs__rosidl_generator_c.so
+-- Up-to-date: /home/user/cognipilot/cranium/install/synapse_msgs/include/synapse_msgs/synapse_msgs
+-- Up-to-date: /home/user/cognipilot/cranium/install/synapse_msgs/include/synapse_msgs/synapse_msgs/msg
+-- Up-to-date: /home/user/cognipilot/cranium/install/synapse_msgs/include/synapse_msgs/synapse_msgs/msg/detail
+-- Up-to-date: /home/user/cognipilot/cranium/install/synapse_msgs/include/synapse_msgs/synapse_msgs/msg/detail/warehouse_shelf__rosidl_typesupport_fastrtps_c.h
+-- Up-to-date: /home/user/cognipilot/cranium/install/synapse_msgs/include/synapse_msgs/synapse_msgs/msg/detail/traffic_status__rosidl_typesupport_fastrtps_c.h
+-- Up-to-date: /home/user/cognipilot/cranium/install/synapse_msgs/include/synapse_msgs/synapse_msgs/msg/detail/bezier_curve__rosidl_typesupport_fastrtps_c.h
+-- Up-to-date: /home/user/cognipilot/cranium/install/synapse_msgs/include/synapse_msgs/synapse_msgs/msg/detail/bezier_trajectory__rosidl_typesupport_fastrtps_c.h
+-- Up-to-date: /home/user/cognipilot/cranium/install/synapse_msgs/include/synapse_msgs/synapse_msgs/msg/detail/status__rosidl_typesupport_fastrtps_c.h
+-- Up-to-date: /home/user/cognipilot/cranium/install/synapse_msgs/include/synapse_msgs/synapse_msgs/msg/detail/edge_vectors__rosidl_typesupport_fastrtps_c.h
+-- Up-to-date: /home/user/cognipilot/cranium/install/synapse_msgs/include/synapse_msgs/synapse_msgs/msg/rosidl_typesupport_fastrtps_c__visibility_control.h
+-- Up-to-date: /home/user/cognipilot/cranium/install/synapse_msgs/lib/libsynapse_msgs__rosidl_typesupport_fastrtps_c.so
+-- Up-to-date: /home/user/cognipilot/cranium/install/synapse_msgs/include/synapse_msgs/synapse_msgs
+-- Up-to-date: /home/user/cognipilot/cranium/install/synapse_msgs/include/synapse_msgs/synapse_msgs/msg
+-- Up-to-date: /home/user/cognipilot/cranium/install/synapse_msgs/include/synapse_msgs/synapse_msgs/msg/detail
+-- Up-to-date: /home/user/cognipilot/cranium/install/synapse_msgs/include/synapse_msgs/synapse_msgs/msg/detail/edge_vectors__type_support.c
+-- Up-to-date: /home/user/cognipilot/cranium/install/synapse_msgs/include/synapse_msgs/synapse_msgs/msg/detail/bezier_curve__type_support.c
+-- Up-to-date: /home/user/cognipilot/cranium/install/synapse_msgs/include/synapse_msgs/synapse_msgs/msg/detail/status__rosidl_typesupport_introspection_c.h
+-- Up-to-date: /home/user/cognipilot/cranium/install/synapse_msgs/include/synapse_msgs/synapse_msgs/msg/detail/status__type_support.c
+-- Up-to-date: /home/user/cognipilot/cranium/install/synapse_msgs/include/synapse_msgs/synapse_msgs/msg/detail/edge_vectors__rosidl_typesupport_introspection_c.h
+-- Up-to-date: /home/user/cognipilot/cranium/install/synapse_msgs/include/synapse_msgs/synapse_msgs/msg/detail/warehouse_shelf__rosidl_typesupport_introspection_c.h
+-- Up-to-date: /home/user/cognipilot/cranium/install/synapse_msgs/include/synapse_msgs/synapse_msgs/msg/detail/traffic_status__rosidl_typesupport_introspection_c.h
+-- Up-to-date: /home/user/cognipilot/cranium/install/synapse_msgs/include/synapse_msgs/synapse_msgs/msg/detail/bezier_trajectory__type_support.c
+-- Up-to-date: /home/user/cognipilot/cranium/install/synapse_msgs/include/synapse_msgs/synapse_msgs/msg/detail/bezier_trajectory__rosidl_typesupport_introspection_c.h
+-- Up-to-date: /home/user/cognipilot/cranium/install/synapse_msgs/include/synapse_msgs/synapse_msgs/msg/detail/warehouse_shelf__type_support.c
+-- Up-to-date: /home/user/cognipilot/cranium/install/synapse_msgs/include/synapse_msgs/synapse_msgs/msg/detail/traffic_status__type_support.c
+-- Up-to-date: /home/user/cognipilot/cranium/install/synapse_msgs/include/synapse_msgs/synapse_msgs/msg/detail/bezier_curve__rosidl_typesupport_introspection_c.h
+-- Up-to-date: /home/user/cognipilot/cranium/install/synapse_msgs/include/synapse_msgs/synapse_msgs/msg/rosidl_typesupport_introspection_c__visibility_control.h
+-- Up-to-date: /home/user/cognipilot/cranium/install/synapse_msgs/lib/libsynapse_msgs__rosidl_typesupport_introspection_c.so
+-- Up-to-date: /home/user/cognipilot/cranium/install/synapse_msgs/lib/libsynapse_msgs__rosidl_typesupport_c.so
+-- Up-to-date: /home/user/cognipilot/cranium/install/synapse_msgs/include/synapse_msgs/synapse_msgs
+-- Up-to-date: /home/user/cognipilot/cranium/install/synapse_msgs/include/synapse_msgs/synapse_msgs/msg
+-- Up-to-date: /home/user/cognipilot/cranium/install/synapse_msgs/include/synapse_msgs/synapse_msgs/msg/rosidl_generator_cpp__visibility_control.hpp
+-- Up-to-date: /home/user/cognipilot/cranium/install/synapse_msgs/include/synapse_msgs/synapse_msgs/msg/edge_vectors.hpp
+-- Up-to-date: /home/user/cognipilot/cranium/install/synapse_msgs/include/synapse_msgs/synapse_msgs/msg/status.hpp
+-- Up-to-date: /home/user/cognipilot/cranium/install/synapse_msgs/include/synapse_msgs/synapse_msgs/msg/bezier_trajectory.hpp
+-- Up-to-date: /home/user/cognipilot/cranium/install/synapse_msgs/include/synapse_msgs/synapse_msgs/msg/detail
+-- Up-to-date: /home/user/cognipilot/cranium/install/synapse_msgs/include/synapse_msgs/synapse_msgs/msg/detail/bezier_trajectory__struct.hpp
+-- Up-to-date: /home/user/cognipilot/cranium/install/synapse_msgs/include/synapse_msgs/synapse_msgs/msg/detail/warehouse_shelf__builder.hpp
+-- Up-to-date: /home/user/cognipilot/cranium/install/synapse_msgs/include/synapse_msgs/synapse_msgs/msg/detail/traffic_status__struct.hpp
+-- Up-to-date: /home/user/cognipilot/cranium/install/synapse_msgs/include/synapse_msgs/synapse_msgs/msg/detail/status__traits.hpp
+-- Up-to-date: /home/user/cognipilot/cranium/install/synapse_msgs/include/synapse_msgs/synapse_msgs/msg/detail/warehouse_shelf__traits.hpp
+-- Up-to-date: /home/user/cognipilot/cranium/install/synapse_msgs/include/synapse_msgs/synapse_msgs/msg/detail/traffic_status__type_support.hpp
+-- Up-to-date: /home/user/cognipilot/cranium/install/synapse_msgs/include/synapse_msgs/synapse_msgs/msg/detail/status__type_support.hpp
+-- Up-to-date: /home/user/cognipilot/cranium/install/synapse_msgs/include/synapse_msgs/synapse_msgs/msg/detail/bezier_trajectory__builder.hpp
+-- Up-to-date: /home/user/cognipilot/cranium/install/synapse_msgs/include/synapse_msgs/synapse_msgs/msg/detail/bezier_curve__traits.hpp
+-- Up-to-date: /home/user/cognipilot/cranium/install/synapse_msgs/include/synapse_msgs/synapse_msgs/msg/detail/edge_vectors__type_support.hpp
+-- Up-to-date: /home/user/cognipilot/cranium/install/synapse_msgs/include/synapse_msgs/synapse_msgs/msg/detail/bezier_trajectory__type_support.hpp
+-- Up-to-date: /home/user/cognipilot/cranium/install/synapse_msgs/include/synapse_msgs/synapse_msgs/msg/detail/bezier_curve__builder.hpp
+-- Up-to-date: /home/user/cognipilot/cranium/install/synapse_msgs/include/synapse_msgs/synapse_msgs/msg/detail/traffic_status__builder.hpp
+-- Up-to-date: /home/user/cognipilot/cranium/install/synapse_msgs/include/synapse_msgs/synapse_msgs/msg/detail/bezier_trajectory__traits.hpp
+-- Up-to-date: /home/user/cognipilot/cranium/install/synapse_msgs/include/synapse_msgs/synapse_msgs/msg/detail/edge_vectors__traits.hpp
+-- Up-to-date: /home/user/cognipilot/cranium/install/synapse_msgs/include/synapse_msgs/synapse_msgs/msg/detail/warehouse_shelf__type_support.hpp
+-- Up-to-date: /home/user/cognipilot/cranium/install/synapse_msgs/include/synapse_msgs/synapse_msgs/msg/detail/edge_vectors__builder.hpp
+-- Up-to-date: /home/user/cognipilot/cranium/install/synapse_msgs/include/synapse_msgs/synapse_msgs/msg/detail/warehouse_shelf__struct.hpp
+-- Up-to-date: /home/user/cognipilot/cranium/install/synapse_msgs/include/synapse_msgs/synapse_msgs/msg/detail/edge_vectors__struct.hpp
+-- Up-to-date: /home/user/cognipilot/cranium/install/synapse_msgs/include/synapse_msgs/synapse_msgs/msg/detail/bezier_curve__type_support.hpp
+-- Up-to-date: /home/user/cognipilot/cranium/install/synapse_msgs/include/synapse_msgs/synapse_msgs/msg/detail/bezier_curve__struct.hpp
+-- Up-to-date: /home/user/cognipilot/cranium/install/synapse_msgs/include/synapse_msgs/synapse_msgs/msg/detail/status__struct.hpp
+-- Up-to-date: /home/user/cognipilot/cranium/install/synapse_msgs/include/synapse_msgs/synapse_msgs/msg/detail/traffic_status__traits.hpp
+-- Up-to-date: /home/user/cognipilot/cranium/install/synapse_msgs/include/synapse_msgs/synapse_msgs/msg/detail/status__builder.hpp
+-- Up-to-date: /home/user/cognipilot/cranium/install/synapse_msgs/include/synapse_msgs/synapse_msgs/msg/bezier_curve.hpp
+-- Up-to-date: /home/user/cognipilot/cranium/install/synapse_msgs/include/synapse_msgs/synapse_msgs/msg/warehouse_shelf.hpp
+-- Up-to-date: /home/user/cognipilot/cranium/install/synapse_msgs/include/synapse_msgs/synapse_msgs/msg/traffic_status.hpp
+-- Up-to-date: /home/user/cognipilot/cranium/install/synapse_msgs/include/synapse_msgs/synapse_msgs
+-- Up-to-date: /home/user/cognipilot/cranium/install/synapse_msgs/include/synapse_msgs/synapse_msgs/msg
+-- Up-to-date: /home/user/cognipilot/cranium/install/synapse_msgs/include/synapse_msgs/synapse_msgs/msg/rosidl_typesupport_fastrtps_cpp__visibility_control.h
+-- Up-to-date: /home/user/cognipilot/cranium/install/synapse_msgs/include/synapse_msgs/synapse_msgs/msg/detail
+-- Up-to-date: /home/user/cognipilot/cranium/install/synapse_msgs/include/synapse_msgs/synapse_msgs/msg/detail/traffic_status__rosidl_typesupport_fastrtps_cpp.hpp
+-- Up-to-date: /home/user/cognipilot/cranium/install/synapse_msgs/include/synapse_msgs/synapse_msgs/msg/detail/dds_fastrtps
+-- Up-to-date: /home/user/cognipilot/cranium/install/synapse_msgs/include/synapse_msgs/synapse_msgs/msg/detail/edge_vectors__rosidl_typesupport_fastrtps_cpp.hpp
+-- Up-to-date: /home/user/cognipilot/cranium/install/synapse_msgs/include/synapse_msgs/synapse_msgs/msg/detail/bezier_trajectory__rosidl_typesupport_fastrtps_cpp.hpp
+-- Up-to-date: /home/user/cognipilot/cranium/install/synapse_msgs/include/synapse_msgs/synapse_msgs/msg/detail/warehouse_shelf__rosidl_typesupport_fastrtps_cpp.hpp
+-- Up-to-date: /home/user/cognipilot/cranium/install/synapse_msgs/include/synapse_msgs/synapse_msgs/msg/detail/status__rosidl_typesupport_fastrtps_cpp.hpp
+-- Up-to-date: /home/user/cognipilot/cranium/install/synapse_msgs/include/synapse_msgs/synapse_msgs/msg/detail/bezier_curve__rosidl_typesupport_fastrtps_cpp.hpp
+-- Up-to-date: /home/user/cognipilot/cranium/install/synapse_msgs/lib/libsynapse_msgs__rosidl_typesupport_fastrtps_cpp.so
+-- Up-to-date: /home/user/cognipilot/cranium/install/synapse_msgs/include/synapse_msgs/synapse_msgs
+-- Up-to-date: /home/user/cognipilot/cranium/install/synapse_msgs/include/synapse_msgs/synapse_msgs/msg
+-- Up-to-date: /home/user/cognipilot/cranium/install/synapse_msgs/include/synapse_msgs/synapse_msgs/msg/detail
+-- Up-to-date: /home/user/cognipilot/cranium/install/synapse_msgs/include/synapse_msgs/synapse_msgs/msg/detail/status__rosidl_typesupport_introspection_cpp.hpp
+-- Up-to-date: /home/user/cognipilot/cranium/install/synapse_msgs/include/synapse_msgs/synapse_msgs/msg/detail/bezier_curve__type_support.cpp
+-- Up-to-date: /home/user/cognipilot/cranium/install/synapse_msgs/include/synapse_msgs/synapse_msgs/msg/detail/warehouse_shelf__type_support.cpp
+-- Up-to-date: /home/user/cognipilot/cranium/install/synapse_msgs/include/synapse_msgs/synapse_msgs/msg/detail/bezier_trajectory__type_support.cpp
+-- Up-to-date: /home/user/cognipilot/cranium/install/synapse_msgs/include/synapse_msgs/synapse_msgs/msg/detail/traffic_status__rosidl_typesupport_introspection_cpp.hpp
+-- Up-to-date: /home/user/cognipilot/cranium/install/synapse_msgs/include/synapse_msgs/synapse_msgs/msg/detail/edge_vectors__rosidl_typesupport_introspection_cpp.hpp
+-- Up-to-date: /home/user/cognipilot/cranium/install/synapse_msgs/include/synapse_msgs/synapse_msgs/msg/detail/status__type_support.cpp
+-- Up-to-date: /home/user/cognipilot/cranium/install/synapse_msgs/include/synapse_msgs/synapse_msgs/msg/detail/warehouse_shelf__rosidl_typesupport_introspection_cpp.hpp
+-- Up-to-date: /home/user/cognipilot/cranium/install/synapse_msgs/include/synapse_msgs/synapse_msgs/msg/detail/traffic_status__type_support.cpp
+-- Up-to-date: /home/user/cognipilot/cranium/install/synapse_msgs/include/synapse_msgs/synapse_msgs/msg/detail/bezier_curve__rosidl_typesupport_introspection_cpp.hpp
+-- Up-to-date: /home/user/cognipilot/cranium/install/synapse_msgs/include/synapse_msgs/synapse_msgs/msg/detail/edge_vectors__type_support.cpp
+-- Up-to-date: /home/user/cognipilot/cranium/install/synapse_msgs/include/synapse_msgs/synapse_msgs/msg/detail/bezier_trajectory__rosidl_typesupport_introspection_cpp.hpp
+-- Up-to-date: /home/user/cognipilot/cranium/install/synapse_msgs/lib/libsynapse_msgs__rosidl_typesupport_introspection_cpp.so
+-- Up-to-date: /home/user/cognipilot/cranium/install/synapse_msgs/lib/libsynapse_msgs__rosidl_typesupport_cpp.so
+-- Up-to-date: /home/user/cognipilot/cranium/install/synapse_msgs/share/synapse_msgs/environment/pythonpath.sh
+-- Up-to-date: /home/user/cognipilot/cranium/install/synapse_msgs/share/synapse_msgs/environment/pythonpath.dsv
+-- Up-to-date: /home/user/cognipilot/cranium/install/synapse_msgs/local/lib/python3.10/dist-packages/synapse_msgs-0.0.1-py3.10.egg-info
+-- Installing: /home/user/cognipilot/cranium/install/synapse_msgs/local/lib/python3.10/dist-packages/synapse_msgs-0.0.1-py3.10.egg-info/dependency_links.txt
+-- Installing: /home/user/cognipilot/cranium/install/synapse_msgs/local/lib/python3.10/dist-packages/synapse_msgs-0.0.1-py3.10.egg-info/top_level.txt
+-- Installing: /home/user/cognipilot/cranium/install/synapse_msgs/local/lib/python3.10/dist-packages/synapse_msgs-0.0.1-py3.10.egg-info/SOURCES.txt
+-- Installing: /home/user/cognipilot/cranium/install/synapse_msgs/local/lib/python3.10/dist-packages/synapse_msgs-0.0.1-py3.10.egg-info/PKG-INFO
+-- Up-to-date: /home/user/cognipilot/cranium/install/synapse_msgs/local/lib/python3.10/dist-packages/synapse_msgs
+-- Up-to-date: /home/user/cognipilot/cranium/install/synapse_msgs/local/lib/python3.10/dist-packages/synapse_msgs/_synapse_msgs_s.ep.rosidl_typesupport_introspection_c.c
+-- Up-to-date: /home/user/cognipilot/cranium/install/synapse_msgs/local/lib/python3.10/dist-packages/synapse_msgs/_synapse_msgs_s.ep.rosidl_typesupport_fastrtps_c.c
+-- Up-to-date: /home/user/cognipilot/cranium/install/synapse_msgs/local/lib/python3.10/dist-packages/synapse_msgs/libsynapse_msgs__rosidl_generator_py.so
+-- Up-to-date: /home/user/cognipilot/cranium/install/synapse_msgs/local/lib/python3.10/dist-packages/synapse_msgs/synapse_msgs_s__rosidl_typesupport_introspection_c.cpython-310-aarch64-linux-gnu.so
+-- Up-to-date: /home/user/cognipilot/cranium/install/synapse_msgs/local/lib/python3.10/dist-packages/synapse_msgs/synapse_msgs_s__rosidl_typesupport_fastrtps_c.cpython-310-aarch64-linux-gnu.so
+-- Up-to-date: /home/user/cognipilot/cranium/install/synapse_msgs/local/lib/python3.10/dist-packages/synapse_msgs/synapse_msgs_s__rosidl_typesupport_c.cpython-310-aarch64-linux-gnu.so
+-- Up-to-date: /home/user/cognipilot/cranium/install/synapse_msgs/local/lib/python3.10/dist-packages/synapse_msgs/_synapse_msgs_s.ep.rosidl_typesupport_c.c
+-- Up-to-date: /home/user/cognipilot/cranium/install/synapse_msgs/local/lib/python3.10/dist-packages/synapse_msgs/msg
+-- Up-to-date: /home/user/cognipilot/cranium/install/synapse_msgs/local/lib/python3.10/dist-packages/synapse_msgs/msg/_bezier_trajectory.py
+-- Up-to-date: /home/user/cognipilot/cranium/install/synapse_msgs/local/lib/python3.10/dist-packages/synapse_msgs/msg/_status_s.c
+-- Up-to-date: /home/user/cognipilot/cranium/install/synapse_msgs/local/lib/python3.10/dist-packages/synapse_msgs/msg/_warehouse_shelf_s.c
+-- Up-to-date: /home/user/cognipilot/cranium/install/synapse_msgs/local/lib/python3.10/dist-packages/synapse_msgs/msg/_edge_vectors.py
+-- Up-to-date: /home/user/cognipilot/cranium/install/synapse_msgs/local/lib/python3.10/dist-packages/synapse_msgs/msg/_warehouse_shelf.py
+-- Up-to-date: /home/user/cognipilot/cranium/install/synapse_msgs/local/lib/python3.10/dist-packages/synapse_msgs/msg/_bezier_trajectory_s.c
+-- Up-to-date: /home/user/cognipilot/cranium/install/synapse_msgs/local/lib/python3.10/dist-packages/synapse_msgs/msg/_traffic_status.py
+-- Up-to-date: /home/user/cognipilot/cranium/install/synapse_msgs/local/lib/python3.10/dist-packages/synapse_msgs/msg/_status.py
+-- Up-to-date: /home/user/cognipilot/cranium/install/synapse_msgs/local/lib/python3.10/dist-packages/synapse_msgs/msg/_bezier_curve.py
+-- Up-to-date: /home/user/cognipilot/cranium/install/synapse_msgs/local/lib/python3.10/dist-packages/synapse_msgs/msg/_traffic_status_s.c
+-- Up-to-date: /home/user/cognipilot/cranium/install/synapse_msgs/local/lib/python3.10/dist-packages/synapse_msgs/msg/_edge_vectors_s.c
+-- Up-to-date: /home/user/cognipilot/cranium/install/synapse_msgs/local/lib/python3.10/dist-packages/synapse_msgs/msg/__init__.py
+-- Up-to-date: /home/user/cognipilot/cranium/install/synapse_msgs/local/lib/python3.10/dist-packages/synapse_msgs/msg/_bezier_curve_s.c
+-- Up-to-date: /home/user/cognipilot/cranium/install/synapse_msgs/local/lib/python3.10/dist-packages/synapse_msgs/__init__.py
+Listing '/home/user/cognipilot/cranium/install/synapse_msgs/local/lib/python3.10/dist-packages/synapse_msgs'...
+Listing '/home/user/cognipilot/cranium/install/synapse_msgs/local/lib/python3.10/dist-packages/synapse_msgs/msg'...
+-- Up-to-date: /home/user/cognipilot/cranium/install/synapse_msgs/local/lib/python3.10/dist-packages/synapse_msgs/synapse_msgs_s__rosidl_typesupport_fastrtps_c.cpython-310-aarch64-linux-gnu.so
+-- Up-to-date: /home/user/cognipilot/cranium/install/synapse_msgs/local/lib/python3.10/dist-packages/synapse_msgs/synapse_msgs_s__rosidl_typesupport_introspection_c.cpython-310-aarch64-linux-gnu.so
+-- Up-to-date: /home/user/cognipilot/cranium/install/synapse_msgs/local/lib/python3.10/dist-packages/synapse_msgs/synapse_msgs_s__rosidl_typesupport_c.cpython-310-aarch64-linux-gnu.so
+-- Up-to-date: /home/user/cognipilot/cranium/install/synapse_msgs/lib/libsynapse_msgs__rosidl_generator_py.so
+-- Up-to-date: /home/user/cognipilot/cranium/install/synapse_msgs/share/synapse_msgs/msg/BezierCurve.idl
+-- Up-to-date: /home/user/cognipilot/cranium/install/synapse_msgs/share/synapse_msgs/msg/BezierTrajectory.idl
+-- Up-to-date: /home/user/cognipilot/cranium/install/synapse_msgs/share/synapse_msgs/msg/Status.idl
+-- Up-to-date: /home/user/cognipilot/cranium/install/synapse_msgs/share/synapse_msgs/msg/WarehouseShelf.idl
+-- Up-to-date: /home/user/cognipilot/cranium/install/synapse_msgs/share/synapse_msgs/msg/BezierCurve.msg
+-- Up-to-date: /home/user/cognipilot/cranium/install/synapse_msgs/share/synapse_msgs/msg/BezierTrajectory.msg
+-- Up-to-date: /home/user/cognipilot/cranium/install/synapse_msgs/share/synapse_msgs/msg/Status.msg
+-- Up-to-date: /home/user/cognipilot/cranium/install/synapse_msgs/share/synapse_msgs/msg/WarehouseShelf.msg
+-- Up-to-date: /home/user/cognipilot/cranium/install/synapse_msgs/share/ament_index/resource_index/package_run_dependencies/synapse_msgs
+-- Up-to-date: /home/user/cognipilot/cranium/install/synapse_msgs/share/ament_index/resource_index/parent_prefix_path/synapse_msgs
+-- Up-to-date: /home/user/cognipilot/cranium/install/synapse_msgs/share/synapse_msgs/environment/ament_prefix_path.sh
+-- Up-to-date: /home/user/cognipilot/cranium/install/synapse_msgs/share/synapse_msgs/environment/ament_prefix_path.dsv
+-- Up-to-date: /home/user/cognipilot/cranium/install/synapse_msgs/share/synapse_msgs/environment/path.sh
+-- Up-to-date: /home/user/cognipilot/cranium/install/synapse_msgs/share/synapse_msgs/environment/path.dsv
+-- Up-to-date: /home/user/cognipilot/cranium/install/synapse_msgs/share/synapse_msgs/local_setup.bash
+-- Up-to-date: /home/user/cognipilot/cranium/install/synapse_msgs/share/synapse_msgs/local_setup.sh
+-- Up-to-date: /home/user/cognipilot/cranium/install/synapse_msgs/share/synapse_msgs/local_setup.zsh
+-- Up-to-date: /home/user/cognipilot/cranium/install/synapse_msgs/share/synapse_msgs/local_setup.dsv
+-- Installing: /home/user/cognipilot/cranium/install/synapse_msgs/share/synapse_msgs/package.dsv
+-- Up-to-date: /home/user/cognipilot/cranium/install/synapse_msgs/share/ament_index/resource_index/packages/synapse_msgs
+-- Up-to-date: /home/user/cognipilot/cranium/install/synapse_msgs/share/synapse_msgs/cmake/export_synapse_msgs__rosidl_generator_cExport.cmake
+-- Up-to-date: /home/user/cognipilot/cranium/install/synapse_msgs/share/synapse_msgs/cmake/export_synapse_msgs__rosidl_generator_cExport-noconfig.cmake
+-- Up-to-date: /home/user/cognipilot/cranium/install/synapse_msgs/share/synapse_msgs/cmake/export_synapse_msgs__rosidl_typesupport_fastrtps_cExport.cmake
+-- Up-to-date: /home/user/cognipilot/cranium/install/synapse_msgs/share/synapse_msgs/cmake/export_synapse_msgs__rosidl_typesupport_fastrtps_cExport-noconfig.cmake
+-- Up-to-date: /home/user/cognipilot/cranium/install/synapse_msgs/share/synapse_msgs/cmake/synapse_msgs__rosidl_typesupport_introspection_cExport.cmake
+-- Up-to-date: /home/user/cognipilot/cranium/install/synapse_msgs/share/synapse_msgs/cmake/synapse_msgs__rosidl_typesupport_introspection_cExport-noconfig.cmake
+-- Up-to-date: /home/user/cognipilot/cranium/install/synapse_msgs/share/synapse_msgs/cmake/synapse_msgs__rosidl_typesupport_cExport.cmake
+-- Up-to-date: /home/user/cognipilot/cranium/install/synapse_msgs/share/synapse_msgs/cmake/synapse_msgs__rosidl_typesupport_cExport-noconfig.cmake
+-- Up-to-date: /home/user/cognipilot/cranium/install/synapse_msgs/share/synapse_msgs/cmake/export_synapse_msgs__rosidl_generator_cppExport.cmake
+-- Up-to-date: /home/user/cognipilot/cranium/install/synapse_msgs/share/synapse_msgs/cmake/export_synapse_msgs__rosidl_typesupport_fastrtps_cppExport.cmake
+-- Up-to-date: /home/user/cognipilot/cranium/install/synapse_msgs/share/synapse_msgs/cmake/export_synapse_msgs__rosidl_typesupport_fastrtps_cppExport-noconfig.cmake
+-- Up-to-date: /home/user/cognipilot/cranium/install/synapse_msgs/share/synapse_msgs/cmake/synapse_msgs__rosidl_typesupport_introspection_cppExport.cmake
+-- Up-to-date: /home/user/cognipilot/cranium/install/synapse_msgs/share/synapse_msgs/cmake/synapse_msgs__rosidl_typesupport_introspection_cppExport-noconfig.cmake
+-- Up-to-date: /home/user/cognipilot/cranium/install/synapse_msgs/share/synapse_msgs/cmake/synapse_msgs__rosidl_typesupport_cppExport.cmake
+-- Up-to-date: /home/user/cognipilot/cranium/install/synapse_msgs/share/synapse_msgs/cmake/synapse_msgs__rosidl_typesupport_cppExport-noconfig.cmake
+-- Up-to-date: /home/user/cognipilot/cranium/install/synapse_msgs/share/synapse_msgs/cmake/export_synapse_msgs__rosidl_generator_pyExport.cmake
+-- Up-to-date: /home/user/cognipilot/cranium/install/synapse_msgs/share/synapse_msgs/cmake/export_synapse_msgs__rosidl_generator_pyExport-noconfig.cmake
+-- Up-to-date: /home/user/cognipilot/cranium/install/synapse_msgs/share/synapse_msgs/cmake/rosidl_cmake-extras.cmake
+-- Up-to-date: /home/user/cognipilot/cranium/install/synapse_msgs/share/synapse_msgs/cmake/ament_cmake_export_dependencies-extras.cmake
+-- Up-to-date: /home/user/cognipilot/cranium/install/synapse_msgs/share/synapse_msgs/cmake/ament_cmake_export_include_directories-extras.cmake
+-- Up-to-date: /home/user/cognipilot/cranium/install/synapse_msgs/share/synapse_msgs/cmake/ament_cmake_export_libraries-extras.cmake
+-- Up-to-date: /home/user/cognipilot/cranium/install/synapse_msgs/share/synapse_msgs/cmake/ament_cmake_export_targets-extras.cmake
+-- Up-to-date: /home/user/cognipilot/cranium/install/synapse_msgs/share/synapse_msgs/cmake/rosidl_cmake_export_typesupport_targets-extras.cmake
+-- Up-to-date: /home/user/cognipilot/cranium/install/synapse_msgs/share/synapse_msgs/cmake/rosidl_cmake_export_typesupport_libraries-extras.cmake
+-- Up-to-date: /home/user/cognipilot/cranium/install/synapse_msgs/share/synapse_msgs/cmake/synapse_msgsConfig.cmake
+-- Up-to-date: /home/user/cognipilot/cranium/install/synapse_msgs/share/synapse_msgs/cmake/synapse_msgsConfig-version.cmake
+-- Up-to-date: /home/user/cognipilot/cranium/install/synapse_msgs/share/synapse_msgs/package.xml

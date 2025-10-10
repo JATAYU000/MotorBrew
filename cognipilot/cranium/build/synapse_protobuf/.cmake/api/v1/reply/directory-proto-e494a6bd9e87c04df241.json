@@ -1,0 +1,87 @@
+{
+	"backtraceGraph" : 
+	{
+		"commands" : 
+		[
+			"install"
+		],
+		"files" : 
+		[
+			"proto/CMakeLists.txt"
+		],
+		"nodes" : 
+		[
+			{
+				"file" : 0
+			},
+			{
+				"command" : 0,
+				"file" : 0,
+				"line" : 66,
+				"parent" : 0
+			},
+			{
+				"command" : 0,
+				"file" : 0,
+				"line" : 75,
+				"parent" : 0
+			}
+		]
+	},
+	"installers" : 
+	[
+		{
+			"backtrace" : 1,
+			"component" : "Unspecified",
+			"destination" : "lib",
+			"paths" : 
+			[
+				"proto/libsynapse_protobuf.a"
+			],
+			"targetId" : "synapse_protobuf::@4dcc01eb4302123f3a4a",
+			"targetIndex" : 0,
+			"type" : "target"
+		},
+		{
+			"backtrace" : 2,
+			"component" : "Unspecified",
+			"destination" : "include/synapse_protobuf",
+			"paths" : 
+			[
+				"/home/user/cognipilot/cranium/build/synapse_protobuf/proto/actuators.pb.h",
+				"/home/user/cognipilot/cranium/build/synapse_protobuf/proto/altimeter.pb.h",
+				"/home/user/cognipilot/cranium/build/synapse_protobuf/proto/battery_state.pb.h",
+				"/home/user/cognipilot/cranium/build/synapse_protobuf/proto/bezier_curve.pb.h",
+				"/home/user/cognipilot/cranium/build/synapse_protobuf/proto/bezier_trajectory.pb.h",
+				"/home/user/cognipilot/cranium/build/synapse_protobuf/proto/can.pb.h",
+				"/home/user/cognipilot/cranium/build/synapse_protobuf/proto/header.pb.h",
+				"/home/user/cognipilot/cranium/build/synapse_protobuf/proto/imu.pb.h",
+				"/home/user/cognipilot/cranium/build/synapse_protobuf/proto/joy.pb.h",
+				"/home/user/cognipilot/cranium/build/synapse_protobuf/proto/led.pb.h",
+				"/home/user/cognipilot/cranium/build/synapse_protobuf/proto/led_array.pb.h",
+				"/home/user/cognipilot/cranium/build/synapse_protobuf/proto/magnetic_field.pb.h",
+				"/home/user/cognipilot/cranium/build/synapse_protobuf/proto/nav_sat_fix.pb.h",
+				"/home/user/cognipilot/cranium/build/synapse_protobuf/proto/nav_sat_status.pb.h",
+				"/home/user/cognipilot/cranium/build/synapse_protobuf/proto/odometry.pb.h",
+				"/home/user/cognipilot/cranium/build/synapse_protobuf/proto/point.pb.h",
+				"/home/user/cognipilot/cranium/build/synapse_protobuf/proto/pose.pb.h",
+				"/home/user/cognipilot/cranium/build/synapse_protobuf/proto/pose_with_covariance.pb.h",
+				"/home/user/cognipilot/cranium/build/synapse_protobuf/proto/quaternion.pb.h",
+				"/home/user/cognipilot/cranium/build/synapse_protobuf/proto/safety.pb.h",
+				"/home/user/cognipilot/cranium/build/synapse_protobuf/proto/sim_clock.pb.h",
+				"/home/user/cognipilot/cranium/build/synapse_protobuf/proto/status.pb.h",
+				"/home/user/cognipilot/cranium/build/synapse_protobuf/proto/time.pb.h",
+				"/home/user/cognipilot/cranium/build/synapse_protobuf/proto/twist.pb.h",
+				"/home/user/cognipilot/cranium/build/synapse_protobuf/proto/twist_with_covariance.pb.h",
+				"/home/user/cognipilot/cranium/build/synapse_protobuf/proto/vector3.pb.h",
+				"/home/user/cognipilot/cranium/build/synapse_protobuf/proto/wheel_odometry.pb.h"
+			],
+			"type" : "file"
+		}
+	],
+	"paths" : 
+	{
+		"build" : "proto",
+		"source" : "proto"
+	}
+}

@@ -1,0 +1,14 @@
+{
+	"backtraceGraph" : 
+	{
+		"commands" : [],
+		"files" : [],
+		"nodes" : []
+	},
+	"installers" : [],
+	"paths" : 
+	{
+		"build" : "synapse_msgs__py",
+		"source" : "/home/user/cognipilot/cranium/build/synapse_msgs/synapse_msgs__py"
+	}
+}

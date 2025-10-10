@@ -1,0 +1,4 @@
+source;share/synapse_msgs/local_setup.bash
+source;share/synapse_msgs/local_setup.dsv
+source;share/synapse_msgs/local_setup.sh
+source;share/synapse_msgs/local_setup.zsh

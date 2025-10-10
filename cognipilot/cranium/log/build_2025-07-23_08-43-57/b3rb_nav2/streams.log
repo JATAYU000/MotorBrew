@@ -1,0 +1,35 @@
+[0.414s] Invoking command in '/home/user/cognipilot/cranium/build/b3rb_nav2': CMAKE_PREFIX_PATH=${CMAKE_PREFIX_PATH}:/home/user/cognipilot/cranium/install/b3rb_ros_aim_india:/opt/ros/humble /usr/bin/cmake --build /home/user/cognipilot/cranium/build/b3rb_nav2 -- -j4 -l4
+[0.578s] Invoked command in '/home/user/cognipilot/cranium/build/b3rb_nav2' returned '0': CMAKE_PREFIX_PATH=${CMAKE_PREFIX_PATH}:/home/user/cognipilot/cranium/install/b3rb_ros_aim_india:/opt/ros/humble /usr/bin/cmake --build /home/user/cognipilot/cranium/build/b3rb_nav2 -- -j4 -l4
+[0.581s] Invoking command in '/home/user/cognipilot/cranium/build/b3rb_nav2': CMAKE_PREFIX_PATH=${CMAKE_PREFIX_PATH}:/home/user/cognipilot/cranium/install/b3rb_ros_aim_india:/opt/ros/humble /usr/bin/cmake --install /home/user/cognipilot/cranium/build/b3rb_nav2
+[0.627s] -- Install configuration: ""
+[0.629s] -- Up-to-date: /home/user/cognipilot/cranium/install/b3rb_nav2/share/b3rb_nav2/config
+[0.631s] -- Up-to-date: /home/user/cognipilot/cranium/install/b3rb_nav2/share/b3rb_nav2/config/nav_through_poses_bt.xml
+[0.632s] -- Up-to-date: /home/user/cognipilot/cranium/install/b3rb_nav2/share/b3rb_nav2/config/localization.yaml
+[0.634s] -- Up-to-date: /home/user/cognipilot/cranium/install/b3rb_nav2/share/b3rb_nav2/config/nav2.yaml
+[0.636s] -- Up-to-date: /home/user/cognipilot/cranium/install/b3rb_nav2/share/b3rb_nav2/config/nav_to_pose_bt.xml
+[0.647s] -- Up-to-date: /home/user/cognipilot/cranium/install/b3rb_nav2/share/b3rb_nav2/config/slam.yaml
+[0.648s] -- Up-to-date: /home/user/cognipilot/cranium/install/b3rb_nav2/share/b3rb_nav2/maps
+[0.649s] -- Up-to-date: /home/user/cognipilot/cranium/install/b3rb_nav2/share/b3rb_nav2/maps/depot.yaml
+[0.650s] -- Up-to-date: /home/user/cognipilot/cranium/install/b3rb_nav2/share/b3rb_nav2/maps/depot.pgm
+[0.650s] -- Up-to-date: /home/user/cognipilot/cranium/install/b3rb_nav2/share/b3rb_nav2/maps/basic_map.pgm
+[0.651s] -- Up-to-date: /home/user/cognipilot/cranium/install/b3rb_nav2/share/b3rb_nav2/maps/basic_map.yaml
+[0.652s] -- Up-to-date: /home/user/cognipilot/cranium/install/b3rb_nav2/share/b3rb_nav2/launch
+[0.653s] -- Up-to-date: /home/user/cognipilot/cranium/install/b3rb_nav2/share/b3rb_nav2/launch/nav2.launch.py
+[0.655s] -- Up-to-date: /home/user/cognipilot/cranium/install/b3rb_nav2/share/b3rb_nav2/launch/localization.launch.py
+[0.656s] -- Up-to-date: /home/user/cognipilot/cranium/install/b3rb_nav2/share/b3rb_nav2/launch/slam.launch.py
+[0.656s] -- Up-to-date: /home/user/cognipilot/cranium/install/b3rb_nav2/share/ament_index/resource_index/package_run_dependencies/b3rb_nav2
+[0.657s] -- Up-to-date: /home/user/cognipilot/cranium/install/b3rb_nav2/share/ament_index/resource_index/parent_prefix_path/b3rb_nav2
+[0.658s] -- Up-to-date: /home/user/cognipilot/cranium/install/b3rb_nav2/share/b3rb_nav2/environment/ament_prefix_path.sh
+[0.659s] -- Up-to-date: /home/user/cognipilot/cranium/install/b3rb_nav2/share/b3rb_nav2/environment/ament_prefix_path.dsv
+[0.660s] -- Up-to-date: /home/user/cognipilot/cranium/install/b3rb_nav2/share/b3rb_nav2/environment/path.sh
+[0.661s] -- Up-to-date: /home/user/cognipilot/cranium/install/b3rb_nav2/share/b3rb_nav2/environment/path.dsv
+[0.662s] -- Up-to-date: /home/user/cognipilot/cranium/install/b3rb_nav2/share/b3rb_nav2/local_setup.bash
+[0.683s] -- Up-to-date: /home/user/cognipilot/cranium/install/b3rb_nav2/share/b3rb_nav2/local_setup.sh
+[0.684s] -- Up-to-date: /home/user/cognipilot/cranium/install/b3rb_nav2/share/b3rb_nav2/local_setup.zsh
+[0.685s] -- Up-to-date: /home/user/cognipilot/cranium/install/b3rb_nav2/share/b3rb_nav2/local_setup.dsv
+[0.686s] -- Installing: /home/user/cognipilot/cranium/install/b3rb_nav2/share/b3rb_nav2/package.dsv
+[0.687s] -- Up-to-date: /home/user/cognipilot/cranium/install/b3rb_nav2/share/ament_index/resource_index/packages/b3rb_nav2
+[0.688s] -- Up-to-date: /home/user/cognipilot/cranium/install/b3rb_nav2/share/b3rb_nav2/cmake/b3rb_nav2Config.cmake
+[0.689s] -- Up-to-date: /home/user/cognipilot/cranium/install/b3rb_nav2/share/b3rb_nav2/cmake/b3rb_nav2Config-version.cmake
+[0.690s] -- Up-to-date: /home/user/cognipilot/cranium/install/b3rb_nav2/share/b3rb_nav2/package.xml
+[0.691s] Invoked command in '/home/user/cognipilot/cranium/build/b3rb_nav2' returned '0': CMAKE_PREFIX_PATH=${CMAKE_PREFIX_PATH}:/home/user/cognipilot/cranium/install/b3rb_ros_aim_india:/opt/ros/humble /usr/bin/cmake --install /home/user/cognipilot/cranium/build/b3rb_nav2

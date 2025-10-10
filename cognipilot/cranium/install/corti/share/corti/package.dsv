@@ -1,0 +1,8 @@
+source;share/corti/hook/cmake_prefix_path.ps1
+source;share/corti/hook/cmake_prefix_path.dsv
+source;share/corti/hook/cmake_prefix_path.sh
+source;share/corti/local_setup.bash
+source;share/corti/local_setup.dsv
+source;share/corti/local_setup.ps1
+source;share/corti/local_setup.sh
+source;share/corti/local_setup.zsh

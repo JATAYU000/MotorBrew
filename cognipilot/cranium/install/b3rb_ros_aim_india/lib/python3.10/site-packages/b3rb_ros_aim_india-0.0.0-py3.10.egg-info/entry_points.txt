@@ -1,0 +1,4 @@
+[console_scripts]
+detect = b3rb_ros_aim_india.b3rb_ros_object_recog:main
+explore = b3rb_ros_aim_india.b3rb_ros_warehouse:main
+

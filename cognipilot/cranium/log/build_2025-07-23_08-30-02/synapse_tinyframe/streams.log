@@ -1,0 +1,33 @@
+[0.141s] Invoking command in '/home/user/cognipilot/cranium/build/synapse_tinyframe': CMAKE_PREFIX_PATH=${CMAKE_PREFIX_PATH}:/home/user/cognipilot/cranium/install/b3rb_ros_aim_india:/opt/ros/humble /usr/bin/cmake --build /home/user/cognipilot/cranium/build/synapse_tinyframe -- -j4 -l4
+[0.586s] [100%] Built target synapse_tinyframe
+[0.937s] Invoked command in '/home/user/cognipilot/cranium/build/synapse_tinyframe' returned '0': CMAKE_PREFIX_PATH=${CMAKE_PREFIX_PATH}:/home/user/cognipilot/cranium/install/b3rb_ros_aim_india:/opt/ros/humble /usr/bin/cmake --build /home/user/cognipilot/cranium/build/synapse_tinyframe -- -j4 -l4
+[0.947s] Invoking command in '/home/user/cognipilot/cranium/build/synapse_tinyframe': CMAKE_PREFIX_PATH=${CMAKE_PREFIX_PATH}:/home/user/cognipilot/cranium/install/b3rb_ros_aim_india:/opt/ros/humble /usr/bin/cmake --install /home/user/cognipilot/cranium/build/synapse_tinyframe
+[1.127s] -- Install configuration: ""
+[1.128s] -- Up-to-date: /home/user/cognipilot/cranium/install/synapse_tinyframe/share/synapse_tinyframe/environment/library_path.sh
+[1.129s] -- Up-to-date: /home/user/cognipilot/cranium/install/synapse_tinyframe/share/synapse_tinyframe/environment/library_path.dsv
+[1.131s] -- Up-to-date: /home/user/cognipilot/cranium/install/synapse_tinyframe/include
+[1.148s] -- Up-to-date: /home/user/cognipilot/cranium/install/synapse_tinyframe/include/synapse_tinyframe
+[1.149s] -- Up-to-date: /home/user/cognipilot/cranium/install/synapse_tinyframe/include/synapse_tinyframe/SynapseTopics.h
+[1.150s] -- Up-to-date: /home/user/cognipilot/cranium/install/synapse_tinyframe/include/synapse_tinyframe/TinyFrame.h
+[1.151s] -- Up-to-date: /home/user/cognipilot/cranium/install/synapse_tinyframe/include/synapse_tinyframe/utils.h
+[1.152s] -- Up-to-date: /home/user/cognipilot/cranium/install/synapse_tinyframe/include/synapse_tinyframe/TF_Config.h
+[1.153s] -- Up-to-date: /home/user/cognipilot/cranium/install/synapse_tinyframe/lib/libsynapse_tinyframe.a
+[1.154s] -- Up-to-date: /home/user/cognipilot/cranium/install/synapse_tinyframe/share/ament_index/resource_index/package_run_dependencies/synapse_tinyframe
+[1.155s] -- Up-to-date: /home/user/cognipilot/cranium/install/synapse_tinyframe/share/ament_index/resource_index/parent_prefix_path/synapse_tinyframe
+[1.157s] -- Up-to-date: /home/user/cognipilot/cranium/install/synapse_tinyframe/share/synapse_tinyframe/environment/ament_prefix_path.sh
+[1.158s] -- Up-to-date: /home/user/cognipilot/cranium/install/synapse_tinyframe/share/synapse_tinyframe/environment/ament_prefix_path.dsv
+[1.158s] -- Up-to-date: /home/user/cognipilot/cranium/install/synapse_tinyframe/share/synapse_tinyframe/environment/path.sh
+[1.160s] -- Up-to-date: /home/user/cognipilot/cranium/install/synapse_tinyframe/share/synapse_tinyframe/environment/path.dsv
+[1.161s] -- Up-to-date: /home/user/cognipilot/cranium/install/synapse_tinyframe/share/synapse_tinyframe/local_setup.bash
+[1.162s] -- Up-to-date: /home/user/cognipilot/cranium/install/synapse_tinyframe/share/synapse_tinyframe/local_setup.sh
+[1.163s] -- Up-to-date: /home/user/cognipilot/cranium/install/synapse_tinyframe/share/synapse_tinyframe/local_setup.zsh
+[1.164s] -- Up-to-date: /home/user/cognipilot/cranium/install/synapse_tinyframe/share/synapse_tinyframe/local_setup.dsv
+[1.165s] -- Installing: /home/user/cognipilot/cranium/install/synapse_tinyframe/share/synapse_tinyframe/package.dsv
+[1.166s] -- Up-to-date: /home/user/cognipilot/cranium/install/synapse_tinyframe/share/ament_index/resource_index/packages/synapse_tinyframe
+[1.167s] -- Up-to-date: /home/user/cognipilot/cranium/install/synapse_tinyframe/share/synapse_tinyframe/cmake/synapse_tinyframeExport.cmake
+[1.178s] -- Up-to-date: /home/user/cognipilot/cranium/install/synapse_tinyframe/share/synapse_tinyframe/cmake/synapse_tinyframeExport-noconfig.cmake
+[1.179s] -- Up-to-date: /home/user/cognipilot/cranium/install/synapse_tinyframe/share/synapse_tinyframe/cmake/ament_cmake_export_targets-extras.cmake
+[1.180s] -- Up-to-date: /home/user/cognipilot/cranium/install/synapse_tinyframe/share/synapse_tinyframe/cmake/synapse_tinyframeConfig.cmake
+[1.181s] -- Up-to-date: /home/user/cognipilot/cranium/install/synapse_tinyframe/share/synapse_tinyframe/cmake/synapse_tinyframeConfig-version.cmake
+[1.182s] -- Up-to-date: /home/user/cognipilot/cranium/install/synapse_tinyframe/share/synapse_tinyframe/package.xml
+[1.279s] Invoked command in '/home/user/cognipilot/cranium/build/synapse_tinyframe' returned '0': CMAKE_PREFIX_PATH=${CMAKE_PREFIX_PATH}:/home/user/cognipilot/cranium/install/b3rb_ros_aim_india:/opt/ros/humble /usr/bin/cmake --install /home/user/cognipilot/cranium/build/synapse_tinyframe

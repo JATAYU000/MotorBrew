@@ -1,0 +1,28 @@
+[0.123s] Invoking command in '/home/user/cognipilot/cranium/build/b3rb_description': CMAKE_PREFIX_PATH=${CMAKE_PREFIX_PATH}:/home/user/cognipilot/cranium/install/b3rb_ros_aim_india:/opt/ros/humble /usr/bin/cmake --build /home/user/cognipilot/cranium/build/b3rb_description -- -j4 -l4
+[0.346s] Invoked command in '/home/user/cognipilot/cranium/build/b3rb_description' returned '0': CMAKE_PREFIX_PATH=${CMAKE_PREFIX_PATH}:/home/user/cognipilot/cranium/install/b3rb_ros_aim_india:/opt/ros/humble /usr/bin/cmake --build /home/user/cognipilot/cranium/build/b3rb_description -- -j4 -l4
+[0.414s] Invoking command in '/home/user/cognipilot/cranium/build/b3rb_description': CMAKE_PREFIX_PATH=${CMAKE_PREFIX_PATH}:/home/user/cognipilot/cranium/install/b3rb_ros_aim_india:/opt/ros/humble /usr/bin/cmake --install /home/user/cognipilot/cranium/build/b3rb_description
+[0.519s] -- Install configuration: ""
+[0.520s] -- Up-to-date: /home/user/cognipilot/cranium/install/b3rb_description/share/b3rb_description/launch
+[0.522s] -- Up-to-date: /home/user/cognipilot/cranium/install/b3rb_description/share/b3rb_description/launch/robot_description.launch.py
+[0.524s] -- Up-to-date: /home/user/cognipilot/cranium/install/b3rb_description/share/b3rb_description/meshes
+[0.525s] -- Up-to-date: /home/user/cognipilot/cranium/install/b3rb_description/share/b3rb_description/meshes/STL27L.dae
+[0.526s] -- Up-to-date: /home/user/cognipilot/cranium/install/b3rb_description/share/b3rb_description/meshes/wheel.dae
+[0.527s] -- Up-to-date: /home/user/cognipilot/cranium/install/b3rb_description/share/b3rb_description/meshes/b3rb.dae
+[0.528s] -- Up-to-date: /home/user/cognipilot/cranium/install/b3rb_description/share/b3rb_description/urdf
+[0.530s] -- Up-to-date: /home/user/cognipilot/cranium/install/b3rb_description/share/b3rb_description/urdf/b3rb.urdf
+[0.531s] -- Up-to-date: /home/user/cognipilot/cranium/install/b3rb_description/share/ament_index/resource_index/package_run_dependencies/b3rb_description
+[0.532s] -- Up-to-date: /home/user/cognipilot/cranium/install/b3rb_description/share/ament_index/resource_index/parent_prefix_path/b3rb_description
+[0.533s] -- Up-to-date: /home/user/cognipilot/cranium/install/b3rb_description/share/b3rb_description/environment/ament_prefix_path.sh
+[0.535s] -- Up-to-date: /home/user/cognipilot/cranium/install/b3rb_description/share/b3rb_description/environment/ament_prefix_path.dsv
+[0.560s] -- Up-to-date: /home/user/cognipilot/cranium/install/b3rb_description/share/b3rb_description/environment/path.sh
+[0.561s] -- Up-to-date: /home/user/cognipilot/cranium/install/b3rb_description/share/b3rb_description/environment/path.dsv
+[0.562s] -- Up-to-date: /home/user/cognipilot/cranium/install/b3rb_description/share/b3rb_description/local_setup.bash
+[0.563s] -- Up-to-date: /home/user/cognipilot/cranium/install/b3rb_description/share/b3rb_description/local_setup.sh
+[0.564s] -- Up-to-date: /home/user/cognipilot/cranium/install/b3rb_description/share/b3rb_description/local_setup.zsh
+[0.567s] -- Up-to-date: /home/user/cognipilot/cranium/install/b3rb_description/share/b3rb_description/local_setup.dsv
+[0.568s] -- Installing: /home/user/cognipilot/cranium/install/b3rb_description/share/b3rb_description/package.dsv
+[0.569s] -- Up-to-date: /home/user/cognipilot/cranium/install/b3rb_description/share/ament_index/resource_index/packages/b3rb_description
+[0.570s] -- Up-to-date: /home/user/cognipilot/cranium/install/b3rb_description/share/b3rb_description/cmake/b3rb_descriptionConfig.cmake
+[0.571s] -- Up-to-date: /home/user/cognipilot/cranium/install/b3rb_description/share/b3rb_description/cmake/b3rb_descriptionConfig-version.cmake
+[0.572s] -- Up-to-date: /home/user/cognipilot/cranium/install/b3rb_description/share/b3rb_description/package.xml
+[0.602s] Invoked command in '/home/user/cognipilot/cranium/build/b3rb_description' returned '0': CMAKE_PREFIX_PATH=${CMAKE_PREFIX_PATH}:/home/user/cognipilot/cranium/install/b3rb_ros_aim_india:/opt/ros/humble /usr/bin/cmake --install /home/user/cognipilot/cranium/build/b3rb_description

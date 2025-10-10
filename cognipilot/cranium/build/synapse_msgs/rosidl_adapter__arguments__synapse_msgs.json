@@ -1,0 +1,9 @@
+{
+  "package_name": "synapse_msgs",
+  "non_idl_tuples": [
+    "/home/user/cognipilot/cranium/src/synapse_msgs:msg/BezierCurve.msg",
+    "/home/user/cognipilot/cranium/src/synapse_msgs:msg/BezierTrajectory.msg",
+    "/home/user/cognipilot/cranium/src/synapse_msgs:msg/Status.msg",
+    "/home/user/cognipilot/cranium/src/synapse_msgs:msg/WarehouseShelf.msg"
+  ]
+}

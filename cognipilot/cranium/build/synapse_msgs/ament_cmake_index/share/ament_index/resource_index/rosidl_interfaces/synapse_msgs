@@ -1,0 +1,8 @@
+msg/BezierCurve.idl
+msg/BezierCurve.msg
+msg/BezierTrajectory.idl
+msg/BezierTrajectory.msg
+msg/Status.idl
+msg/Status.msg
+msg/WarehouseShelf.idl
+msg/WarehouseShelf.msg

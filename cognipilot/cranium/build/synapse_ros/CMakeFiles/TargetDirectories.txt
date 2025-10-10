@@ -1,0 +1,10 @@
+/home/user/cognipilot/cranium/build/synapse_ros/CMakeFiles/uninstall.dir
+/home/user/cognipilot/cranium/build/synapse_ros/CMakeFiles/synapse_ros_uninstall.dir
+/home/user/cognipilot/cranium/build/synapse_ros/CMakeFiles/synapse_ros.dir
+/home/user/cognipilot/cranium/build/synapse_ros/CMakeFiles/test.dir
+/home/user/cognipilot/cranium/build/synapse_ros/CMakeFiles/edit_cache.dir
+/home/user/cognipilot/cranium/build/synapse_ros/CMakeFiles/rebuild_cache.dir
+/home/user/cognipilot/cranium/build/synapse_ros/CMakeFiles/list_install_components.dir
+/home/user/cognipilot/cranium/build/synapse_ros/CMakeFiles/install.dir
+/home/user/cognipilot/cranium/build/synapse_ros/CMakeFiles/install/local.dir
+/home/user/cognipilot/cranium/build/synapse_ros/CMakeFiles/install/strip.dir

@@ -1,0 +1,30 @@
+[35m[1mConsolidate compiler generated dependencies of target synapse_tinyframe[0m
+[100%] Built target synapse_tinyframe
+-- Install configuration: ""
+-- Up-to-date: /home/user/cognipilot/cranium/install/synapse_tinyframe/share/synapse_tinyframe/environment/library_path.sh
+-- Up-to-date: /home/user/cognipilot/cranium/install/synapse_tinyframe/share/synapse_tinyframe/environment/library_path.dsv
+-- Up-to-date: /home/user/cognipilot/cranium/install/synapse_tinyframe/include
+-- Up-to-date: /home/user/cognipilot/cranium/install/synapse_tinyframe/include/synapse_tinyframe
+-- Up-to-date: /home/user/cognipilot/cranium/install/synapse_tinyframe/include/synapse_tinyframe/SynapseTopics.h
+-- Up-to-date: /home/user/cognipilot/cranium/install/synapse_tinyframe/include/synapse_tinyframe/TinyFrame.h
+-- Up-to-date: /home/user/cognipilot/cranium/install/synapse_tinyframe/include/synapse_tinyframe/utils.h
+-- Up-to-date: /home/user/cognipilot/cranium/install/synapse_tinyframe/include/synapse_tinyframe/TF_Config.h
+-- Up-to-date: /home/user/cognipilot/cranium/install/synapse_tinyframe/lib/libsynapse_tinyframe.a
+-- Up-to-date: /home/user/cognipilot/cranium/install/synapse_tinyframe/share/ament_index/resource_index/package_run_dependencies/synapse_tinyframe
+-- Up-to-date: /home/user/cognipilot/cranium/install/synapse_tinyframe/share/ament_index/resource_index/parent_prefix_path/synapse_tinyframe
+-- Up-to-date: /home/user/cognipilot/cranium/install/synapse_tinyframe/share/synapse_tinyframe/environment/ament_prefix_path.sh
+-- Up-to-date: /home/user/cognipilot/cranium/install/synapse_tinyframe/share/synapse_tinyframe/environment/ament_prefix_path.dsv
+-- Up-to-date: /home/user/cognipilot/cranium/install/synapse_tinyframe/share/synapse_tinyframe/environment/path.sh
+-- Up-to-date: /home/user/cognipilot/cranium/install/synapse_tinyframe/share/synapse_tinyframe/environment/path.dsv
+-- Up-to-date: /home/user/cognipilot/cranium/install/synapse_tinyframe/share/synapse_tinyframe/local_setup.bash
+-- Up-to-date: /home/user/cognipilot/cranium/install/synapse_tinyframe/share/synapse_tinyframe/local_setup.sh
+-- Up-to-date: /home/user/cognipilot/cranium/install/synapse_tinyframe/share/synapse_tinyframe/local_setup.zsh
+-- Up-to-date: /home/user/cognipilot/cranium/install/synapse_tinyframe/share/synapse_tinyframe/local_setup.dsv
+-- Installing: /home/user/cognipilot/cranium/install/synapse_tinyframe/share/synapse_tinyframe/package.dsv
+-- Up-to-date: /home/user/cognipilot/cranium/install/synapse_tinyframe/share/ament_index/resource_index/packages/synapse_tinyframe
+-- Up-to-date: /home/user/cognipilot/cranium/install/synapse_tinyframe/share/synapse_tinyframe/cmake/synapse_tinyframeExport.cmake
+-- Up-to-date: /home/user/cognipilot/cranium/install/synapse_tinyframe/share/synapse_tinyframe/cmake/synapse_tinyframeExport-noconfig.cmake
+-- Up-to-date: /home/user/cognipilot/cranium/install/synapse_tinyframe/share/synapse_tinyframe/cmake/ament_cmake_export_targets-extras.cmake
+-- Up-to-date: /home/user/cognipilot/cranium/install/synapse_tinyframe/share/synapse_tinyframe/cmake/synapse_tinyframeConfig.cmake
+-- Up-to-date: /home/user/cognipilot/cranium/install/synapse_tinyframe/share/synapse_tinyframe/cmake/synapse_tinyframeConfig-version.cmake
+-- Up-to-date: /home/user/cognipilot/cranium/install/synapse_tinyframe/share/synapse_tinyframe/package.xml
