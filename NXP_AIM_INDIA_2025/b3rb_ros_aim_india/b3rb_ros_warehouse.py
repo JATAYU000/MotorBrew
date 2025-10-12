@@ -170,9 +170,6 @@ class WarehouseExplore(Node):
 
 		# -------------------- QR Code Data --------------------
 		self.qr_code_str = "Empty"
-		# if PROGRESS_TABLE_GUI:
-		# 	self.table_row_count = 0
-		# 	self.table_col_count = 0
 
 		# ----------------------- Shelf Data -----------------------
 		self.shelf_objects_curr = WarehouseShelf()
