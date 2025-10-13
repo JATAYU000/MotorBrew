@@ -247,18 +247,7 @@ class WarehouseExplore(Node):
 		# Check if there's already a goal in progress
 		if not self.goal_completed:
 			return
-		
-		# Initialize timer if not set
-		if not hasattr(self, 'debug_start_time'):
-			self.debug_start_time = time.time()
-			return
 
-		# Wait for 60 seconds
-		if time.time() - self.debug_start_time < 	60.0:
-			return
-		
-		# Reset timer for next cycle
-		self.debug_start_time = time.time()
 		
 		# Get robot position and orientation
 		robot_world_x = self.pose_curr.pose.pose.position.x
@@ -267,7 +256,7 @@ class WarehouseExplore(Node):
 		robot_yaw = self.get_yaw_from_quaternion(orientation)
 		
 		# Calculate goal position 1.5 meters ahead
-		goal_distance = 1.5
+		goal_distance = 1.0
 		goal_world_x = robot_world_x + goal_distance * math.cos(robot_yaw)
 		goal_world_y = robot_world_y + goal_distance * math.sin(robot_yaw)
 		
@@ -277,6 +266,7 @@ class WarehouseExplore(Node):
 
 		# Reset goal flag
 		self.goal_sent = False
+		self.current_state = self.DO_NOTHING
 
 	# ----------------------- EXPLORE FUNCTIONS ----------------------- 
 
@@ -1542,13 +1532,15 @@ class WarehouseExplore(Node):
 		Returns:
 			None
 		"""
-		self.simple_map_curr = message
+		# self.simple_map_curr = message
+		self.global_map_curr = message
 		map_info = self.simple_map_curr.info
 		if self.current_state == -1:
 			self.logger.info(f"Map info: {map_info}")
-		# self.world_centre = self.get_world_coord_from_map_coord(
-		# 	map_info.width / 2, map_info.height / 2, map_info
-		# )
+			self.world_centre = self.get_map_coord_from_world_coord(0,0, self.global_map_curr.info)
+			self.current_pos = self.world_centre
+			# self.current_state = self.EXPLORE
+			self.current_state = self.DEBUG
 
 	def global_map_callback(self, message):
 		"""Callback function to handle global map updates.
@@ -1559,13 +1551,13 @@ class WarehouseExplore(Node):
 		Returns:
 			None
 		"""
-		self.global_map_curr = message
+		# self.global_map_curr = message
 		
-		if self.current_state == -1:
-			self.world_centre = self.get_map_coord_from_world_coord(0,0, self.global_map_curr.info)
-			self.current_pos = self.world_centre
-			# self.current_state = self.EXPLORE
-			self.current_state = self.DEBUG
+		# if self.current_state == -1:
+		# 	self.world_centre = self.get_map_coord_from_world_coord(0,0, self.global_map_curr.info)
+		# 	self.current_pos = self.world_centre
+		# 	# self.current_state = self.EXPLORE
+		# 	self.current_state = self.DEBUG
 
 	def publish_debug_image(self, publisher, image):
 		"""Publishes images for debugging purposes.
@@ -1848,7 +1840,7 @@ class WarehouseExplore(Node):
 		if map_info:
 			origin = map_info.origin
 			resolution = map_info.resolution
-			return resolution, origin.position.x, origin.position.y
+			return resolution*2, origin.position.x, origin.position.y
 		else:
 			return None
 
