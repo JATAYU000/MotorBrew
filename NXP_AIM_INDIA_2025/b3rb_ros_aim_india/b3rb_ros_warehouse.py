@@ -252,9 +252,9 @@ class WarehouseExplore(Node):
 		if not hasattr(self, 'debug_start_time'):
 			self.debug_start_time = time.time()
 			return
-		
-		# Wait for 5 seconds
-		if time.time() - self.debug_start_time < 10.0:
+
+		# Wait for 160 seconds
+		if time.time() - self.debug_start_time < 160.0:
 			return
 		
 		# Reset timer for next cycle
