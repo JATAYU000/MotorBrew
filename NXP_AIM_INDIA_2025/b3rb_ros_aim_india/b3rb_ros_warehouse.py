@@ -146,7 +146,7 @@ class WarehouseExplore(Node):
 		self.buggy_pose_x = 0.0
 		self.buggy_pose_y = 0.0
 		self.buggy_center = (0.0, 0.0)
-		self.world_center = (0.0, 0.0)
+		self.world_centre = (0.0, 0.0)
 
 		# ----------------------- Map Data ----------------------- 
 		self.simple_map_curr = None
@@ -193,7 +193,6 @@ class WarehouseExplore(Node):
 		self.current_state = -1
 		self.current_shelf_id	= 1
 		self.current_angle = self.initial_angle
-		self.world_centre = (150,150)
 		self.current_qr_data = None
 
 		# ----------------------- State Variables -----------------------
@@ -1587,10 +1586,11 @@ class WarehouseExplore(Node):
 		"""
 		self.simple_map_curr = message
 		map_info = self.simple_map_curr.info
-		# self.logger.info(f"Map info: {map_info}")
-		self.world_center = self.get_world_coord_from_map_coord(
-			map_info.width / 2, map_info.height / 2, map_info
-		)
+		if self.current_state == -1:
+			self.logger.info(f"Map info: {map_info}")
+		# self.world_centre = self.get_world_coord_from_map_coord(
+		# 	map_info.width / 2, map_info.height / 2, map_info
+		# )
 
 	def global_map_callback(self, message):
 		"""Callback function to handle global map updates.
