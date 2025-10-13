@@ -239,86 +239,44 @@ class WarehouseExplore(Node):
 
 	def custom_debug(self):
 		"""
-		Debug function that logs map coordinates, converted world coordinates, 
-		and robot position from topics to compare if they are the same.
+		Debug function that waits 5 seconds then sends a goal 1.5m ahead.
 		"""
 		if self.global_map_curr is None or self.pose_curr is None:
-			self.logger.info("Debug: Waiting for map and pose data...")
 			return
 		
-		# Get robot position from pose topic
+		# Check if there's already a goal in progress
+		if not self.goal_completed:
+			return
+		
+		# Initialize timer if not set
+		if not hasattr(self, 'debug_start_time'):
+			self.debug_start_time = time.time()
+			return
+		
+		# Wait for 5 seconds
+		if time.time() - self.debug_start_time < 10.0:
+			return
+		
+		# Reset timer for next cycle
+		self.debug_start_time = time.time()
+		
+		# Get robot position and orientation
 		robot_world_x = self.pose_curr.pose.pose.position.x
 		robot_world_y = self.pose_curr.pose.pose.position.y
-		robot_world_z = self.pose_curr.pose.pose.position.z
-		
-		# Get robot orientation
 		orientation = self.pose_curr.pose.pose.orientation
 		robot_yaw = self.get_yaw_from_quaternion(orientation)
-		robot_yaw_deg = math.degrees(robot_yaw)
 		
-		# Convert robot world position to map coordinates
-		robot_map_x, robot_map_y = self.get_map_coord_from_world_coord(
-			robot_world_x, robot_world_y, self.global_map_curr.info
-		)
+		# Calculate goal position 1.5 meters ahead
+		goal_distance = 1.5
+		goal_world_x = robot_world_x + goal_distance * math.cos(robot_yaw)
+		goal_world_y = robot_world_y + goal_distance * math.sin(robot_yaw)
 		
-		# Convert map coordinates back to world coordinates
-		converted_world_x, converted_world_y = self.get_world_coord_from_map_coord(
-			robot_map_x, robot_map_y, self.global_map_curr.info
-		)
-		
-		# Calculate differences
-		diff_x = abs(robot_world_x - converted_world_x)
-		diff_y = abs(robot_world_y - converted_world_y)
-		total_diff = math.sqrt(diff_x**2 + diff_y**2)
-		
-		# Log comprehensive debug information
-		self.logger.info("=" * 80)
-		self.logger.info("🔍 COORDINATE CONVERSION DEBUG")
-		self.logger.info("=" * 80)
-		
-		# Map information
-		map_info = self.global_map_curr.info
-		self.logger.info(f"📍 Map Info:")
-		self.logger.info(f"   Resolution: {map_info.resolution:.6f} m/cell")
-		self.logger.info(f"   Origin: ({map_info.origin.position.x:.6f}, {map_info.origin.position.y:.6f})")
-		self.logger.info(f"   Dimensions: {map_info.width} x {map_info.height} cells")
-		
-		# Robot pose from topic
-		self.logger.info(f"🤖 Robot Pose from /pose topic:")
-		self.logger.info(f"   World Position: ({robot_world_x:.6f}, {robot_world_y:.6f}, {robot_world_z:.6f})")
-		self.logger.info(f"   Yaw: {robot_yaw:.4f} rad ({robot_yaw_deg:.2f}°)")
-		
-		# Converted coordinates
-		self.logger.info(f"🗺️  Coordinate Conversion:")
-		self.logger.info(f"   World → Map: ({robot_world_x:.6f}, {robot_world_y:.6f}) → ({robot_map_x}, {robot_map_y})")
-		self.logger.info(f"   Map → World: ({robot_map_x}, {robot_map_y}) → ({converted_world_x:.6f}, {converted_world_y:.6f})")
-		
-		# Comparison and differences
-		self.logger.info(f"📊 Comparison Results:")
-		self.logger.info(f"   X Difference: {diff_x:.6f} m")
-		self.logger.info(f"   Y Difference: {diff_y:.6f} m")
-		self.logger.info(f"   Total Distance Error: {total_diff:.6f} m")
-		
-		# Status check
-		tolerance = 0.01  # 1cm tolerance
-		if total_diff < tolerance:
-			self.logger.info(f"✅ PASS: Conversion accuracy within tolerance ({tolerance:.3f}m)")
-		else:
-			self.logger.warn(f"❌ FAIL: Conversion error exceeds tolerance ({tolerance:.3f}m)")
-		
-		# Additional debug information
-		self.logger.info(f"🔧 Internal Variables:")
-		self.logger.info(f"   self.buggy_pose_x: {self.buggy_pose_x:.6f}")
-		self.logger.info(f"   self.buggy_pose_y: {self.buggy_pose_y:.6f}")
-		self.logger.info(f"   self.buggy_center: {self.buggy_center}")
-		self.logger.info(f"   self.world_centre: {self.world_centre}")
-		
-		self.logger.info("=" * 80)
-		import time
-		time.sleep(1/3)
-		return
+		# Create and send goal
+		goal = self.create_goal_from_world_coord(goal_world_x, goal_world_y, robot_yaw)
+		self.send_goal_from_world_pose(goal)
 
-
+		# Reset goal flag
+		self.goal_sent = False
 
 	# ----------------------- EXPLORE FUNCTIONS ----------------------- 
 
