@@ -254,7 +254,7 @@ class WarehouseExplore(Node):
 			return
 
 		# Wait for 60 seconds
-		if time.time() - self.debug_start_time < 60.0:
+		if time.time() - self.debug_start_time < 	60.0:
 			return
 		
 		# Reset timer for next cycle
