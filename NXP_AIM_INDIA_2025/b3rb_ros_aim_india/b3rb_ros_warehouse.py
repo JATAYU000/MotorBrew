@@ -239,13 +239,33 @@ class WarehouseExplore(Node):
 
 	def custom_debug(self):
 		"""
-		Debug function that waits 5 seconds then sends a goal 1.5m ahead.
+		Debug function that waits 45 seconds then sends a goal 1.5m ahead.
 		"""
 		if self.global_map_curr is None or self.pose_curr is None:
-			self.logger.info("Waiting for map and pose data...")
 			return
 		
+		# Check if there's already a goal in progress
+		if not self.goal_completed:
+			return
+		
+		# Initialize debug timer if not already created
+		if not hasattr(self, 'debug_timer_created'):
+			self.logger.info("Starting 45-second debug timer...")
+			self.debug_timer = self.create_timer(45.0, self.debug_timer_callback)
+			self.debug_timer_created = True
+			return
+		
+		# If timer has executed, we're done
+		if hasattr(self, 'debug_goal_sent'):
+			self.current_state = self.DO_NOTHING
+			return
 
+	def debug_timer_callback(self):
+		"""Timer callback to send debug goal after 45 seconds"""
+		if self.global_map_curr is None or self.pose_curr is None:
+			return
+		
+		self.logger.info("45 seconds elapsed - sending debug goal")
 		
 		# Get robot position and orientation
 		robot_world_x = self.pose_curr.pose.pose.position.x
@@ -254,17 +274,19 @@ class WarehouseExplore(Node):
 		robot_yaw = self.get_yaw_from_quaternion(orientation)
 		
 		# Calculate goal position 1.5 meters ahead
-		goal_distance = 1.0
+		goal_distance = 1.5
 		goal_world_x = robot_world_x + goal_distance * math.cos(robot_yaw)
 		goal_world_y = robot_world_y + goal_distance * math.sin(robot_yaw)
 		
 		# Create and send goal
 		goal = self.create_goal_from_world_coord(goal_world_x, goal_world_y, robot_yaw)
 		self.send_goal_from_world_pose(goal)
-
-		# Reset goal flag
-		self.goal_sent = False
-		self.current_state = self.DO_NOTHING
+		
+		# Mark goal as sent and clean up timer
+		self.debug_goal_sent = True
+		self.debug_timer.destroy()
+		
+		self.logger.info("Debug goal sent, switching to DO_NOTHING state")
 
 	# ----------------------- EXPLORE FUNCTIONS ----------------------- 
 
