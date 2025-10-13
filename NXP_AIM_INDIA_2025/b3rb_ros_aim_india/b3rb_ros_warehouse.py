@@ -242,11 +242,9 @@ class WarehouseExplore(Node):
 		Debug function that waits 5 seconds then sends a goal 1.5m ahead.
 		"""
 		if self.global_map_curr is None or self.pose_curr is None:
+			self.logger.info("Waiting for map and pose data...")
 			return
 		
-		# Check if there's already a goal in progress
-		if not self.goal_completed:
-			return
 
 		
 		# Get robot position and orientation
@@ -1534,7 +1532,7 @@ class WarehouseExplore(Node):
 		"""
 		# self.simple_map_curr = message
 		self.global_map_curr = message
-		map_info = self.simple_map_curr.info
+		map_info = self.global_map_curr.info
 		if self.current_state == -1:
 			self.logger.info(f"Map info: {map_info}")
 			self.world_centre = self.get_map_coord_from_world_coord(0,0, self.global_map_curr.info)
