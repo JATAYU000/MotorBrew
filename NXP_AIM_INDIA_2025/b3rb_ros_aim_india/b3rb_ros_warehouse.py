@@ -235,8 +235,8 @@ class WarehouseExplore(Node):
 			self.handle_adjusting_shelf()
 		elif self.current_state == self.DO_NOTHING:
 			self.logger.info(f"Doing Nothing its been {self.get_clock().now().seconds_nanoseconds()[0] - self.time_start} seconds")
-			if (self.get_clock().now().seconds_nanoseconds()[0] - self.time_start) % 80 == 0:
-				self.current_state = self.DEBUG
+			# if (self.get_clock().now().seconds_nanoseconds()[0] - self.time_start) % 80 == 0:
+			# 	self.current_state = self.DEBUG
 		elif self.current_state == self.DEBUG:
 			self.custom_debug()
 		
@@ -256,8 +256,8 @@ class WarehouseExplore(Node):
 		
 		# Initialize debug timer if not already created
 		if not self.debug_timer_created:
-			self.logger.info("Starting 60-second debug timer...")
-			self.debug_timer = self.create_timer(60.0, self.debug_timer_callback)
+			self.logger.info("Starting 110-second debug timer...")
+			self.debug_timer = self.create_timer(110.0, self.debug_timer_callback)
 			self.debug_timer_created = True
 			return
 		
@@ -268,32 +268,10 @@ class WarehouseExplore(Node):
 
 	def debug_timer_callback(self):
 		"""Timer callback to send debug goal after 60 seconds"""
-		if self.global_map_curr is None or self.pose_curr is None:
-			return
-
-		self.logger.info("60 seconds elapsed - sending debug goal")
-
-		# Get robot position and orientation
-		robot_world_x = self.pose_curr.pose.pose.position.x
-		robot_world_y = self.pose_curr.pose.pose.position.y
-		orientation = self.pose_curr.pose.pose.orientation
-		robot_yaw = self.get_yaw_from_quaternion(orientation)
-		
-		# Calculate goal position 1.0 meters ahead
-		goal_distance = 1.0
-		goal_world_x = robot_world_x + goal_distance * math.cos(robot_yaw)
-		goal_world_y = robot_world_y + goal_distance * math.sin(robot_yaw)
-		
-		# Create and send goal
-		goal = self.create_goal_from_world_coord(goal_world_x, goal_world_y, robot_yaw)
-		self.send_goal_from_world_pose(goal)
-		
-		# Mark goal as sent and clean up timer
-		self.debug_goal_sent = True
-		self.debug_timer.destroy()
-		self.debug_timer_created = False
-		
-		self.logger.info("Debug goal sent, switching to DO_NOTHING state")
+		self.logger.info("60 seconds elapsed, sending debug goal 1.5m ahead...")
+		self.current_state = self.EXPLORE
+		self.debug_timer_created = True
+		return
 
 	# ----------------------- EXPLORE FUNCTIONS ----------------------- 
 
@@ -1559,7 +1537,7 @@ class WarehouseExplore(Node):
 		Returns:
 			None
 		"""
-		# self.simple_map_curr = message
+		self.simple_map_curr = message
 		self.global_map_curr = message
 		map_info = self.global_map_curr.info
 		if self.current_state == -1:
