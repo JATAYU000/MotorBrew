@@ -209,6 +209,9 @@ class WarehouseExplore(Node):
 		self.qr_detection_available = True
 		self.goal_sent = False
 
+		# - temp -
+		self.debug_timer_created = False
+
 		# ----------------------- State Machine ----------------------- 
 		self.state_timer = self.create_timer(1.0, self.state_machine_update)
 		self.time_start = self.get_clock().now().seconds_nanoseconds()[0]
@@ -232,6 +235,8 @@ class WarehouseExplore(Node):
 			self.handle_adjusting_shelf()
 		elif self.current_state == self.DO_NOTHING:
 			self.logger.info(f"Doing Nothing its been {self.get_clock().now().seconds_nanoseconds()[0] - self.time_start} seconds")
+			if (self.get_clock().now().seconds_nanoseconds()[0] - self.time_start) % 80 == 0:
+				self.current_state = self.DEBUG
 		elif self.current_state == self.DEBUG:
 			self.custom_debug()
 		
@@ -250,7 +255,7 @@ class WarehouseExplore(Node):
 			return
 		
 		# Initialize debug timer if not already created
-		if not hasattr(self, 'debug_timer_created'):
+		if not self.debug_timer_created:
 			self.logger.info("Starting 60-second debug timer...")
 			self.debug_timer = self.create_timer(60.0, self.debug_timer_callback)
 			self.debug_timer_created = True
@@ -274,8 +279,8 @@ class WarehouseExplore(Node):
 		orientation = self.pose_curr.pose.pose.orientation
 		robot_yaw = self.get_yaw_from_quaternion(orientation)
 		
-		# Calculate goal position 1.5 meters ahead
-		goal_distance = 1.5
+		# Calculate goal position 1.0 meters ahead
+		goal_distance = 1.0
 		goal_world_x = robot_world_x + goal_distance * math.cos(robot_yaw)
 		goal_world_y = robot_world_y + goal_distance * math.sin(robot_yaw)
 		
@@ -286,6 +291,7 @@ class WarehouseExplore(Node):
 		# Mark goal as sent and clean up timer
 		self.debug_goal_sent = True
 		self.debug_timer.destroy()
+		self.debug_timer_created = False
 		
 		self.logger.info("Debug goal sent, switching to DO_NOTHING state")
 
