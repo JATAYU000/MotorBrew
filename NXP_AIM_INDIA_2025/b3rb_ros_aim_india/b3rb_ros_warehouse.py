@@ -241,6 +241,7 @@ class WarehouseExplore(Node):
 		"""
 		Debug function that waits 45 seconds then sends a goal 1.5m ahead.
 		"""
+		self.logger.info(f"State timer: {self.get_clock().now().seconds_nanoseconds()[0] - self.time_start} seconds")
 		if self.global_map_curr is None or self.pose_curr is None:
 			return
 		
@@ -250,8 +251,8 @@ class WarehouseExplore(Node):
 		
 		# Initialize debug timer if not already created
 		if not hasattr(self, 'debug_timer_created'):
-			self.logger.info("Starting 45-second debug timer...")
-			self.debug_timer = self.create_timer(45.0, self.debug_timer_callback)
+			self.logger.info("Starting 60-second debug timer...")
+			self.debug_timer = self.create_timer(60.0, self.debug_timer_callback)
 			self.debug_timer_created = True
 			return
 		
@@ -261,12 +262,12 @@ class WarehouseExplore(Node):
 			return
 
 	def debug_timer_callback(self):
-		"""Timer callback to send debug goal after 45 seconds"""
+		"""Timer callback to send debug goal after 60 seconds"""
 		if self.global_map_curr is None or self.pose_curr is None:
 			return
-		
-		self.logger.info("45 seconds elapsed - sending debug goal")
-		
+
+		self.logger.info("60 seconds elapsed - sending debug goal")
+
 		# Get robot position and orientation
 		robot_world_x = self.pose_curr.pose.pose.position.x
 		robot_world_y = self.pose_curr.pose.pose.position.y
