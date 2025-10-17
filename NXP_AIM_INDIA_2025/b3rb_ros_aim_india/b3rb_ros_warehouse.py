@@ -363,8 +363,9 @@ class WarehouseExplore(Node):
 			if 26<w<=40 and 9<h<=22:
 				pass
 			else:
-				self.logger.info(f"height and width of box found {h} {w} so retring")
-				return self.find_shelf(search_distance)
+				# self.logger.info(f"height and width of box found {h} {w} so retring")
+				# return self.find_shelf(search_distance)
+				return None
 		else:
 			return None
 		# Find a safe point to move towards the shelf
