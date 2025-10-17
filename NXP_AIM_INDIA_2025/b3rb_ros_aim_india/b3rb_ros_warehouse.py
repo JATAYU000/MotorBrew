@@ -191,403 +191,16 @@ class WarehouseExplore(Node):
 
 	# -------------------- FRONTIER EXPLORATION --------------------
 
-	def frontier_explore(self):
-		self.shelf_info = self.find_shelf(search_distance=200)
-		self.logger.info(f"{self.shelf_angle_deg}")
-		self.logger.info(f"prev shelf cneter: {self.prev_shelf_center}")
-		
-		if self.shelf_info is not None and self.find_free_space_around_shelf_center(radius=75) > 70:
-			self.logger.info(f"Map is mostly free, skipping exp: {self.find_free_space_around_shelf_center(radius=75)}% free")
-			self.current_state = self.MOVE_TO_SHELF
-			return
-		
-		self.logger.info("Exploring frontier...")
-		frontiers = self.get_frontiers_for_space_exploration(self.map_array)
-		self.logger.info(f"Found {len(frontiers)} frontiers in the map.")
-		self.logger.info(f"world center: {self.world_center}, Current shelf info: {self.shelf_info}\n")
-		
-		if frontiers:
-			closest_frontier = None
-			min_distance_curr = float('inf')
-			
-			if self.shelf_info is not None:
-				world_self_center = self.get_world_coord_from_map_coord(
-					self.shelf_info['center'][0],
-					self.shelf_info['center'][1],
-					self.global_map_curr.info
-				)
-			else:
-				self.logger.info(f"Initial world position: {self.prev_shelf_center}")
-				
-				angle_rad = math.radians(self.shelf_angle_deg)
-				self.logger.info(f"Initial angle: {self.shelf_angle_deg}°")
-				
-				map_height = self.global_map_curr.info.height
-				map_width = self.global_map_curr.info.width
-				edge_margin = 12
-				
-				start_x, start_y = self.prev_shelf_center
-				
-				step_size = 10
-				current_x, current_y = start_x, start_y
-				
-				while (edge_margin < current_x < map_width - edge_margin and 
-					   edge_margin < current_y < map_height - edge_margin):
-					current_x += step_size * math.cos(angle_rad)
-					current_y += step_size * math.sin(angle_rad)
-				
-				endpoint_x = int(current_x - step_size * math.cos(angle_rad))
-				endpoint_y = int(current_y - step_size * math.sin(angle_rad))
-				
-				self.logger.info(f"Map endpoint found at: ({endpoint_x}, {endpoint_y})")
-				
-				world_self_center = self.get_world_coord_from_map_coord(
-					endpoint_x, 
-					endpoint_y, 
-					self.global_map_curr.info
-				)
-				self.logger.info(f"Calculated world self center: {world_self_center}")
-
-			for fy, fx in frontiers:
-				fx_world, fy_world = self.get_world_coord_from_map_coord(fx, fy, self.global_map_curr.info)
-				distance = euclidean((fx_world, fy_world), world_self_center)
-				if (distance < min_distance_curr and
-					distance <= self.max_step_dist_world_meters and
-					distance >= self.min_step_dist_world_meters):
-					min_distance_curr = distance
-					closest_frontier = (fy, fx)
-
-			if closest_frontier:
-				fy, fx = closest_frontier
-				self.current_frontier_goal = [(fx, fy),0]
-				self.logger.info(f'\nFound frontier closest at: ({fx}, {fy})')
-				self.logger.info(f'World coordinates: ({fx_world}, {fy_world})')
-				goal = self.create_goal_from_map_coord(fx, fy, self.global_map_curr.info)
-				self.send_goal_from_world_pose(goal)
-				return
-			else:
-				self.max_step_dist_world_meters += 2.0
-				new_min_step_dist = self.min_step_dist_world_meters - 1.0
-				self.min_step_dist_world_meters = max(0.25, new_min_step_dist)
-
-			self.full_map_explored_count = 0
-		else:
-			self.full_map_explored_count += 1
-	
 
 
 	# -------------------- SHELF FINDING --------------------
-
-	def find_shelf(self, search_distance=100):
-		"""
-		Detects a shelf within a specified corridor in a SLAM map and determines a safe target point for the robot to approach.
-		This method searches for obstacles (representing shelves) along a corridor extending from the robot's current position
-		in a specified direction. It validates detected obstacles based on distance from the robot and map edges, then attempts
-		to identify a shelf with expected dimensions. If a valid shelf is found, it computes a safe approach point for the robot.
-		Parameters:
-			self.map_array (np.ndarray): 2D numpy array representing the SLAM occupancy grid map. 
-									Obstacles (shelves) are expected to have values 99 or 100.
-			self.buggy_map_xy (tuple): (x, y) coordinates of the robot's current position in map units.
-			self.shelf_angle_deg (float): Angle in degrees indicating the direction to search for the shelf, relative to the robot.
-			search_distance (int, optional): Maximum distance (in map units) to search for the shelf. Default is 100.
-		Returns:
-			tuple:
-				target_point (tuple or None): (x, y) coordinates of a safe point to approach the detected shelf, or None if not found.
-				shelf_info (dict or None): Dictionary containing shelf properties (center, dimensions, etc.), or None if no valid shelf is detected.
-		"""
-		
-		# Convert angle to radians
-		angle_rad = np.radians(self.shelf_angle_deg)
-		
-		obstacle_mask = (self.map_array == 99) | (self.map_array == 100)
-		
-		point_x, point_y = self.prev_shelf_center
-		min_search_distance = 30  # Exclude 30-unit margin around robot
-		edge_margin = 12  # Exclude 5-unit margin from map edges
-		map_height, map_width = self.map_array.shape
-		search_width = 3  # Search ±3 units perpendicular to the main direction
-		perp_angle = angle_rad + np.pi/2  # 90 degrees perpendicular
-		perp_dx = np.cos(perp_angle)
-		perp_dy = np.sin(perp_angle)
-		
-		# Generate points along the search corridor
-		search_points = []
-		for distance in range(min_search_distance, search_distance + 1):
-			# Main search line point
-			main_x = point_x + distance * np.cos(angle_rad)
-			main_y = point_y + distance * np.sin(angle_rad)
-			
-			# Create points across the search width
-			for offset in range(-search_width, search_width + 1):
-				x = int(main_x + offset * perp_dx)
-				y = int(main_y + offset * perp_dy)
-				
-				# Check bounds WITH edge margins
-				if (edge_margin <= x < map_width - edge_margin and 
-					edge_margin <= y < map_height - edge_margin):
-					search_points.append((x, y))
-		
-		search_points = list(dict.fromkeys(search_points))
-		
-		obstacles_on_line = []
-		for x, y in search_points:
-			if obstacle_mask[y, x]:  # Note: y first for numpy array indexing
-				obstacles_on_line.append((x, y))
-		
-		if not obstacles_on_line:
-			return None
-		
-		valid_obstacles = []
-		for obs_x, obs_y in obstacles_on_line:
-			distance_from_robot = np.sqrt((obs_x - point_x)**2 + (obs_y - point_y)**2)
-			distance_from_edges = min(
-				obs_x,                          # Distance from left edge
-				obs_y,                          # Distance from top edge
-				map_width - 1 - obs_x,         # Distance from right edge
-				map_height - 1 - obs_y         # Distance from bottom edge
-			)
-			
-			# Keep obstacle only if it meets both criteria
-			if (distance_from_robot >= min_search_distance and 
-				distance_from_edges >= edge_margin):
-				valid_obstacles.append((obs_x, obs_y))
-		
-		if not valid_obstacles:
-			return None
-		
-		shelf_info = self.detect_shelf_with_orientation(valid_obstacles, angle_rad)
-		if shelf_info:
-			h = shelf_info['dimensions']['height']
-			w = shelf_info['dimensions']['width']
-			if h>w: h,w=w,h
-			if 26<w<=40 and 9<h<=22:
-				pass
-			else:
-				# self.logger.info(f"height and width of box found {h} {w} so retring")
-				# return self.find_shelf(search_distance)
-				return None
-		else:
-			return None
-		# Find a safe point to move towards the shelf
-		target_point = None
-		# if shelf_info and shelf_info['center']:
-		# 	target_point = self.find_safe_approach_point(self.map_array, self.buggy_map_xy, shelf_info, angle_rad)
-
-		return shelf_info
-
-	def detect_shelf_with_orientation(self, obstacles_on_line, angle_rad):
-		"""
-		Detects a shelf in a SLAM map along a specified search line and estimates its orientation.
-		This method processes a list of obstacle points (typically detected along a search line)
-		to identify the most likely shelf structure within the map. It filters out obstacles near
-		the map edges, clusters the remaining obstacles, selects the cluster (connected component)
-		closest to the search line, and computes the shelf's center and orientation using PCA and
-		minimum area rectangle fitting.
-		Parameters:
-			self.map_array (np.ndarray): 2D numpy array representing the SLAM occupancy grid map.
-									Obstacle cells are expected to have values 99 or 100.
-			obstacles_on_line (list of tuple): List of (x, y) tuples representing obstacle coordinates
-												detected along the search line.
-			self.buggy_map_xy (tuple): (x, y) coordinates of the robot's current position in map coordinates.
-			angle_rad (float): Angle (in radians) of the search line along which obstacles were detected.
-		Returns:
-			dict or None: Dictionary containing shelf information if a shelf is detected, else None.
-				The dictionary contains:
-					- 'center': (x, y) coordinates of the shelf center (int, int)
-					- 'orientation': Output of self.calculate_shelf_orientation(shelf_points)
-					- 'corners': List of 4 (x, y) tuples for the corners of the minimum area rectangle
-					- 'dimensions': Dict with 'width', 'height', and 'area' (number of pixels)
-					- 'rotation_angle': Rotation angle (degrees) of the minimum area rectangle [0, 180)
-					- 'rect_center': (x, y) center of the minimum area rectangle (float, float)
-		"""
-		
-		if not obstacles_on_line:
-			return None
-		
-		edge_margin = 5  # Exclude 5-unit margin from map edges
-		map_height, map_width = self.map_array.shape
-		
-		filtered_obstacles = []
-		for obs_x, obs_y in obstacles_on_line:
-			distance_from_edges = min(
-				obs_x,                          # Distance from left edge
-				obs_y,                          # Distance from top edge
-				map_width - 1 - obs_x,         # Distance from right edge
-				map_height - 1 - obs_y         # Distance from bottom edge
-			)
-			
-			# Keep obstacle only if it's away from edges
-			if distance_from_edges >= edge_margin:
-				filtered_obstacles.append((obs_x, obs_y))
-		
-		if not filtered_obstacles:
-			return None
-		
-		
-		obstacle_points = np.array(filtered_obstacles)  # Use filtered list
-		min_x, min_y = np.min(obstacle_points, axis=0)
-		max_x, max_y = np.max(obstacle_points, axis=0)
-		
-		margin = 30
-		roi_x1 = max(edge_margin, min_x - margin)          # Respect edge margin
-		roi_y1 = max(edge_margin, min_y - margin)          # Respect edge margin
-		roi_x2 = min(map_width - edge_margin, max_x + margin)   # Respect edge margin
-		roi_y2 = min(map_height - edge_margin, max_y + margin)  # Respect edge margin
-
-		
-		# Extract ROI
-		roi = self.map_array[roi_y1:roi_y2, roi_x1:roi_x2]
-		obstacle_roi = (roi == 99) | (roi == 100)
-		
-		num_features, labeled = cv2.connectedComponents(obstacle_roi.astype(np.uint8))
-		
-		if num_features == 0:
-			return None
-		
-		robot_x, robot_y = self.buggy_map_xy
-		search_line_dx = np.cos(angle_rad)
-		search_line_dy = np.sin(angle_rad)
-		
-		component_info = []
-		for i in range(1, num_features + 1):
-			component_mask = (labeled == i)
-			size = np.sum(component_mask)
-			
-			if size < 10:
-				continue
-				
-			y_coords, x_coords = np.where(component_mask)
-			
-			global_x_coords = x_coords + roi_x1
-			global_y_coords = y_coords + roi_y1
-			
-			center_x = np.mean(global_x_coords)
-			center_y = np.mean(global_y_coords)
-			
-			to_center_x = center_x - robot_x
-			to_center_y = center_y - robot_y
-			
-			# Project onto search line direction to get along-line distance
-			along_line_distance = to_center_x * search_line_dx + to_center_y * search_line_dy
-			closest_point_x = robot_x + along_line_distance * search_line_dx
-			closest_point_y = robot_y + along_line_distance * search_line_dy
-			
-			perp_distance = np.sqrt(
-				(center_x - closest_point_x)**2 + (center_y - closest_point_y)**2
-			)
-			
-			component_info.append({
-				'label': i,
-				'size': size,
-				'center': (center_x, center_y),
-				'perp_distance': perp_distance,
-				'along_line_distance': along_line_distance
-			})
-			
-		
-		if not component_info:
-			return None
-		
-		best_component = min(component_info, key=lambda x: x['perp_distance'])
-		selected_label = best_component['label']
-		
-		largest_component = (labeled == selected_label)
-		y_coords, x_coords = np.where(largest_component)
-		
-		if len(x_coords) == 0:
-			return None
-		
-		global_x_coords = x_coords + roi_x1
-		global_y_coords = y_coords + roi_y1
-		
-		# ADDITIONAL FILTERING: Remove any points that are still too close to edges
-		final_x_coords = []
-		final_y_coords = []
-		for x, y in zip(global_x_coords, global_y_coords):
-			distance_from_edges = min(x, y, map_width - 1 - x, map_height - 1 - y)
-			if distance_from_edges >= edge_margin:
-				final_x_coords.append(x)
-				final_y_coords.append(y)
-		
-		if len(final_x_coords) == 0:
-			return None
-		
-		global_x_coords = np.array(final_x_coords)
-		global_y_coords = np.array(final_y_coords)
-		
-		center_x = int(np.mean(global_x_coords))
-		center_y = int(np.mean(global_y_coords))
-		
-		shelf_points = np.column_stack([global_x_coords, global_y_coords])
-		orientation_info = self.calculate_shelf_orientation(shelf_points)
-		contour_points = np.column_stack([global_x_coords, global_y_coords]).astype(np.int32)
-		rect_info = cv2.minAreaRect(contour_points)
-		(rect_center_x, rect_center_y), (width, height), rotation_angle = rect_info
-		box_points = cv2.boxPoints(rect_info)
-		box_points = np.int32(box_points)
-		rotation_angle = rotation_angle % 180
-		shelf_info = {
-			'center': (center_x, center_y),
-			'orientation': orientation_info,
-			'corners': box_points.tolist(),
-			'dimensions': {
-				'width': width,
-				'height': height,
-				'area': len(global_x_coords)
-			},
-			'rotation_angle': rotation_angle,
-			'rect_center': (rect_center_x, rect_center_y)
-		}
-		
-		return shelf_info
-
-	def calculate_shelf_orientation(self, points):
-		"""
-		Calculates the orientation and geometric properties of a shelf given a set of 2D points.
-		This method performs Principal Component Analysis (PCA) on the input points to determine the primary and secondary orientation angles of the shelf, as well as its aspect ratio and elongation. The primary and secondary directions correspond to the eigenvectors of the covariance matrix of the points, representing the main axes of the point distribution.
-		Parameters:
-			points (np.ndarray): A 2D NumPy array of shape (N, 2), where each row represents the (x, y) coordinates of a point on the shelf.
-		Returns:
-			dict: A dictionary containing the following keys:
-				- 'primary_angle' (float): The angle (in degrees, [0, 180)) of the primary axis with respect to the x-axis.
-				- 'secondary_angle' (float): The angle (in degrees, [0, 180)) of the secondary axis with respect to the x-axis.
-				- 'primary_direction' (np.ndarray): The unit vector representing the primary axis direction.
-				- 'secondary_direction' (np.ndarray): The unit vector representing the secondary axis direction.
-				- 'aspect_ratio' (float): The ratio of the largest to the second largest eigenvalue, indicating the spread along the primary axis relative to the secondary.
-				- 'elongation' (float): The square root of the aspect ratio, representing the elongation of the point distribution.
-		"""
-		
-		mean_point = np.mean(points, axis=0)
-		centered_points = points - mean_point
-		cov_matrix = np.cov(centered_points.T)
-		eigenvalues, eigenvectors = np.linalg.eig(cov_matrix)
-		idx = np.argsort(eigenvalues)[::-1]
-		eigenvalues = eigenvalues[idx]
-		eigenvectors = eigenvectors[:, idx]
-
-		primary_direction = eigenvectors[:, 0]
-		secondary_direction = eigenvectors[:, 1]
-		primary_angle = np.degrees(np.arctan2(primary_direction[1], primary_direction[0]))
-		secondary_angle = np.degrees(np.arctan2(secondary_direction[1], secondary_direction[0]))
-		primary_angle = primary_angle % 180
-		secondary_angle = secondary_angle % 180
-		aspect_ratio = eigenvalues[0] / eigenvalues[1] if eigenvalues[1] != 0 else float('inf')
-		
-		return {
-			'primary_angle': primary_angle,
-			'secondary_angle': secondary_angle,
-			'primary_direction': primary_direction,
-			'secondary_direction': secondary_direction,
-			'aspect_ratio': aspect_ratio,
-			'elongation': np.sqrt(eigenvalues[0] / eigenvalues[1]) if eigenvalues[1] != 0 else float('inf')
-		}
 
 
 
 	# -------------------- UTILITY -------------------
 
 
-	def find_free_space_around_shelf_center(self, radius):
+	def find_free_space_around_shelf_center(self, point, radius):
 		"""
 		Calculates the percentage of free space (cells with value 0) within a circular area around a given point in a 2D map array.
 		Parameters:
@@ -597,8 +210,6 @@ class WarehouseExplore(Node):
 		Returns:
 			float: Percentage of free space within the specified circular area. Returns 0 if no valid cells are found within the area.
 		"""
-		self.logger.info(f"\n\n\n{self.shelf_info}")
-		point = self.shelf_info['center']
 		x, y = int(point[0]), int(point[1])
 		radius = int(radius)
 		free_space_count = 0
@@ -647,7 +258,8 @@ class WarehouseExplore(Node):
 			self.current_state = self.EXPLORE
 
 		elif self.current_state == self.EXPLORE:
-			self.frontier_explore()
+			# self.frontier_explore()
+			self.move_random()
 		elif self.current_state == self.MOVE_TO_SHELF:
 			self.logger.info("MOVE TO SHELF")
 		elif self.current_state == self.CAPTURE_OBJECTS:
@@ -661,6 +273,24 @@ class WarehouseExplore(Node):
 		else:
 			return 
 
+	def move_random(self):
+		"""Moves the rover to a random location within a point random where 8 units around it is free"""
+		free_cells = np.argwhere(self.map_array == 0)
+		np.random.shuffle(free_cells)
+
+		robot_x, robot_y = self.buggy_map_xy
+
+		for cell in free_cells:
+			y, x = cell
+			distance = math.hypot(x - robot_x, y - robot_y)
+			# target should be approximately 10 map units away (allow +/- 1 unit tolerance)
+			if abs(distance - 20.0) <= 1.0 and self.find_free_space_around_shelf_center((x, y), radius=8):
+				goal = self.create_goal_from_map_coord(x, y, self.global_map_curr.info)
+				self.send_goal_from_world_pose(goal)
+				self.logger.info(f"Moving to random free cell at ({x}, {y}) distance={distance:.2f}")
+				return
+		self.logger.info("No suitable random free cell found at ~10 units distance.")
+	
 	def pose_callback(self, message):
 		"""Callback function to handle pose updates.
 
