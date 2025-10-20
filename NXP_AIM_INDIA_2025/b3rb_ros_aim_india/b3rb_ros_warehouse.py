@@ -31,6 +31,7 @@ import threading
 from sensor_msgs.msg import Joy
 from sensor_msgs.msg import LaserScan
 from sensor_msgs.msg import CompressedImage
+from pyzbar import pyzbar
 
 from geometry_msgs.msg import Quaternion
 from geometry_msgs.msg import PoseStamped
@@ -169,13 +170,16 @@ class WarehouseExplore(Node):
 		self.full_map_explored_count = 0
 
 		# --- QR Code Data ---
-		self.qr_code_str = "Empty"
-		
+		self.qr_code_str = None
 
 		# --- Shelf Data ---
 		self.shelf_objects_curr = WarehouseShelf()
 		self.shelf_angle_deg = self.initial_angle
 		self.prev_shelf_center = None
+		self.current_shelf_objects = None
+		self.search_point = None
+		self.current_shelf_number = 1
+		self._fb_dist = 42
 
 		# --- State Machine ---
 		self.current_state = -1
@@ -185,22 +189,337 @@ class WarehouseExplore(Node):
 		self.MOVE_TO_QR = 3
 		self.ADJUST_TO = 4
 		self.DEBUG = 5
+		self.start = time.time()
+
+		self.send_request_to_server(rtype='reset')
+
 
 	# -------------------- MOVE TO THE SHELF -----------------------
 
+	def handle_move_to_shelf(self):
+		self.front, self.back = self.find_front_back_points(self._fb_dist,False)
+		direction = self.shelf_info['orientation']['secondary_direction']
+		self.target_view_point = self.front if self.calc_distance(self.buggy_map_xy, self.front) < self.calc_distance(self.buggy_map_xy, self.back) else self.back
+		yaw = self.find_angle_point_direction(self.shelf_info['center'], self.target_view_point, direction)
+		goal_x, goal_y = self.get_world_coord_from_map_coord(float(self.target_view_point[0]), float(self.target_view_point[1]), self.global_map_curr.info)
+		goal = self.create_goal_from_world_coord(goal_x, goal_y, math.radians(yaw))
+		if self.send_goal_from_world_pose(goal):
+			self.logger.info(f"NAV TO SHELF Goal sent to ({goal_x:.2f}, {goal_y:.2f}) with yaw {yaw:.2f}°")
+			self.current_state = self.CAPTURE_OBJECTS
+		else:
+			self.logger.error("Failed to send navigation goal!")
+		
+	# -------------------- CAPTURE OBJECTS -------------------------
+
+	def handle_capture_objects(self):
+		if self.current_shelf_objects is not None:
+			self.shelf_objects_curr.object_name = self.current_shelf_objects.object_name
+			self.shelf_objects_curr.object_count = self.current_shelf_objects.object_count
+			self.logger.info(f"Captured {self.shelf_objects_curr.object_count} objects: {self.shelf_objects_curr.object_name}")
+
+			if sum(self.current_shelf_objects.object_count) >= 5:
+				self.current_state = self.MOVE_TO_QR
+			else:
+				self.logger.info("Adjusting position to capture all objects...")
+				if self._fb_dist > 50: self._fb_dist -= 10
+				else: self._fb_dist += 10
+				self.current_state = self.MOVE_TO_SHELF
+		else:
+			self.logger.info("No shelf objects received yet.")
+
+	# -------------------- QR PROCESSING --------------------
+
+	def handle_qr_navigation(self):
+		self.left, self.right = self.find_front_back_points(50,True)
+		direction = self.shelf_info['orientation']['primary_direction']
+		self.target_view_point = self.left if self.calc_distance(self.buggy_map_xy, self.left) < self.calc_distance(self.buggy_map_xy, self.right) else self.right
+		yaw = self.find_angle_point_direction(self.shelf_info['center'], self.target_view_point, direction)
+		goal_x, goal_y = self.get_world_coord_from_map_coord(float(self.target_view_point[0]), float(self.target_view_point[1]), self.global_map_curr.info)
+		goal = self.create_goal_from_world_coord(goal_x, goal_y, math.radians(yaw))
+		if self.send_goal_from_world_pose(goal):
+			self.logger.info(f"NAV TO QR Goal sent to ({goal_x:.2f}, {goal_y:.2f}) with yaw {yaw:.2f}°")
+		else:
+			self.logger.error("Failed to send navigation goal!")
+		
+	def get_next_angle(self):
+		try:
+			parts = self.qr_code_str.split('_')
+			if len(parts) >= 2:
+				next_angle = float(parts[1])
+				return next_angle
+		except (ValueError, IndexError):
+			self.logger.error(f"Failed to parse QR code: {self.qr_code_str}")
+		return None
 
 	# -------------------- FRONTIER EXPLORATION --------------------
 
+	def frontier_explore(self):
+		self.shelf_info = self.find_first_rectangle()
+		self.logger.info(f"SHELF INFO: {self.shelf_info}")
+		self.logger.info(f"prev shelf center: {self.prev_shelf_center}")
 
+		if self.shelf_info is not None and self.find_free_space_around_shelf_center(radius=75) > 10:
+			self.logger.info(f"Map is mostly free, skipping exp: {self.find_free_space_around_shelf_center(radius=75)}% free")
+			self.current_state = self.MOVE_TO_SHELF
+			return
+		
+		self.logger.info("Exploring frontier...")
+		frontiers = self.get_frontiers_for_space_exploration(self.map_array)
+		self.logger.info(f"Found {len(frontiers)} frontiers in the map.")
+		self.logger.info(f"world center: {self.world_center}, Current shelf info: {self.shelf_info}\n")
+		
+		if frontiers:
+			closest_frontier = None
+			min_distance_curr = float('inf')
+			
+			if self.shelf_info is not None:
+				world_self_center = self.get_world_coord_from_map_coord(
+					self.shelf_info['center'][0],
+					self.shelf_info['center'][1],
+					self.global_map_curr.info
+				)
+			else:
+				self.logger.info(f"Initial world position: {self.prev_shelf_center}")
+				
+				angle_rad = math.radians(self.shelf_angle_deg)
+				self.logger.info(f"Initial angle: {self.shelf_angle_deg}°")
+				
+				map_height = self.global_map_curr.info.height
+				map_width = self.global_map_curr.info.width
+				edge_margin = 12
+				
+				start_x, start_y = self.prev_shelf_center
+				
+				step_size = 10
+				current_x, current_y = start_x, start_y
+				
+				while (edge_margin < current_x < map_width - edge_margin and 
+					   edge_margin < current_y < map_height - edge_margin):
+					current_x += step_size * math.cos(angle_rad)
+					current_y += step_size * math.sin(angle_rad)
+				
+				endpoint_x = int(current_x - step_size * math.cos(angle_rad))
+				endpoint_y = int(current_y - step_size * math.sin(angle_rad))
+				
+				self.logger.info(f"Map endpoint found at: ({endpoint_x}, {endpoint_y})")
+				
+				world_self_center = self.get_world_coord_from_map_coord(
+					endpoint_x, 
+					endpoint_y, 
+					self.global_map_curr.info
+				)
+				self.logger.info(f"Calculated world self center: {world_self_center}")
 
+			for fy, fx in frontiers:
+				fx_world, fy_world = self.get_world_coord_from_map_coord(fx, fy, self.global_map_curr.info)
+				distance = euclidean((fx_world, fy_world), world_self_center)
+				if (distance < min_distance_curr and
+					distance <= self.max_step_dist_world_meters and
+					distance >= self.min_step_dist_world_meters):
+					min_distance_curr = distance
+					closest_frontier = (fy, fx)
+
+			if closest_frontier:
+				fy, fx = closest_frontier
+				self.current_frontier_goal = [(fx, fy),0]
+				self.logger.info(f'\nFound frontier closest at: ({fx}, {fy})')
+				self.logger.info(f'World coordinates: ({fx_world}, {fy_world})')
+				goal = self.create_goal_from_map_coord(fx, fy, self.global_map_curr.info)
+				self.send_goal_from_world_pose(goal)
+				return
+			else:
+				self.max_step_dist_world_meters += 2.0
+				new_min_step_dist = self.min_step_dist_world_meters - 1.0
+				self.min_step_dist_world_meters = max(0.25, new_min_step_dist)
+
+			self.full_map_explored_count = 0
+		else:
+			self.full_map_explored_count += 1
+	
 	# -------------------- SHELF FINDING --------------------
+	def find_first_rectangle(self,rect_fill_ratio=0.60,min_pixel_area=350,ignore_radius=30):
+		start_point = self.prev_shelf_center
+		search_angle_deg = self.shelf_angle_deg
 
+		binary_obstacle_map = np.zeros(self.map_array.shape, dtype=np.uint8)
+		binary_obstacle_map[self.map_array == 99] = 255 # Mark obstacles
+		binary_obstacle_map[self.map_array == 100] = 255 # Mark obstacles
+		num_labels, labels_map = cv2.connectedComponents(binary_obstacle_map)
+		
+		if num_labels <= 1:
+			self.logger.info("No obstacles (value 99 or 100) found in the map.")
+			return None
 
+		search_angle_rad = math.radians(search_angle_deg)
+		map_height, map_width = labels_map.shape
+		max_range = int(math.hypot(map_height, map_width))
+		
+		last_hit_object_id = -1 
+
+		self.logger.info(f"Starting ray cast from {start_point} at {search_angle_deg} deg...")
+		for t in range(ignore_radius, max_range):
+			x = int(start_point[0] + t * math.cos(search_angle_rad))
+			y = int(start_point[1] + t * math.sin(search_angle_rad))
+			
+			# Check boundaries
+			if not (0 <= y < map_height and 0 <= x < map_width):
+				break # Ray went out of bounds
+				
+			current_object_id = labels_map[y, x]
+			
+			if current_object_id == 0:
+				last_hit_object_id = -1 
+				continue 
+
+			if current_object_id == last_hit_object_id:
+				continue # Don't re-validate, just move along the ray
+				
+			self.logger.info(f"\nRay hit new object with ID: {current_object_id} at distance {t}")
+			last_hit_object_id = current_object_id 
+			object_mask = np.uint8(labels_map == current_object_id)
+			points = cv2.findNonZero(object_mask)
+			
+			if points is None:
+				self.logger.info("... Error: Could not extract points. Skipping.")
+				continue # Skip this object
+				
+			object_area = len(points)
+			if object_area < min_pixel_area:
+				self.logger.info(f"... Object is too small (Area: {object_area}). Skipping.")
+				continue 
+
+			found_rect = cv2.minAreaRect(points)
+			(center, (w, h), angle) = found_rect
+
+			if w == 0 or h == 0:
+				self.logger.info("... Object is just a line. Skipping.")
+				continue # *** KEY CHANGE: Continue loop, don't return None
+
+			bounding_box_area = w * h
+			rectangularity_ratio = object_area / bounding_box_area
+
+			if rectangularity_ratio >= rect_fill_ratio:
+				self.logger.info(f"  -> SUCCESS: Object is a valid rectangle (Ratio > {rect_fill_ratio}).")
+				box_points = cv2.boxPoints(found_rect)
+				box_points = np.int0(box_points)
+				points_array = np.squeeze(points)
+				orientation_info = self.calculate_shelf_orientation(points_array)
+				
+				return {
+					"status": "Rectangle Found",
+					"object_id": current_object_id,
+					"center": center,
+					"dimensions": (w, h),
+					"angle": angle,
+					"fill_ratio": rectangularity_ratio,
+					"orientation": orientation_info,
+					"box_points": box_points
+				}
+			else:
+				self.logger.info(f"  -> FAILURE: Not a rectangle. Skipping.")
+				continue 
+
+		self.logger.info("\nRay search finished without finding a valid rectangle.")
+		return None
+	
+	def calculate_shelf_orientation(self, points):
+		"""
+		Calculates the orientation and geometric properties of a shelf given a set of 2D points.
+		This method performs Principal Component Analysis (PCA) on the input points to determine the primary and secondary orientation angles of the shelf, as well as its aspect ratio and elongation. The primary and secondary directions correspond to the eigenvectors of the covariance matrix of the points, representing the main axes of the point distribution.
+		Parameters:
+			points (np.ndarray): A 2D NumPy array of shape (N, 2), where each row represents the (x, y) coordinates of a point on the shelf.
+		Returns:
+			dict: A dictionary containing the following keys:
+				- 'primary_angle' (float): The angle (in degrees, [0, 180)) of the primary axis with respect to the x-axis.
+				- 'secondary_angle' (float): The angle (in degrees, [0, 180)) of the secondary axis with respect to the x-axis.
+				- 'primary_direction' (np.ndarray): The unit vector representing the primary axis direction.
+				- 'secondary_direction' (np.ndarray): The unit vector representing the secondary axis direction.
+				- 'aspect_ratio' (float): The ratio of the largest to the second largest eigenvalue, indicating the spread along the primary axis relative to the secondary.
+				- 'elongation' (float): The square root of the aspect ratio, representing the elongation of the point distribution.
+		"""
+		
+		mean_point = np.mean(points, axis=0)
+		centered_points = points - mean_point
+		cov_matrix = np.cov(centered_points.T)
+		eigenvalues, eigenvectors = np.linalg.eig(cov_matrix)
+		idx = np.argsort(eigenvalues)[::-1]
+		eigenvalues = eigenvalues[idx]
+		eigenvectors = eigenvectors[:, idx]
+
+		primary_direction = eigenvectors[:, 0]
+		secondary_direction = eigenvectors[:, 1]
+		primary_angle = np.degrees(np.arctan2(primary_direction[1], primary_direction[0]))
+		secondary_angle = np.degrees(np.arctan2(secondary_direction[1], secondary_direction[0]))
+		primary_angle = primary_angle % 180
+		secondary_angle = secondary_angle % 180
+		aspect_ratio = eigenvalues[0] / eigenvalues[1] if eigenvalues[1] != 0 else float('inf')
+		
+		return {
+			'primary_angle': primary_angle,
+			'secondary_angle': secondary_angle,
+			'primary_direction': primary_direction,
+			'secondary_direction': secondary_direction,
+			'aspect_ratio': aspect_ratio,
+			'elongation': np.sqrt(eigenvalues[0] / eigenvalues[1]) if eigenvalues[1] != 0 else float('inf')
+		}
+
+	def find_front_back_points(self, distance, use_primary=True):
+			"""
+			Calculates the front and back points at a specified distance from the center of a shelf,
+			along a given orientation direction.
+			This method uses the orientation information from the shelf_info dictionary to determine
+			the direction in which to compute the front and back points relative to the shelf center.
+			The direction can be either the primary or secondary orientation, as specified.
+			Args:
+				self.shelf_info['center'] (tuple): The (x, y) coordinates of the shelf center.
+				shelf_info (dict): Dictionary containing shelf metadata, must include an 'orientation'
+					key with 'primary_direction' and 'secondary_direction' as (dx, dy) tuples.
+				distance (float): The distance from the shelf center to compute the front and back points.
+				use_primary (bool, optional): If True, use the primary direction; otherwise, use the secondary direction.
+					Defaults to True.
+			Returns:
+				tuple: A tuple containing two (x, y) integer coordinate tuples:
+					- front_point: The point at the specified distance in the chosen direction from the center.
+					- back_point: The point at the specified distance in the opposite direction from the center.
+			"""
+			
+			x, y = self.shelf_info['center']
+			if 'orientation' not in self.shelf_info:
+				self.logger.warn("No orientation information in shelf_info")
+				return (x, y), (x, y)
+
+			orientation = self.shelf_info['orientation']
+			if use_primary:
+				direction_vector = orientation['primary_direction']
+				direction_name = "primary"
+			else:
+				direction_vector = orientation['secondary_direction']
+				direction_name = "secondary"
+			
+			dx, dy = direction_vector[0], direction_vector[1]
+			magnitude = np.sqrt(dx**2 + dy**2)
+			if magnitude == 0:
+				self.logger.warn("Zero magnitude direction vector")
+				return (x, y), (x, y)
+			
+			dx_norm = dx / magnitude
+			dy_norm = dy / magnitude
+			
+			front_point = (
+				int(x + distance * dx_norm),
+				int(y + distance * dy_norm)
+			)
+			back_point = (
+				int(x - distance * dx_norm),
+				int(y - distance * dy_norm)
+			)
+
+			return front_point, back_point
+	
 
 	# -------------------- UTILITY -------------------
 
-
-	def find_free_space_around_shelf_center(self, point, radius):
+	def find_free_space_around_shelf_center(self, radius):
 		"""
 		Calculates the percentage of free space (cells with value 0) within a circular area around a given point in a 2D map array.
 		Parameters:
@@ -210,6 +529,8 @@ class WarehouseExplore(Node):
 		Returns:
 			float: Percentage of free space within the specified circular area. Returns 0 if no valid cells are found within the area.
 		"""
+		self.logger.info(f"\n\n\n{self.shelf_info}")
+		point = self.shelf_info['center']
 		x, y = int(point[0]), int(point[1])
 		radius = int(radius)
 		free_space_count = 0
@@ -227,9 +548,73 @@ class WarehouseExplore(Node):
 			return (free_space_count / total_cells) * 100
 		return 0
 	
+	def calc_distance(self, point1, point2):
+		"""
+		Calculates the Euclidean distance between two 2D points.
+		Args:
+			point1 (tuple or list): The (x, y) coordinates of the first point.
+			point2 (tuple or list): The (x, y) coordinates of the second point.
+		Returns:
+			float: The Euclidean distance between point1 and point2.
+		"""
 
+		return math.sqrt((point1[0] - point2[0]) ** 2 + (point1[1] - point2[1]) ** 2)
+
+	def find_angle_point_direction(self,center, point, direction = None):
+		"""
+		Calculates the angle (in degrees) from a given point to a center, normalized to the [0, 360) range.
+		This function computes the direction that a point should face to look towards a specified center, 
+		taking into account the provided direction. The result is logged and returned as a degree value.
+		Args:
+			center (tuple): A tuple (cx, cy) representing the coordinates of the center point.
+			point (tuple): A tuple (px, py) representing the coordinates of the point whose direction is being calculated.
+			direction: Unused parameter, reserved for future use or interface compatibility.
+		Returns:
+			float: The angle in degrees from the point to the center, normalized to the [0, 360) range.
+		"""
+		cx, cy = center
+		px, py = point
+		to_center_x = cx - px  
+		to_center_y = cy - py  
+		
+		angle_to_center = np.arctan2(to_center_y, to_center_x)
+		relative_angle_deg = np.degrees(angle_to_center)
+
+		if relative_angle_deg > 180:
+			relative_angle_deg -= 360
+		elif relative_angle_deg < -180:
+			relative_angle_deg += 360
+		if relative_angle_deg < 0:
+			relative_angle_deg += 360
+		self.logger.info(f" ANGLE to center: {relative_angle_deg}°")
+		return relative_angle_deg
+	
+	def send_request_to_server(self, rtype='upload'):
+		import requests
+		if rtype == 'upload':
+			url = 'https://backend-nxp.vercel.app/upload/'
+			object_names = self.shelf_objects_curr.object_name
+			object_counts = self.shelf_objects_curr.object_count
+			data_dict = {name: count for name, count in zip(object_names, object_counts)}
+
+			key = "MotorBrew-" + self.shelf_objects_curr.qr_decoded
+			data = {"data": data_dict,}
+			headers = {"x-api-key": key}
+			try:
+				requests.post(url, json=data, headers=headers)
+			except requests.exceptions.RequestException as e:
+				self.logger.info(f"❌ Error: {e}")
+
+		if rtype == 'reset':
+			url = 'https://backend-nxp.vercel.app/reset/'
+			headers = {"x-api-key": 'MotorBrew'}
+			data = {"data": {}}
+			try:
+				requests.post(url, json=data, headers=headers)
+			except requests.exceptions.RequestException as e:
+				self.logger.info(f"❌ Error: {e}")
+			
 	# -------------------- CALLBACKS --------------------
-
 
 	def global_map_callback(self, message):
 		"""Callback function to handle global map updates.
@@ -242,8 +627,29 @@ class WarehouseExplore(Node):
 		"""
 		self.global_map_curr = message
 
+		if self.qr_code_str is not None:
+			self.cancel_current_goal()
+			self.current_shelf_number+=1
+			if self.current_shelf_number>self.shelf_count:
+				self.current_state = self.DEBUG
+				self.logger.info("All shelves processed, entering DEBUG state.")
+				self.qr_code_str = None
+				return
+			self.prev_shelf_center = self.shelf_info['center']
+			self.shelf_angle_deg = self.get_next_angle()
+			self.shelf_objects_curr.qr_decoded = self.qr_code_str
+			self.publisher_shelf_data.publish(self.shelf_objects_curr)
+			self.send_request_to_server(rtype='upload')
+			self.current_shelf_objects = None
+			self.shelf_objects_curr = WarehouseShelf()
+			self.qr_code_str = None
+			self.current_state = self.EXPLORE
+			self.logger.info(f"QR processed, resuming exploration towards angle {self.shelf_angle_deg}°")
+			return
+	
 		if not self.goal_completed:
-			return		
+			return	
+
 		
 		self.map_array = np.array(self.global_map_curr.data).reshape((self.global_map_curr.info.height, self.global_map_curr.info.width))
 		self.buggy_map_xy = self.get_map_coord_from_world_coord(self.buggy_pose_x, self.buggy_pose_y, self.global_map_curr.info)
@@ -252,45 +658,31 @@ class WarehouseExplore(Node):
 		# state machine
 		if self.current_state == -1:
 			self.prev_shelf_center = self.get_map_coord_from_world_coord(
-				self.world_center[0],
-				self.world_center[1],
+				self.buggy_pose_x,
+				self.buggy_pose_y,
 				self.global_map_curr.info)
 			self.current_state = self.EXPLORE
 
 		elif self.current_state == self.EXPLORE:
-			# self.frontier_explore()
-			self.move_random()
+			self.frontier_explore()
+
 		elif self.current_state == self.MOVE_TO_SHELF:
-			self.logger.info("MOVE TO SHELF")
+			self.handle_move_to_shelf()
+
 		elif self.current_state == self.CAPTURE_OBJECTS:
-			self.logger.info("CAPTURE OBJECT")
+			self.handle_capture_objects()
+
 		elif self.current_state == self.MOVE_TO_QR:
-			self.logger.info("MOVE TO QR")
+			self.handle_qr_navigation()
+
 		elif self.current_state == self.ADJUST_TO:
 			self.logger.info("ADJUST TO")
 		elif self.current_state == self.DEBUG:
-			self.logger.info("DEBUG")
+			self.time_taken = time.time() - self.start
+			self.logger.info(f"DEBUG: Time taken for processing: {self.time_taken:.2f} seconds")
 		else:
 			return 
 
-	def move_random(self):
-		"""Moves the rover to a random location within a point random where 8 units around it is free"""
-		free_cells = np.argwhere(self.map_array == 0)
-		np.random.shuffle(free_cells)
-
-		robot_x, robot_y = self.buggy_map_xy
-
-		for cell in free_cells:
-			y, x = cell
-			distance = math.hypot(x - robot_x, y - robot_y)
-			# target should be approximately 10 map units away (allow +/- 1 unit tolerance)
-			if abs(distance - 20.0) <= 1.0 and self.find_free_space_around_shelf_center((x, y), radius=8):
-				goal = self.create_goal_from_map_coord(x, y, self.global_map_curr.info)
-				self.send_goal_from_world_pose(goal)
-				self.logger.info(f"Moving to random free cell at ({x}, {y}) distance={distance:.2f}")
-				return
-		self.logger.info("No suitable random free cell found at ~10 units distance.")
-	
 	def pose_callback(self, message):
 		"""Callback function to handle pose updates.
 
@@ -366,8 +758,6 @@ class WarehouseExplore(Node):
 
 		return frontiers
 
-
-
 	def publish_debug_image(self, publisher, image):
 		"""Publishes images for debugging purposes.
 
@@ -385,7 +775,6 @@ class WarehouseExplore(Node):
 			message.data = encoded_data.tobytes()
 			publisher.publish(message)
 
-
 	def camera_image_callback(self, message):
 		"""Callback function to handle incoming camera images.
 
@@ -400,7 +789,15 @@ class WarehouseExplore(Node):
 		# Process the image from front camera as needed.
 
 		# Optional line for visualizing image on foxglove.
-		# self.publish_debug_image(self.publisher_qr_decode, image)
+		if self.current_state == self.MOVE_TO_QR:
+			qr_codes = pyzbar.decode(image)
+			if qr_codes:
+				for qr_code in qr_codes:
+					qr_data = qr_code.data.decode('utf-8')
+					self.qr_code_str = qr_data	
+				self.logger.info(f"QR Code Detected: {self.qr_code_str}")
+		
+		self.publish_debug_image(self.publisher_qr_decode, image)
 
 	def cerebri_status_callback(self, message):
 		"""Callback function to handle cerebri status updates.
@@ -446,8 +843,25 @@ class WarehouseExplore(Node):
 		Returns:
 			None
 		"""
-		self.shelf_objects_curr = message
-		# Process the shelf objects as needed.
+		predicates = {'horse','car','banana','potted plant','clock','cup','zebra','teddy bear'}
+		mapping = {'potted plant': 'plant', 'teddy bear': 'teddy','zebra': 'zebra', 'cup': 'cup', 'clock': 'clock','horse':'horse','car':'car','banana':'banana'}
+		if self.current_state == self.CAPTURE_OBJECTS:
+			filtered_object_names = []
+			filtered_object_counts = []
+			
+			for obj_name, obj_count in zip(message.object_name, message.object_count):
+				obj_name_lower = obj_name.lower()
+				
+				if obj_name_lower in predicates:
+					filtered_object_names.append(mapping[obj_name])
+					filtered_object_counts.append(obj_count)
+			
+			if filtered_object_names:
+				# Create filtered message with only warehouse objects
+				filtered_message = WarehouseShelf()
+				filtered_message.object_name = filtered_object_names
+				filtered_message.object_count = filtered_object_counts
+				self.current_shelf_objects = filtered_message
 
 		# How to send WarehouseShelf messages for evaluation.
 		"""
@@ -465,9 +879,7 @@ class WarehouseExplore(Node):
 			Then, publish as self.publisher_shelf_data.publish(self.shelf_objects_curr)
 			This, will publish the current detected objects with the last QR decoded.
 		"""
-
-		
-
+	
 	def rover_move_manual_mode(self, speed, turn):
 		"""Operates the rover in manual mode by publishing on /cerebri/in/joy.
 
@@ -484,8 +896,6 @@ class WarehouseExplore(Node):
 		msg.buttons = [1, 0, 0, 0, 0, 0, 0, 1]
 		msg.axes = [0.0, speed, 0.0, turn]
 		self.publisher_joy.publish(msg)
-
-
 
 	def cancel_goal_callback(self, future):
 		"""
@@ -576,10 +986,7 @@ class WarehouseExplore(Node):
 				self.logger.info(f"Cancelling since trying to recover {number_of_recoveries}")
 				self.cancel_current_goal()
 
-
-
 	# -------------------- GOAL MANAGEMENT --------------------
-
 
 	def send_goal_from_world_pose(self, goal_pose):
 		"""
@@ -608,8 +1015,6 @@ class WarehouseExplore(Node):
 		goal_future.add_done_callback(self.goal_response_callback)
 
 		return True
-
-
 
 	def _get_map_conversion_info(self, map_info) -> Optional[Tuple[float, float]]:
 		"""Helper function to get map origin and resolution."""
@@ -692,7 +1097,7 @@ class WarehouseExplore(Node):
 		goal_pose.pose.orientation = self._create_quaternion_from_yaw(yaw)
 
 		pose = goal_pose.pose.position
-		print(f"Goal created: ({pose.x:.2f}, {pose.y:.2f}, yaw={yaw:.2f})")
+		self.logger.info(f"Goal created: ({pose.x:.2f}, {pose.y:.2f}, yaw={yaw:.2f})")
 		return goal_pose
 
 	def create_goal_from_map_coord(self, map_x: int, map_y: int, map_info,
