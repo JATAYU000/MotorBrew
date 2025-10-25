@@ -218,8 +218,10 @@ class WarehouseExplore(Node):
 			self.logger.info(f"Captured {self.shelf_objects_curr.object_count} objects: {self.shelf_objects_curr.object_name}")
 
 			if sum(self.current_shelf_objects.object_count) >= 5:
+				self.shelf_info = self.find_first_rectangle()
 				self.current_state = self.MOVE_TO_QR
 			else:
+				self.shelf_info = self.find_first_rectangle()
 				self.logger.info("Adjusting position to capture all objects...")
 				if self._fb_dist > 50: self._fb_dist -= 10
 				else: self._fb_dist += 10
@@ -253,13 +255,121 @@ class WarehouseExplore(Node):
 
 	# -------------------- FRONTIER EXPLORATION --------------------
 
+	# def find_safe_place_shelf_angle(self):
+	# 	"""Find a safe goal point along the line from prev_shelf_center in direction shelf_angle_deg.
+
+	# 	Strategy:
+	# 	- Find the map border point along the ray from prev_shelf_center.
+	# 	- Step back along the ray in increments.
+	# 	- For each candidate, prefer a point that is free (map value == 0) and has
+	# 	  a clearance (no obstacles) within `clearance_cells`.
+	# 	- If candidate itself is not free, search a small neighborhood for the nearest
+	# 	  free+clear point and use that.
+	# 	"""
+	# 	# quick guards
+	# 	if self.prev_shelf_center is None or self.map_array is None:
+	# 		self.logger.warn("prev_shelf_center or map not available")
+	# 		return False
+
+	# 	# If shelf already found and area around it is mostly free, move to shelf
+	# 	self.shelf_info = self.find_first_rectangle()
+	# 	if self.shelf_info is not None and self.find_free_space_around_point(self.shelf_info['center'], radius=75) > 10:
+	# 		self.logger.info(f"Map is mostly free, skipping exp: {self.find_free_space_around_point(self.shelf_info['center'], radius=75):.1f}% free")
+	# 		self.current_state = self.MOVE_TO_SHELF
+	# 		return True
+
+	# 	map_h, map_w = self.map_array.shape
+	# 	angle_rad = math.radians(self.shelf_angle_deg)
+	# 	edge_margin = 2
+
+	# 	# find border point by marching until out of bounds then step back one step
+	# 	step = 1
+	# 	sx, sy = int(self.prev_shelf_center[0]), int(self.prev_shelf_center[1])
+	# 	cx, cy = float(sx), float(sy)
+	# 	while (edge_margin <= int(cx) < map_w - edge_margin and edge_margin <= int(cy) < map_h - edge_margin):
+	# 		cx += step * math.cos(angle_rad)
+	# 		cy += step * math.sin(angle_rad)
+	# 	# step back to last in-bounds
+	# 	cx -= step * math.cos(angle_rad)
+	# 	cy -= step * math.sin(angle_rad)
+	# 	border_x, border_y = int(cx), int(cy)
+
+	# 	# helper: search local neighborhood for nearest safe point
+	# 	def find_nearest_safe_from(px, py, max_search=20, clearance_cells=3, free_pct=95):
+	# 		best_pt = None
+	# 		best_dist = float('inf')
+	# 		x0, y0 = int(px), int(py)
+	# 		for r in range(0, max_search + 1):
+	# 			# iterate square ring
+	# 			for dy in range(-r, r + 1):
+	# 				for dx in range(-r, r + 1):
+	# 					nx, ny = x0 + dx, y0 + dy
+	# 					if not (0 <= ny < map_h and 0 <= nx < map_w):
+	# 						continue
+	# 					# only consider if within ring (avoid inner repeated checks)
+	# 					if max(abs(dx), abs(dy)) != r:
+	# 						continue
+	# 					# must be free cell
+	# 					if self.map_array[ny, nx] != 0:
+	# 						continue
+	# 					# must have clearance: no obstacles within clearance_cells
+	# 					# use find_free_space_around_point to compute percent free
+	# 					pct = self.find_free_space_around_point((nx, ny), radius=clearance_cells)
+	# 					if pct < free_pct:
+	# 						continue
+	# 					dist = math.hypot(nx - x0, ny - y0)
+	# 					if dist < best_dist:
+	# 						best_dist = dist
+	# 						best_pt = (nx, ny)
+	# 			if best_pt is not None:
+	# 				break
+	# 		return best_pt
+
+	# 	# Step back along line from border until we find safe point.
+	# 	# Use coarse step along line (5 cells) then finer local neighborhood search.
+	# 	found_pt = None
+	# 	for dist in range(0, int(math.hypot(map_w, map_h)), 5):
+	# 		px = int(border_x - dist * math.cos(angle_rad))
+	# 		py = int(border_y - dist * math.sin(angle_rad))
+	# 		if not (0 <= py < map_h and 0 <= px < map_w):
+	# 			continue
+	# 		# If this point is free and has clearance, choose it
+	# 		if self.map_array[py, px] == 0:
+	# 			pct = self.find_free_space_around_point((px, py), radius=5)
+	# 			if pct >= 95:
+	# 				found_pt = (px, py)
+	# 				self.logger.info(f"Direct safe candidate at {found_pt} (pct {pct:.1f}%)")
+	# 				break
+	# 		# otherwise, search local neighborhood for nearest safe point
+	# 		near = find_nearest_safe_from(px, py, max_search=20, clearance_cells=5, free_pct=95)
+	# 		if near is not None:
+	# 			found_pt = near
+	# 			self.logger.info(f"Found nearby safe point {found_pt} for border-sample ({px},{py})")
+	# 			break
+
+	# 	if found_pt is None:
+	# 		self.logger.warn("Could not find safe point along exploration direction")
+	# 		return False
+
+	# 	# convert to world and send goal (yaw = angle_rad so robot faces along ray)
+	# 	goal_x, goal_y = self.get_world_coord_from_map_coord(float(found_pt[0]), float(found_pt[1]), self.global_map_curr.info)
+	# 	goal = self.create_goal_from_world_coord(goal_x, goal_y, angle_rad)
+	# 	if self.send_goal_from_world_pose(goal):
+	# 		self.logger.info(f"Sent goal to safe point at map {found_pt}, world ({goal_x:.2f},{goal_y:.2f})")
+	# 		return True
+
+	# 	self.logger.error("Failed to send navigation goal to safe point")
+	# 	return False
+		
+
+
 	def frontier_explore(self):
 		self.shelf_info = self.find_first_rectangle()
 		self.logger.info(f"SHELF INFO: {self.shelf_info}")
 		self.logger.info(f"prev shelf center: {self.prev_shelf_center}")
 
-		if self.shelf_info is not None and self.find_free_space_around_shelf_center(radius=75) > 10:
-			self.logger.info(f"Map is mostly free, skipping exp: {self.find_free_space_around_shelf_center(radius=75)}% free")
+		if self.shelf_info is not None and self.find_free_space_around_point(self.shelf_info['center'], radius=75) > 10:
+			self.logger.info(f"Map is mostly free, skipping exp: {self.find_free_space_around_point(self.shelf_info['center'], radius=75)}% free")
 			self.current_state = self.MOVE_TO_SHELF
 			return
 		
@@ -278,6 +388,8 @@ class WarehouseExplore(Node):
 					self.shelf_info['center'][1],
 					self.global_map_curr.info
 				)
+				# map coordinates of the reference center
+				center_map_point = (int(self.shelf_info['center'][0]), int(self.shelf_info['center'][1]))
 			else:
 				self.logger.info(f"Initial world position: {self.prev_shelf_center}")
 				
@@ -309,6 +421,8 @@ class WarehouseExplore(Node):
 					self.global_map_curr.info
 				)
 				self.logger.info(f"Calculated world self center: {world_self_center}")
+				# use endpoint as map reference point
+				center_map_point = (endpoint_x, endpoint_y)
 
 			for fy, fx in frontiers:
 				fx_world, fy_world = self.get_world_coord_from_map_coord(fx, fy, self.global_map_curr.info)
@@ -324,7 +438,52 @@ class WarehouseExplore(Node):
 				self.current_frontier_goal = [(fx, fy),0]
 				self.logger.info(f'\nFound frontier closest at: ({fx}, {fy})')
 				self.logger.info(f'World coordinates: ({fx_world}, {fy_world})')
-				goal = self.create_goal_from_map_coord(fx, fy, self.global_map_curr.info)
+
+				# Ensure chosen frontier is not too close to obstacles.
+				# If it is, step back along the line from center_map_point to the frontier
+				# until a cell with sufficient clearance is found.
+				clearance_cells = 5       # radius to check for clearance
+				required_free_pct = 95.0  # percent free required
+				step_back_cells = 3       # how far to move back each attempt (in map cells)
+				max_back_attempts = 8
+
+				# starting candidate
+				cand_x, cand_y = int(fx), int(fy)
+
+				# quick check: if frontier cell or its neighborhood isn't clear, step back
+				def candidate_is_safe(mx, my):
+					if not (0 <= my < self.map_array.shape[0] and 0 <= mx < self.map_array.shape[1]):
+						return False
+					# cell must be free
+					if self.map_array[my, mx] != 0:
+						return False
+					# neighborhood must be mostly free
+					pct = self.find_free_space_around_point((mx, my), radius=clearance_cells)
+					return pct >= required_free_pct
+
+				if not candidate_is_safe(cand_x, cand_y):
+					cx, cy = center_map_point
+					vec_x = cand_x - cx
+					vec_y = cand_y - cy
+					norm = math.hypot(vec_x, vec_y)
+					if norm == 0:
+						self.logger.warn("Frontier coincides with center_map_point, cannot step back.")
+					else:
+						ux, uy = vec_x / norm, vec_y / norm
+						found_safe = False
+						for attempt in range(1, max_back_attempts + 1):
+							new_x = int(cand_x - attempt * step_back_cells * ux)
+							new_y = int(cand_y - attempt * step_back_cells * uy)
+							if candidate_is_safe(new_x, new_y):
+								self.logger.info(f"Adjusted frontier from ({cand_x},{cand_y}) to safer point ({new_x},{new_y})")
+								cand_x, cand_y = new_x, new_y
+								found_safe = True
+								break
+						if not found_safe:
+							self.logger.warn("Could not find safer point near chosen frontier; using original frontier (may be near obstacle)")
+
+				# create and send goal using adjusted candidate
+				goal = self.create_goal_from_map_coord(cand_x, cand_y, self.global_map_curr.info)
 				self.send_goal_from_world_pose(goal)
 				return
 			else:
@@ -337,7 +496,7 @@ class WarehouseExplore(Node):
 			self.full_map_explored_count += 1
 	
 	# -------------------- SHELF FINDING --------------------
-	def find_first_rectangle(self,rect_fill_ratio=0.60,min_pixel_area=350,ignore_radius=30):
+	def find_first_rectangle(self,rect_fill_ratio=0.60,min_pixel_area=450,ignore_radius=30):
 		start_point = self.prev_shelf_center
 		search_angle_deg = self.shelf_angle_deg
 
@@ -519,7 +678,7 @@ class WarehouseExplore(Node):
 
 	# -------------------- UTILITY -------------------
 
-	def find_free_space_around_shelf_center(self, radius):
+	def find_free_space_around_point(self, point, radius):
 		"""
 		Calculates the percentage of free space (cells with value 0) within a circular area around a given point in a 2D map array.
 		Parameters:
@@ -529,8 +688,6 @@ class WarehouseExplore(Node):
 		Returns:
 			float: Percentage of free space within the specified circular area. Returns 0 if no valid cells are found within the area.
 		"""
-		self.logger.info(f"\n\n\n{self.shelf_info}")
-		point = self.shelf_info['center']
 		x, y = int(point[0]), int(point[1])
 		radius = int(radius)
 		free_space_count = 0
@@ -629,21 +786,22 @@ class WarehouseExplore(Node):
 
 		if self.qr_code_str is not None:
 			self.cancel_current_goal()
+			self.prev_shelf_center = self.shelf_info['center']
+			self.shelf_angle_deg = self.get_next_angle()
+			self.shelf_objects_curr.qr_decoded = self.qr_code_str
+			self.publisher_shelf_data.publish(self.shelf_objects_curr)
+			self.send_request_to_server(rtype='upload')
 			self.current_shelf_number+=1
 			if self.current_shelf_number>self.shelf_count:
 				self.current_state = self.DEBUG
 				self.logger.info("All shelves processed, entering DEBUG state.")
 				self.qr_code_str = None
 				return
-			self.prev_shelf_center = self.shelf_info['center']
-			self.shelf_angle_deg = self.get_next_angle()
-			self.shelf_objects_curr.qr_decoded = self.qr_code_str
-			self.publisher_shelf_data.publish(self.shelf_objects_curr)
-			self.send_request_to_server(rtype='upload')
 			self.current_shelf_objects = None
 			self.shelf_objects_curr = WarehouseShelf()
 			self.qr_code_str = None
 			self.current_state = self.EXPLORE
+
 			self.logger.info(f"QR processed, resuming exploration towards angle {self.shelf_angle_deg}°")
 			return
 	
@@ -696,6 +854,10 @@ class WarehouseExplore(Node):
 		self.buggy_pose_x = message.pose.pose.position.x
 		self.buggy_pose_y = message.pose.pose.position.y
 		self.buggy_center = (self.buggy_pose_x, self.buggy_pose_y)
+		if not hasattr(self, 'initial_yaw'):
+			self.initial_yaw = self.get_yaw_from_quaternion(message.pose.pose.orientation)
+			self.logger.info(f"Initial robot orientation: {self.initial_yaw:.2f} degrees")
+			self.initial_angle += self.initial_yaw
 
 	def simple_map_callback(self, message):
 		"""Callback function to handle simple map updates.
@@ -986,6 +1148,10 @@ class WarehouseExplore(Node):
 				self.logger.info(f"Cancelling since trying to recover {number_of_recoveries}")
 				self.cancel_current_goal()
 
+		elif self.current_state == self.CAPTURE_OBJECTS and self.current_shelf_objects!=None and sum(self.current_shelf_objects.object_count) == 6:
+			self.logger.info("All objects captured, cancelling goal.")
+			self.cancel_current_goal()
+
 	# -------------------- GOAL MANAGEMENT --------------------
 
 	def send_goal_from_world_pose(self, goal_pose):
@@ -1107,6 +1273,28 @@ class WarehouseExplore(Node):
 
 		return self.create_goal_from_world_coord(world_x, world_y, yaw)
 
+	def get_yaw_from_quaternion(self, quaternion):
+		"""
+		Convert quaternion to yaw angle in degrees.
+		
+		Args:
+			quaternion: geometry_msgs.msg.Quaternion
+			
+		Returns:
+			float: yaw angle in degrees in range [0, 360)
+		"""
+		x = quaternion.x
+		y = quaternion.y
+		z = quaternion.z
+		w = quaternion.w
+		
+		siny_cosp = 2 * (w * z + x * y)
+		cosy_cosp = 1 - 2 * (y * y + z * z)
+		yaw = math.atan2(siny_cosp, cosy_cosp)
+		yaw_deg = math.degrees(yaw)
+		yaw_deg = yaw_deg % 360
+		
+		return yaw_deg
 
 def main(args=None):
 	rclpy.init(args=args)
