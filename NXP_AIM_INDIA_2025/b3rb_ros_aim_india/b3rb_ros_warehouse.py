@@ -561,6 +561,17 @@ class WarehouseExplore(Node):
 
 			if rectangularity_ratio >= rect_fill_ratio:
 				self.logger.info(f"  -> SUCCESS: Object is a valid rectangle (Ratio > {rect_fill_ratio}).")
+				oriented_w = max(w, h)
+				oriented_h = min(w, h)
+				wh_ratio = oriented_w / oriented_h
+				if not (31 <= oriented_w <= 42):
+					print(f"  -> FAILURE: Width {oriented_w:.1f} not in [31, 42]. Skipping.")
+					continue
+
+				if not (1.8 <= wh_ratio <= 2.6):
+					print(f"  -> FAILURE: W/H ratio {wh_ratio:.2f} not in [1.8, 2.6]. Skipping.")
+					continue
+				
 				box_points = cv2.boxPoints(found_rect)
 				box_points = np.int0(box_points)
 				points_array = np.squeeze(points)
