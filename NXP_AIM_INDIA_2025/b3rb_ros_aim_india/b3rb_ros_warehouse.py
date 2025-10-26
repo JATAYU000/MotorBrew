@@ -179,7 +179,7 @@ class WarehouseExplore(Node):
 		self.current_shelf_objects = None
 		self.search_point = None
 		self.current_shelf_number = 1
-		self._fb_dist = 28
+		self._fb_dist = 20
 
 		# --- State Machine ---
 		self.current_state = -1
@@ -217,15 +217,15 @@ class WarehouseExplore(Node):
 			self.shelf_objects_curr.object_count = self.current_shelf_objects.object_count
 			self.logger.info(f"Captured {self.shelf_objects_curr.object_count} objects: {self.shelf_objects_curr.object_name}")
 
-			if sum(self.current_shelf_objects.object_count) >= 5:
+			if sum(self.current_shelf_objects.object_count) >= 4:
 				info = self.find_first_rectangle()
 				if info is not None: self.shelf_info = info
 				self.current_state = self.MOVE_TO_QR
 			else:
 				self.shelf_info = self.find_first_rectangle()
 				self.logger.info("Adjusting position to capture all objects...")
-				if self._fb_dist > 35: self._fb_dist -= 10
-				else: self._fb_dist += 10
+				if self._fb_dist > 29: self._fb_dist -= 11
+				else: self._fb_dist += 11
 				self.current_state = self.MOVE_TO_SHELF
 		else:
 			self.logger.info("No shelf objects received yet.")
@@ -800,8 +800,8 @@ class WarehouseExplore(Node):
 			self.current_state = self.EXPLORE
 
 		elif self.current_state == self.EXPLORE:
-			# self.frontier_explore()
-			self.send_goal_closest_free_in_circles()
+			self.frontier_explore()
+			# self.send_goal_closest_free_in_circles()
 
 		elif self.current_state == self.MOVE_TO_SHELF:
 			self.handle_move_to_shelf()
