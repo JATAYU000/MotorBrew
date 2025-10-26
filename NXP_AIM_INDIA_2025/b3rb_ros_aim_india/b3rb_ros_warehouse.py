@@ -1132,6 +1132,8 @@ class WarehouseExplore(Node):
 			self.cancel_current_goal()  # Unblock by discarding the current goal.
 		
 		if self.current_state == self.EXPLORE:
+			self.logger.info(f"buggy and fgoal: {self.buggy_map_xy}, {self.curr_frontier_goal}")
+
 			if number_of_recoveries>2 or self.calc_distance(self.buggy_map_xy,self.curr_frontier_goal)<15:
 				self.logger.info(f"Cancelling since trying to recover {number_of_recoveries} or dist {self.calc_distance(self.buggy_map_xy,self.curr_frontier_goal)}<15")
 				self.logger.info(f"\n\nRecoveries: {number_of_recoveries}, "
