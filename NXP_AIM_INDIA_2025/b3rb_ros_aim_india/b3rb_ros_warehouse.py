@@ -202,7 +202,7 @@ class WarehouseExplore(Node):
 		self.target_view_point = self.front if self.calc_distance(self.buggy_map_xy, self.front) < self.calc_distance(self.buggy_map_xy, self.back) else self.back
 		yaw = self.find_angle_point_direction(self.shelf_info['center'], self.target_view_point, direction)
 		goal_x, goal_y = self.get_world_coord_from_map_coord(float(self.target_view_point[0]), float(self.target_view_point[1]), self.global_map_curr.info)
-		goal = self.create_goal_from_world_coord(goal_x, goal_y, math.radians(yaw+self.robot_initial_angle))
+		goal = self.create_goal_from_world_coord(goal_x, goal_y, math.radians(yaw))
 		if self.send_goal_from_world_pose(goal):
 			self.logger.info(f"NAV TO SHELF Goal sent to ({goal_x:.2f}, {goal_y:.2f}) with yaw {yaw:.2f}°")
 			self.current_state = self.CAPTURE_OBJECTS
@@ -238,7 +238,7 @@ class WarehouseExplore(Node):
 		self.target_view_point = self.left if self.calc_distance(self.buggy_map_xy, self.left) < self.calc_distance(self.buggy_map_xy, self.right) else self.right
 		yaw = self.find_angle_point_direction(self.shelf_info['center'], self.target_view_point, direction)
 		goal_x, goal_y = self.get_world_coord_from_map_coord(float(self.target_view_point[0]), float(self.target_view_point[1]), self.global_map_curr.info)
-		goal = self.create_goal_from_world_coord(goal_x, goal_y, math.radians(yaw+self.robot_initial_angle))
+		goal = self.create_goal_from_world_coord(goal_x, goal_y, math.radians(yaw))
 		if self.send_goal_from_world_pose(goal):
 			self.logger.info(f"NAV TO QR Goal sent to ({goal_x:.2f}, {goal_y:.2f}) with yaw {yaw:.2f}°")
 		else:
@@ -766,7 +766,7 @@ class WarehouseExplore(Node):
 			self.cancel_current_goal()
 			self.further_angle_point = None
 			self.prev_shelf_center = self.shelf_info['center']
-			self.shelf_angle_deg = self.get_next_angle() + self.robot_initial_angle
+			self.shelf_angle_deg = self.get_next_angle()
 			self.shelf_objects_curr.qr_decoded = self.qr_code_str
 			self.publisher_shelf_data.publish(self.shelf_objects_curr)
 			self.send_request_to_server(rtype='upload')
