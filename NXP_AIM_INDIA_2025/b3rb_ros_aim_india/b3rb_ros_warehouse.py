@@ -149,6 +149,7 @@ class WarehouseExplore(Node):
 		self.buggy_center = (0.0, 0.0)
 		self.world_center = (0.0, 0.0)
 		self.buggy_map_xy = (0.0,0.0)
+		self.robot_initial_angle = None
 
 		# --- Map Data ---
 		self.simple_map_curr = None
@@ -497,7 +498,6 @@ class WarehouseExplore(Node):
 	
 	# -------------------- SHELF FINDING --------------------
 	def find_first_rectangle(self,rect_fill_ratio=0.60,min_pixel_area=450,ignore_radius=30):
-		np.save("map_array.npy", self.map_array)
 		start_point = self.prev_shelf_center
 		search_angle_deg = self.shelf_angle_deg
 
@@ -852,13 +852,19 @@ class WarehouseExplore(Node):
 			None
 		"""
 		self.pose_curr = message
+		self.logger.info(f"Current pose: {self.pose_curr}")
+
 		self.buggy_pose_x = message.pose.pose.position.x
 		self.buggy_pose_y = message.pose.pose.position.y
 		self.buggy_center = (self.buggy_pose_x, self.buggy_pose_y)
-		if not hasattr(self, 'initial_yaw'):
-			self.initial_yaw = self.get_yaw_from_quaternion(message.pose.pose.orientation)
-			self.logger.info(f"Initial robot orientation: {self.initial_yaw:.2f} degrees")
-			self.initial_angle += self.initial_yaw
+		if self.robot_initial_angle is None:
+			quat = message.pose.pose.orientation
+			siny_cosp = 2 * (quat.w * quat.z + quat.x * quat.y)
+			cosy_cosp = 1 - 2 * (quat.y * quat.y + quat.z * quat.z)
+			yaw = math.atan2(siny_cosp, cosy_cosp)
+			self.robot_initial_angle = yaw
+			angle = str(math.degrees(self.robot_initial_angle))
+			self.logger.info("Robot's initial angle in degrees = " + angle)
 
 	def simple_map_callback(self, message):
 		"""Callback function to handle simple map updates.
