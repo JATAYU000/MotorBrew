@@ -525,6 +525,7 @@ class WarehouseExplore(Node):
 
 			if rectangularity_ratio >= rect_fill_ratio:
 				self.logger.info(f"  -> SUCCESS: Object is a valid rectangle (Ratio > {rect_fill_ratio}).")
+				self.logger.info(f"width: {w:.1f}, height: {h:.1f}, area: {object_area}")
 				oriented_w = max(w, h)
 				oriented_h = min(w, h)
 				wh_ratio = oriented_w / oriented_h
