@@ -852,7 +852,7 @@ class WarehouseExplore(Node):
 			None
 		"""
 		self.pose_curr = message
-		self.logger.info(f"Current pose: {self.pose_curr}")
+		self.logger.info(f"Current pose: {self.pose_curr.pose.pose.orientation}")
 
 		self.buggy_pose_x = message.pose.pose.position.x
 		self.buggy_pose_y = message.pose.pose.position.y
