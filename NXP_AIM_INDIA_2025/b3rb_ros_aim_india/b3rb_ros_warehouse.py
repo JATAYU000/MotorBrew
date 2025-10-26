@@ -234,7 +234,7 @@ class WarehouseExplore(Node):
 	# -------------------- QR PROCESSING --------------------
 
 	def handle_qr_navigation(self):
-		self.left, self.right = self.find_front_back_points(35,True)
+		self.left, self.right = self.find_front_back_points(40,True)
 		direction = self.shelf_info['orientation']['primary_direction']
 		self.target_view_point = self.left if self.calc_distance(self.buggy_map_xy, self.left) < self.calc_distance(self.buggy_map_xy, self.right) else self.right
 		yaw = self.find_angle_point_direction(self.shelf_info['center'], self.target_view_point, direction)
@@ -242,10 +242,24 @@ class WarehouseExplore(Node):
 		goal = self.create_goal_from_world_coord(goal_x, goal_y, math.radians(yaw))
 		if self.send_goal_from_world_pose(goal):
 			self.logger.info(f"NAV TO QR Goal sent to ({goal_x:.2f}, {goal_y:.2f}) with yaw {yaw:.2f}°")
-			self.current_state = self.MOVE_TO_QR
+			self.current_state = self.ADJUST_TO
 		else:
 			self.logger.error("Failed to send navigation goal!")
 		
+	def adjust_qr(self):
+		if self.qr_code_str is not None:
+			angle_rn = self.get_yaw_from_quaternion(self.pose_curr.pose.pose.orientation)
+			# give new goal units in front of the robot
+			unit = 15
+			self.buggy_map_xy = self.get_map_coord_from_world_coord(self.buggy_pose_x, self.buggy_pose_y, self.global_map_curr.info)
+
+			goal_x = self.buggy_map_xy[0] + unit * math.cos(angle_rn)
+			goal_y = self.buggy_map_xy[1] + unit * math.sin(angle_rn)
+			goal_x,goal_y = self.get_world_coord_from_map_coord(goal_x, goal_y, self.global_map_curr.info)
+			goal = self.create_goal_from_world_coord(goal_x, goal_y, math.radians(angle_rn))
+			if self.send_goal_from_world_pose(goal):
+				self.logger.info(f"ADJUST TO QR Goal sent to ({goal_x:.2f}, {goal_y:.2f}) with yaw {math.degrees(angle_rn):.2f}°")
+				
 	def get_next_angle(self):
 		try:
 			parts = self.qr_code_str.split('_')
@@ -258,77 +272,77 @@ class WarehouseExplore(Node):
 
 	# -------------------- FRONTIER EXPLORATION --------------------
 
-	def find_best_point(self):
-		if self.further_angle_point == None:
-			angle_rad = math.radians(self.shelf_angle_deg)
-			h, w = self.map_array.shape
-			x = float(self.prev_shelf_center[0])
-			y = float(self.prev_shelf_center[1])
-			step = 30.0
+	# def find_best_point(self):
+	# 	if self.further_angle_point == None:
+	# 		angle_rad = math.radians(self.shelf_angle_deg)
+	# 		h, w = self.map_array.shape
+	# 		x = float(self.prev_shelf_center[0])
+	# 		y = float(self.prev_shelf_center[1])
+	# 		step = 30.0
 
-			last_x, last_y = int(x), int(y)
-			while 0 <= int(y) < h and 0 <= int(x) < w:
-				last_x, last_y = int(x), int(y)
-				x += step * math.cos(angle_rad)
-				y += step * math.sin(angle_rad)
-			self.further_angle_point = (last_x, last_y)
+	# 		last_x, last_y = int(x), int(y)
+	# 		while 0 <= int(y) < h and 0 <= int(x) < w:
+	# 			last_x, last_y = int(x), int(y)
+	# 			x += step * math.cos(angle_rad)
+	# 			y += step * math.sin(angle_rad)
+	# 		self.further_angle_point = (last_x, last_y)
 			
-	def send_goal_closest_free_in_circles(self):
-		"""
-		Search map cells inside a circle (radius 35 then 25) around `center_map`
-		and pick the free cell whose 5-cell neighbourhood is >=85% free and is
-		closest to self.further_angle_point. Create and send a nav goal to that cell.
+	# def send_goal_closest_free_in_circles(self):
+	# 	"""
+	# 	Search map cells inside a circle (radius 35 then 25) around `center_map`
+	# 	and pick the free cell whose 5-cell neighbourhood is >=85% free and is
+	# 	closest to self.further_angle_point. Create and send a nav goal to that cell.
 
-		Returns: True if a goal was sent, False otherwise.
-		"""
-		self.shelf_info = self.find_first_rectangle()
-		self.logger.info(f"SHELF INFO: {self.shelf_info}")
-		self.logger.info(f"prev shelf center: {self.prev_shelf_center}")
+	# 	Returns: True if a goal was sent, False otherwise.
+	# 	"""
+	# 	self.shelf_info = self.find_first_rectangle()
+	# 	self.logger.info(f"SHELF INFO: {self.shelf_info}")
+	# 	self.logger.info(f"prev shelf center: {self.prev_shelf_center}")
 
-		if self.shelf_info is not None and self.find_free_space_around_point(self.shelf_info['center'], radius=75) > 30:
-			self.logger.info(f"Map is mostly free, skipping exp: {self.find_free_space_around_point(self.shelf_info['center'], radius=75)}% free")
-			self.current_state = self.MOVE_TO_SHELF
-			return
+	# 	if self.shelf_info is not None and self.find_free_space_around_point(self.shelf_info['center'], radius=75) > 30:
+	# 		self.logger.info(f"Map is mostly free, skipping exp: {self.find_free_space_around_point(self.shelf_info['center'], radius=75)}% free")
+	# 		self.current_state = self.MOVE_TO_SHELF
+	# 		return
 		
-		self.logger.info("Exploring CIRCLES...")
-		self.find_best_point()
+	# 	self.logger.info("Exploring CIRCLES...")
+	# 	self.find_best_point()
 
-		center_map = self.buggy_map_xy
-		cx, cy = int(center_map[0]), int(center_map[1])
-		h, w = self.map_array.shape
-		for radius in (65, 45, 25):
-			candidates = []
-			r2 = radius * radius
-			y0 = max(0, cy - radius)
-			y1 = min(h - 1, cy + radius)
-			x0 = max(0, cx - radius)
-			x1 = min(w - 1, cx + radius)
+	# 	center_map = self.buggy_map_xy
+	# 	cx, cy = int(center_map[0]), int(center_map[1])
+	# 	h, w = self.map_array.shape
+	# 	for radius in (65, 45, 25):
+	# 		candidates = []
+	# 		r2 = radius * radius
+	# 		y0 = max(0, cy - radius)
+	# 		y1 = min(h - 1, cy + radius)
+	# 		x0 = max(0, cx - radius)
+	# 		x1 = min(w - 1, cx + radius)
 
-			for y in range(y0, y1 + 1):
-				dy = y - cy
-				for x in range(x0, x1 + 1):
-					dx = x - cx
-					if dx * dx + dy * dy > r2:
-						continue
-					# must be a free cell
-					if self.map_array[y, x] != 0:
-						continue
-					# neighbourhood free percent using existing helper
-					pct = self.find_free_space_around_point((x, y), radius=7)
-					if pct >= 80.0:
-						candidates.append((x, y))
+	# 		for y in range(y0, y1 + 1):
+	# 			dy = y - cy
+	# 			for x in range(x0, x1 + 1):
+	# 				dx = x - cx
+	# 				if dx * dx + dy * dy > r2:
+	# 					continue
+	# 				# must be a free cell
+	# 				if self.map_array[y, x] != 0:
+	# 					continue
+	# 				# neighbourhood free percent using existing helper
+	# 				pct = self.find_free_space_around_point((x, y), radius=7)
+	# 				if pct >= 80.0:
+	# 					candidates.append((x, y))
 
-			if candidates:
-				# pick candidate closest to further_angle_point (map coords)
-				fx, fy = int(self.further_angle_point[0]), int(self.further_angle_point[1])
-				best = min(candidates, key=lambda p: math.hypot(p[0] - fx, p[1] - fy))
-				goal = self.create_goal_from_map_coord(best[0], best[1], self.global_map_curr.info)
-				sent = self.send_goal_from_world_pose(goal)
-				self.logger.info(f"send_goal_closest_free_in_circles: radius={radius} chosen={best} sent={sent}")
-				return sent
+	# 		if candidates:
+	# 			# pick candidate closest to further_angle_point (map coords)
+	# 			fx, fy = int(self.further_angle_point[0]), int(self.further_angle_point[1])
+	# 			best = min(candidates, key=lambda p: math.hypot(p[0] - fx, p[1] - fy))
+	# 			goal = self.create_goal_from_map_coord(best[0], best[1], self.global_map_curr.info)
+	# 			sent = self.send_goal_from_world_pose(goal)
+	# 			self.logger.info(f"send_goal_closest_free_in_circles: radius={radius} chosen={best} sent={sent}")
+	# 			return sent
 
-		self.logger.info("send_goal_closest_free_in_circles: no suitable point found in radii 35 or 25")
-		return False
+	# 	self.logger.info("send_goal_closest_free_in_circles: no suitable point found in radii 35 or 25")
+	# 	return False
 
 
 	def frontier_explore(self):
@@ -451,7 +465,8 @@ class WarehouseExplore(Node):
 							self.logger.warn("Could not find safer point near chosen frontier; using original frontier (may be near obstacle)")
 
 				# create and send goal using adjusted candidate
-				goal = self.create_goal_from_map_coord(cand_x, cand_y, self.global_map_curr.info)
+				goal_x,goal_y = self.get_world_coord_from_map_coord(float(cand_x), float(cand_y), self.global_map_curr.info)
+				goal = self.create_goal_from_world_coord(goal_x, goal_y, math.radians(self.shelf_angle_deg))
 				self.curr_frontier_goal = (cand_x, cand_y)
 				self.send_goal_from_world_pose(goal)
 				return
@@ -531,12 +546,12 @@ class WarehouseExplore(Node):
 				oriented_w = max(w, h)
 				oriented_h = min(w, h)
 				wh_ratio = oriented_w / oriented_h
-				if not (29 <= oriented_w <= 40):
-					self.logger.info(f"  -> FAILURE: Width {oriented_w:.1f} not in [29, 40]. Skipping.")
+				if not (29 <= oriented_w <= 42):
+					self.logger.info(f"  -> FAILURE: Width {oriented_w:.1f} not in [31, 42]. Skipping.")
 					continue
 
 				if not (1.7 <= wh_ratio <= 2.6):
-					self.logger.info(f"  -> FAILURE: W/H ratio {wh_ratio:.2f} not in [1.7, 2.6]. Skipping.")
+					self.logger.info(f"  -> FAILURE: W/H ratio {wh_ratio:.2f} not in [1.8, 2.6]. Skipping.")
 					continue
 
 				box_points = cv2.boxPoints(found_rect)
@@ -621,7 +636,7 @@ class WarehouseExplore(Node):
 					- front_point: The point at the specified distance in the chosen direction from the center.
 					- back_point: The point at the specified distance in the opposite direction from the center.
 			"""
-
+			
 			x, y = self.shelf_info['center']
 			if 'orientation' not in self.shelf_info:
 				self.logger.warn("No orientation information in shelf_info")
@@ -817,7 +832,8 @@ class WarehouseExplore(Node):
 			self.handle_qr_navigation()
 
 		elif self.current_state == self.ADJUST_TO:
-			self.logger.info("ADJUST TO")
+			self.adjust_qr()
+
 		elif self.current_state == self.DEBUG:
 			self.time_taken = time.time() - self.start
 			self.logger.info(f"DEBUG: Time taken for processing: {self.time_taken:.2f} seconds")
@@ -1132,17 +1148,12 @@ class WarehouseExplore(Node):
 			self.cancel_current_goal()  # Unblock by discarding the current goal.
 		
 		if self.current_state == self.EXPLORE:
-			self.logger.info(f"buggy and fgoal: {self.buggy_map_xy}, {self.curr_frontier_goal}")
-
-			if number_of_recoveries>2:
+			if number_of_recoveries>2 or self.calc_distance(self.buggy_map_xy,self.curr_frontier_goal)<15:
+				self.logger.info(f"Cancelling since trying to recover {number_of_recoveries} or dist {self.calc_distance(self.buggy_map_xy,self.curr_frontier_goal)}<15")
 				self.logger.info(f"\n\nRecoveries: {number_of_recoveries}, "
 				  f"Navigation time: {navigation_time}s, "
 				  f"Distance remaining: {distance_remaining:.2f}, "
 				  f"Estimated time remaining: {estimated_time_remaining}s")
-				self.cancel_current_goal()
-				
-			if self.curr_frontier_goal!=None and self.calc_distance(self.buggy_map_xy,self.curr_frontier_goal)<15:
-				self.logger.info(f"dist {self.calc_distance(self.buggy_map_xy,self.curr_frontier_goal)} < 15, cancelling goal.")
 				self.cancel_current_goal()
 				self.curr_frontier_goal = None
 
