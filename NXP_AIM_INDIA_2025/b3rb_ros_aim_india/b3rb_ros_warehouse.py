@@ -168,6 +168,7 @@ class WarehouseExplore(Node):
 		self.min_step_dist_world_meters = 4.0
 		self.full_map_explored_count = 0
 		self.further_angle_point = None
+		self.curr_frontier_goal = None
 
 		# --- QR Code Data ---
 		self.qr_code_str = None
@@ -179,7 +180,7 @@ class WarehouseExplore(Node):
 		self.current_shelf_objects = None
 		self.search_point = None
 		self.current_shelf_number = 1
-		self._fb_dist = 18
+		self._fb_dist = 19
 
 		# --- State Machine ---
 		self.current_state = -1
@@ -217,14 +218,14 @@ class WarehouseExplore(Node):
 			self.shelf_objects_curr.object_count = self.current_shelf_objects.object_count
 			self.logger.info(f"Captured {self.shelf_objects_curr.object_count} objects: {self.shelf_objects_curr.object_name}")
 
-			if sum(self.current_shelf_objects.object_count) >= 3:
+			if sum(self.current_shelf_objects.object_count) >= 5:
 				info = self.find_first_rectangle()
 				if info is not None: self.shelf_info = info
 				self.current_state = self.MOVE_TO_QR
 			else:
 				self.shelf_info = self.find_first_rectangle()
 				self.logger.info("Adjusting position to capture all objects...")
-				if self._fb_dist > 27: self._fb_dist -= 11
+				if self._fb_dist > 25: self._fb_dist -= 10
 				else: self._fb_dist += 11
 				self.current_state = self.MOVE_TO_SHELF
 		else:
@@ -241,7 +242,7 @@ class WarehouseExplore(Node):
 		goal = self.create_goal_from_world_coord(goal_x, goal_y, math.radians(yaw))
 		if self.send_goal_from_world_pose(goal):
 			self.logger.info(f"NAV TO QR Goal sent to ({goal_x:.2f}, {goal_y:.2f}) with yaw {yaw:.2f}°")
-			elf.current_state = self.MOVE_TO_QR
+			self.current_state = self.MOVE_TO_QR
 		else:
 			self.logger.error("Failed to send navigation goal!")
 		
@@ -409,9 +410,9 @@ class WarehouseExplore(Node):
 				# Ensure chosen frontier is not too close to obstacles.
 				# If it is, step back along the line from center_map_point to the frontier
 				# until a cell with sufficient clearance is found.
-				clearance_cells = 5       # radius to check for clearance
-				required_free_pct = 95.0  # percent free required
-				step_back_cells = 3       # how far to move back each attempt (in map cells)
+				clearance_cells = 7       # radius to check for clearance
+				required_free_pct = 90.0  # percent free required
+				step_back_cells = 5       # how far to move back each attempt (in map cells)
 				max_back_attempts = 8
 
 				# starting candidate
@@ -451,6 +452,7 @@ class WarehouseExplore(Node):
 
 				# create and send goal using adjusted candidate
 				goal = self.create_goal_from_map_coord(cand_x, cand_y, self.global_map_curr.info)
+				self.curr_frontier_goal = (cand_x, cand_y)
 				self.send_goal_from_world_pose(goal)
 				return
 			else:
@@ -526,12 +528,11 @@ class WarehouseExplore(Node):
 
 			if rectangularity_ratio >= rect_fill_ratio:
 				self.logger.info(f"  -> SUCCESS: Object is a valid rectangle (Ratio > {rect_fill_ratio}).")
-				self.logger.info(f"width: {w:.1f}, height: {h:.1f}, area: {object_area}")
 				oriented_w = max(w, h)
 				oriented_h = min(w, h)
 				wh_ratio = oriented_w / oriented_h
-				if not (29.5 <= oriented_w <= 40):
-					self.logger.info(f"  -> FAILURE: Width {oriented_w:.1f} not in [29.5, 40]. Skipping.")
+				if not (29 <= oriented_w <= 40):
+					self.logger.info(f"  -> FAILURE: Width {oriented_w:.1f} not in [29, 40]. Skipping.")
 					continue
 
 				if not (1.7 <= wh_ratio <= 2.6):
@@ -764,6 +765,7 @@ class WarehouseExplore(Node):
 		self.global_map_curr = message
 
 		if self.qr_code_str is not None:
+			self.logger.info(f"\n\n\nQR code detected: {self.qr_code_str}, processing...")
 			self.cancel_current_goal()
 			self.further_angle_point = None
 			self.prev_shelf_center = self.shelf_info['center']
@@ -802,8 +804,8 @@ class WarehouseExplore(Node):
 			self.current_state = self.EXPLORE
 
 		elif self.current_state == self.EXPLORE:
-			# self.frontier_explore()
-			self.send_goal_closest_free_in_circles()
+			self.frontier_explore()
+			# self.send_goal_closest_free_in_circles()
 
 		elif self.current_state == self.MOVE_TO_SHELF:
 			self.handle_move_to_shelf()
@@ -837,6 +839,9 @@ class WarehouseExplore(Node):
 		self.buggy_pose_x = message.pose.pose.position.x
 		self.buggy_pose_y = message.pose.pose.position.y
 		self.buggy_center = (self.buggy_pose_x, self.buggy_pose_y)
+		if self.current_state == self.EXPLORE:
+			self.buggy_map_xy = self.get_map_coord_from_world_coord(self.buggy_pose_x, self.buggy_pose_y, self.global_map_curr.info)
+
 		if self.robot_initial_angle is None:
 			self.robot_initial_angle = self.get_yaw_from_quaternion(message.pose.pose.orientation)
 			self.shelf_angle_deg += self.robot_initial_angle
@@ -1127,9 +1132,14 @@ class WarehouseExplore(Node):
 			self.cancel_current_goal()  # Unblock by discarding the current goal.
 		
 		if self.current_state == self.EXPLORE:
-			if number_of_recoveries>0:
-				self.logger.info(f"Cancelling since trying to recover {number_of_recoveries}")
+			if number_of_recoveries>2 or self.calc_distance(self.buggy_map_xy,self.curr_frontier_goal)<15:
+				self.logger.info(f"Cancelling since trying to recover {number_of_recoveries} or dist {self.calc_distance(self.buggy_map_xy,self.curr_frontier_goal)}<15")
+				self.logger.info(f"\n\nRecoveries: {number_of_recoveries}, "
+				  f"Navigation time: {navigation_time}s, "
+				  f"Distance remaining: {distance_remaining:.2f}, "
+				  f"Estimated time remaining: {estimated_time_remaining}s")
 				self.cancel_current_goal()
+				self.curr_frontier_goal = None
 
 		elif self.current_state == self.CAPTURE_OBJECTS and self.current_shelf_objects!=None and sum(self.current_shelf_objects.object_count) == 6:
 			self.logger.info("All objects captured, cancelling goal.")
