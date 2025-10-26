@@ -858,14 +858,9 @@ class WarehouseExplore(Node):
 		self.buggy_pose_y = message.pose.pose.position.y
 		self.buggy_center = (self.buggy_pose_x, self.buggy_pose_y)
 		if self.robot_initial_angle is None:
-			quat = message.pose.pose.orientation
-			siny_cosp = 2 * (quat.w * quat.z + quat.x * quat.y)
-			cosy_cosp = 1 - 2 * (quat.y * quat.y + quat.z * quat.z)
-			yaw = math.atan2(siny_cosp, cosy_cosp)
-			self.robot_initial_angle = math.degrees(yaw)
-			angle = str(math.degrees(self.robot_initial_angle))
+			self.robot_initial_angle = self.get_yaw_from_quaternion(message.pose.pose.orientation)
 			self.shelf_angle_deg += self.robot_initial_angle
-			self.logger.info("Robot's initial angle in degrees = " + angle)
+			self.logger.info(f"Initial robot angle set to: {self.robot_initial_angle:.2f}°")
 
 	def simple_map_callback(self, message):
 		"""Callback function to handle simple map updates.
