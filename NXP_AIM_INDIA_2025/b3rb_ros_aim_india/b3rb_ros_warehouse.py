@@ -179,7 +179,7 @@ class WarehouseExplore(Node):
 		self.current_shelf_objects = None
 		self.search_point = None
 		self.current_shelf_number = 1
-		self._fb_dist = 29
+		self._fb_dist = 28
 
 		# --- State Machine ---
 		self.current_state = -1
@@ -462,7 +462,7 @@ class WarehouseExplore(Node):
 			self.full_map_explored_count += 1
 	
 	# -------------------- SHELF FINDING --------------------
-	def find_first_rectangle(self,rect_fill_ratio=0.60,min_pixel_area=250,ignore_radius=30):
+	def find_first_rectangle(self,rect_fill_ratio=0.50,min_pixel_area=250,ignore_radius=30):
 		start_point = self.prev_shelf_center
 		search_angle_deg = self.shelf_angle_deg
 
@@ -529,11 +529,11 @@ class WarehouseExplore(Node):
 				oriented_h = min(w, h)
 				wh_ratio = oriented_w / oriented_h
 				if not (31 <= oriented_w <= 42):
-					print(f"  -> FAILURE: Width {oriented_w:.1f} not in [31, 42]. Skipping.")
+					self.logger.info(f"  -> FAILURE: Width {oriented_w:.1f} not in [31, 42]. Skipping.")
 					continue
 
 				if not (1.7 <= wh_ratio <= 2.6):
-					print(f"  -> FAILURE: W/H ratio {wh_ratio:.2f} not in [1.8, 2.6]. Skipping.")
+					self.logger.info(f"  -> FAILURE: W/H ratio {wh_ratio:.2f} not in [1.8, 2.6]. Skipping.")
 					continue
 
 				box_points = cv2.boxPoints(found_rect)
