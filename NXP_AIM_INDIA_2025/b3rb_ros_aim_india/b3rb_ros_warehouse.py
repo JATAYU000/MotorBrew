@@ -528,12 +528,12 @@ class WarehouseExplore(Node):
 				oriented_w = max(w, h)
 				oriented_h = min(w, h)
 				wh_ratio = oriented_w / oriented_h
-				if not (31 <= oriented_w <= 42):
-					self.logger.info(f"  -> FAILURE: Width {oriented_w:.1f} not in [31, 42]. Skipping.")
+				if not (29.5 <= oriented_w <= 40):
+					self.logger.info(f"  -> FAILURE: Width {oriented_w:.1f} not in [29.5, 40]. Skipping.")
 					continue
 
 				if not (1.7 <= wh_ratio <= 2.6):
-					self.logger.info(f"  -> FAILURE: W/H ratio {wh_ratio:.2f} not in [1.8, 2.6]. Skipping.")
+					self.logger.info(f"  -> FAILURE: W/H ratio {wh_ratio:.2f} not in [1.7, 2.6]. Skipping.")
 					continue
 
 				box_points = cv2.boxPoints(found_rect)
