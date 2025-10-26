@@ -1134,12 +1134,15 @@ class WarehouseExplore(Node):
 		if self.current_state == self.EXPLORE:
 			self.logger.info(f"buggy and fgoal: {self.buggy_map_xy}, {self.curr_frontier_goal}")
 
-			if number_of_recoveries>2 or self.calc_distance(self.buggy_map_xy,self.curr_frontier_goal)<15:
-				self.logger.info(f"Cancelling since trying to recover {number_of_recoveries} or dist {self.calc_distance(self.buggy_map_xy,self.curr_frontier_goal)}<15")
+			if number_of_recoveries>2:
 				self.logger.info(f"\n\nRecoveries: {number_of_recoveries}, "
 				  f"Navigation time: {navigation_time}s, "
 				  f"Distance remaining: {distance_remaining:.2f}, "
 				  f"Estimated time remaining: {estimated_time_remaining}s")
+				self.cancel_current_goal()
+				
+			if self.curr_frontier_goal!=None and self.calc_distance(self.buggy_map_xy,self.curr_frontier_goal)<15:
+				self.logger.info(f"dist {self.calc_distance(self.buggy_map_xy,self.curr_frontier_goal)} < 15, cancelling goal.")
 				self.cancel_current_goal()
 				self.curr_frontier_goal = None
 
