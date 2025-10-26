@@ -203,7 +203,7 @@ class WarehouseExplore(Node):
 		self.target_view_point = self.front if self.calc_distance(self.buggy_map_xy, self.front) < self.calc_distance(self.buggy_map_xy, self.back) else self.back
 		yaw = self.find_angle_point_direction(self.shelf_info['center'], self.target_view_point, direction)
 		goal_x, goal_y = self.get_world_coord_from_map_coord(float(self.target_view_point[0]), float(self.target_view_point[1]), self.global_map_curr.info)
-		goal = self.create_goal_from_world_coord(goal_x, goal_y, math.radians(yaw))
+		goal = self.create_goal_from_world_coord(goal_x, goal_y, math.radians(yaw+self.robot_initial_angle))
 		if self.send_goal_from_world_pose(goal):
 			self.logger.info(f"NAV TO SHELF Goal sent to ({goal_x:.2f}, {goal_y:.2f}) with yaw {yaw:.2f}°")
 			self.current_state = self.CAPTURE_OBJECTS
@@ -238,7 +238,7 @@ class WarehouseExplore(Node):
 		self.target_view_point = self.left if self.calc_distance(self.buggy_map_xy, self.left) < self.calc_distance(self.buggy_map_xy, self.right) else self.right
 		yaw = self.find_angle_point_direction(self.shelf_info['center'], self.target_view_point, direction)
 		goal_x, goal_y = self.get_world_coord_from_map_coord(float(self.target_view_point[0]), float(self.target_view_point[1]), self.global_map_curr.info)
-		goal = self.create_goal_from_world_coord(goal_x, goal_y, math.radians(yaw))
+		goal = self.create_goal_from_world_coord(goal_x, goal_y, math.radians(yaw+self.robot_initial_angle))
 		if self.send_goal_from_world_pose(goal):
 			self.logger.info(f"NAV TO QR Goal sent to ({goal_x:.2f}, {goal_y:.2f}) with yaw {yaw:.2f}°")
 		else:
@@ -862,8 +862,9 @@ class WarehouseExplore(Node):
 			siny_cosp = 2 * (quat.w * quat.z + quat.x * quat.y)
 			cosy_cosp = 1 - 2 * (quat.y * quat.y + quat.z * quat.z)
 			yaw = math.atan2(siny_cosp, cosy_cosp)
-			self.robot_initial_angle = yaw
+			self.robot_initial_angle = math.degrees(yaw)
 			angle = str(math.degrees(self.robot_initial_angle))
+			self.shelf_angle_deg += self.robot_initial_angle
 			self.logger.info("Robot's initial angle in degrees = " + angle)
 
 	def simple_map_callback(self, message):
