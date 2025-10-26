@@ -497,7 +497,7 @@ class WarehouseExplore(Node):
 			self.full_map_explored_count += 1
 	
 	# -------------------- SHELF FINDING --------------------
-	def find_first_rectangle(self,rect_fill_ratio=0.60,min_pixel_area=450,ignore_radius=30):
+	def find_first_rectangle(self,rect_fill_ratio=0.6,min_pixel_area=250,ignore_radius=30):
 		np.save("map_array_sun.npy", self.map_array)
 		start_point = self.prev_shelf_center
 		search_angle_deg = self.shelf_angle_deg
