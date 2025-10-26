@@ -49,8 +49,6 @@ from scipy.ndimage import label, center_of_mass
 from scipy.spatial.distance import euclidean
 from sklearn.decomposition import PCA
 
-import tkinter as tk
-from tkinter import ttk
 
 QOS_PROFILE_DEFAULT = 10
 SERVER_WAIT_TIMEOUT_SEC = 5.0
@@ -169,6 +167,7 @@ class WarehouseExplore(Node):
 		self.max_step_dist_world_meters = 7.0
 		self.min_step_dist_world_meters = 4.0
 		self.full_map_explored_count = 0
+		self.further_angle_point = None
 
 		# --- QR Code Data ---
 		self.qr_code_str = None
@@ -219,7 +218,8 @@ class WarehouseExplore(Node):
 			self.logger.info(f"Captured {self.shelf_objects_curr.object_count} objects: {self.shelf_objects_curr.object_name}")
 
 			if sum(self.current_shelf_objects.object_count) >= 5:
-				self.shelf_info = self.find_first_rectangle()
+				info = self.find_first_rectangle()
+				if info is not None: self.shelf_info = info
 				self.current_state = self.MOVE_TO_QR
 			else:
 				self.shelf_info = self.find_first_rectangle()
@@ -233,7 +233,7 @@ class WarehouseExplore(Node):
 	# -------------------- QR PROCESSING --------------------
 
 	def handle_qr_navigation(self):
-		self.left, self.right = self.find_front_back_points(38,True)
+		self.left, self.right = self.find_front_back_points(50,True)
 		direction = self.shelf_info['orientation']['primary_direction']
 		self.target_view_point = self.left if self.calc_distance(self.buggy_map_xy, self.left) < self.calc_distance(self.buggy_map_xy, self.right) else self.right
 		yaw = self.find_angle_point_direction(self.shelf_info['center'], self.target_view_point, direction)
@@ -256,112 +256,77 @@ class WarehouseExplore(Node):
 
 	# -------------------- FRONTIER EXPLORATION --------------------
 
-	# def find_safe_place_shelf_angle(self):
-	# 	"""Find a safe goal point along the line from prev_shelf_center in direction shelf_angle_deg.
+	def find_best_point(self):
+		if self.further_angle_point == None:
+			angle_rad = math.radians(self.shelf_angle_deg)
+			h, w = self.map_array.shape
+			x = float(self.prev_shelf_center[0])
+			y = float(self.prev_shelf_center[1])
+			step = 30.0
 
-	# 	Strategy:
-	# 	- Find the map border point along the ray from prev_shelf_center.
-	# 	- Step back along the ray in increments.
-	# 	- For each candidate, prefer a point that is free (map value == 0) and has
-	# 	  a clearance (no obstacles) within `clearance_cells`.
-	# 	- If candidate itself is not free, search a small neighborhood for the nearest
-	# 	  free+clear point and use that.
-	# 	"""
-	# 	# quick guards
-	# 	if self.prev_shelf_center is None or self.map_array is None:
-	# 		self.logger.warn("prev_shelf_center or map not available")
-	# 		return False
+			last_x, last_y = int(x), int(y)
+			while 0 <= int(y) < h and 0 <= int(x) < w:
+				last_x, last_y = int(x), int(y)
+				x += step * math.cos(angle_rad)
+				y += step * math.sin(angle_rad)
+			self.further_angle_point = (last_x, last_y)
+			
+	def send_goal_closest_free_in_circles(self):
+		"""
+		Search map cells inside a circle (radius 35 then 25) around `center_map`
+		and pick the free cell whose 5-cell neighbourhood is >=85% free and is
+		closest to self.further_angle_point. Create and send a nav goal to that cell.
 
-	# 	# If shelf already found and area around it is mostly free, move to shelf
-	# 	self.shelf_info = self.find_first_rectangle()
-	# 	if self.shelf_info is not None and self.find_free_space_around_point(self.shelf_info['center'], radius=75) > 10:
-	# 		self.logger.info(f"Map is mostly free, skipping exp: {self.find_free_space_around_point(self.shelf_info['center'], radius=75):.1f}% free")
-	# 		self.current_state = self.MOVE_TO_SHELF
-	# 		return True
+		Returns: True if a goal was sent, False otherwise.
+		"""
+		self.shelf_info = self.find_first_rectangle()
+		self.logger.info(f"SHELF INFO: {self.shelf_info}")
+		self.logger.info(f"prev shelf center: {self.prev_shelf_center}")
 
-	# 	map_h, map_w = self.map_array.shape
-	# 	angle_rad = math.radians(self.shelf_angle_deg)
-	# 	edge_margin = 2
-
-	# 	# find border point by marching until out of bounds then step back one step
-	# 	step = 1
-	# 	sx, sy = int(self.prev_shelf_center[0]), int(self.prev_shelf_center[1])
-	# 	cx, cy = float(sx), float(sy)
-	# 	while (edge_margin <= int(cx) < map_w - edge_margin and edge_margin <= int(cy) < map_h - edge_margin):
-	# 		cx += step * math.cos(angle_rad)
-	# 		cy += step * math.sin(angle_rad)
-	# 	# step back to last in-bounds
-	# 	cx -= step * math.cos(angle_rad)
-	# 	cy -= step * math.sin(angle_rad)
-	# 	border_x, border_y = int(cx), int(cy)
-
-	# 	# helper: search local neighborhood for nearest safe point
-	# 	def find_nearest_safe_from(px, py, max_search=20, clearance_cells=3, free_pct=95):
-	# 		best_pt = None
-	# 		best_dist = float('inf')
-	# 		x0, y0 = int(px), int(py)
-	# 		for r in range(0, max_search + 1):
-	# 			# iterate square ring
-	# 			for dy in range(-r, r + 1):
-	# 				for dx in range(-r, r + 1):
-	# 					nx, ny = x0 + dx, y0 + dy
-	# 					if not (0 <= ny < map_h and 0 <= nx < map_w):
-	# 						continue
-	# 					# only consider if within ring (avoid inner repeated checks)
-	# 					if max(abs(dx), abs(dy)) != r:
-	# 						continue
-	# 					# must be free cell
-	# 					if self.map_array[ny, nx] != 0:
-	# 						continue
-	# 					# must have clearance: no obstacles within clearance_cells
-	# 					# use find_free_space_around_point to compute percent free
-	# 					pct = self.find_free_space_around_point((nx, ny), radius=clearance_cells)
-	# 					if pct < free_pct:
-	# 						continue
-	# 					dist = math.hypot(nx - x0, ny - y0)
-	# 					if dist < best_dist:
-	# 						best_dist = dist
-	# 						best_pt = (nx, ny)
-	# 			if best_pt is not None:
-	# 				break
-	# 		return best_pt
-
-	# 	# Step back along line from border until we find safe point.
-	# 	# Use coarse step along line (5 cells) then finer local neighborhood search.
-	# 	found_pt = None
-	# 	for dist in range(0, int(math.hypot(map_w, map_h)), 5):
-	# 		px = int(border_x - dist * math.cos(angle_rad))
-	# 		py = int(border_y - dist * math.sin(angle_rad))
-	# 		if not (0 <= py < map_h and 0 <= px < map_w):
-	# 			continue
-	# 		# If this point is free and has clearance, choose it
-	# 		if self.map_array[py, px] == 0:
-	# 			pct = self.find_free_space_around_point((px, py), radius=5)
-	# 			if pct >= 95:
-	# 				found_pt = (px, py)
-	# 				self.logger.info(f"Direct safe candidate at {found_pt} (pct {pct:.1f}%)")
-	# 				break
-	# 		# otherwise, search local neighborhood for nearest safe point
-	# 		near = find_nearest_safe_from(px, py, max_search=20, clearance_cells=5, free_pct=95)
-	# 		if near is not None:
-	# 			found_pt = near
-	# 			self.logger.info(f"Found nearby safe point {found_pt} for border-sample ({px},{py})")
-	# 			break
-
-	# 	if found_pt is None:
-	# 		self.logger.warn("Could not find safe point along exploration direction")
-	# 		return False
-
-	# 	# convert to world and send goal (yaw = angle_rad so robot faces along ray)
-	# 	goal_x, goal_y = self.get_world_coord_from_map_coord(float(found_pt[0]), float(found_pt[1]), self.global_map_curr.info)
-	# 	goal = self.create_goal_from_world_coord(goal_x, goal_y, angle_rad)
-	# 	if self.send_goal_from_world_pose(goal):
-	# 		self.logger.info(f"Sent goal to safe point at map {found_pt}, world ({goal_x:.2f},{goal_y:.2f})")
-	# 		return True
-
-	# 	self.logger.error("Failed to send navigation goal to safe point")
-	# 	return False
+		if self.shelf_info is not None and self.find_free_space_around_point(self.shelf_info['center'], radius=75) > 30:
+			self.logger.info(f"Map is mostly free, skipping exp: {self.find_free_space_around_point(self.shelf_info['center'], radius=75)}% free")
+			self.current_state = self.MOVE_TO_SHELF
+			return
 		
+		self.logger.info("Exploring CIRCLES...")
+		self.find_best_point()
+
+		center_map = self.buggy_map_xy
+		cx, cy = int(center_map[0]), int(center_map[1])
+		h, w = self.map_array.shape
+		for radius in (65, 45, 25):
+			candidates = []
+			r2 = radius * radius
+			y0 = max(0, cy - radius)
+			y1 = min(h - 1, cy + radius)
+			x0 = max(0, cx - radius)
+			x1 = min(w - 1, cx + radius)
+
+			for y in range(y0, y1 + 1):
+				dy = y - cy
+				for x in range(x0, x1 + 1):
+					dx = x - cx
+					if dx * dx + dy * dy > r2:
+						continue
+					# must be a free cell
+					if self.map_array[y, x] != 0:
+						continue
+					# neighbourhood free percent using existing helper
+					pct = self.find_free_space_around_point((x, y), radius=7)
+					if pct >= 80.0:
+						candidates.append((x, y))
+
+			if candidates:
+				# pick candidate closest to further_angle_point (map coords)
+				fx, fy = int(self.further_angle_point[0]), int(self.further_angle_point[1])
+				best = min(candidates, key=lambda p: math.hypot(p[0] - fx, p[1] - fy))
+				goal = self.create_goal_from_map_coord(best[0], best[1], self.global_map_curr.info)
+				sent = self.send_goal_from_world_pose(goal)
+				self.logger.info(f"send_goal_closest_free_in_circles: radius={radius} chosen={best} sent={sent}")
+				return sent
+
+		self.logger.info("send_goal_closest_free_in_circles: no suitable point found in radii 35 or 25")
+		return False
 
 
 	def frontier_explore(self):
@@ -497,8 +462,7 @@ class WarehouseExplore(Node):
 			self.full_map_explored_count += 1
 	
 	# -------------------- SHELF FINDING --------------------
-	def find_first_rectangle(self,rect_fill_ratio=0.6,min_pixel_area=250,ignore_radius=30):
-		np.save("map_array_sun.npy", self.map_array)
+	def find_first_rectangle(self,rect_fill_ratio=0.60,min_pixel_area=450,ignore_radius=30):
 		start_point = self.prev_shelf_center
 		search_angle_deg = self.shelf_angle_deg
 
@@ -568,10 +532,10 @@ class WarehouseExplore(Node):
 					print(f"  -> FAILURE: Width {oriented_w:.1f} not in [31, 42]. Skipping.")
 					continue
 
-				if not (1.8 <= wh_ratio <= 2.6):
+				if not (1.7 <= wh_ratio <= 2.6):
 					print(f"  -> FAILURE: W/H ratio {wh_ratio:.2f} not in [1.8, 2.6]. Skipping.")
 					continue
-				
+
 				box_points = cv2.boxPoints(found_rect)
 				box_points = np.int0(box_points)
 				points_array = np.squeeze(points)
@@ -799,6 +763,7 @@ class WarehouseExplore(Node):
 
 		if self.qr_code_str is not None:
 			self.cancel_current_goal()
+			self.further_angle_point = None
 			self.prev_shelf_center = self.shelf_info['center']
 			self.shelf_angle_deg = self.get_next_angle() + self.robot_initial_angle
 			self.shelf_objects_curr.qr_decoded = self.qr_code_str
@@ -835,7 +800,8 @@ class WarehouseExplore(Node):
 			self.current_state = self.EXPLORE
 
 		elif self.current_state == self.EXPLORE:
-			self.frontier_explore()
+			# self.frontier_explore()
+			self.send_goal_closest_free_in_circles()
 
 		elif self.current_state == self.MOVE_TO_SHELF:
 			self.handle_move_to_shelf()
