@@ -179,7 +179,7 @@ class WarehouseExplore(Node):
 		self.current_shelf_objects = None
 		self.search_point = None
 		self.current_shelf_number = 1
-		self._fb_dist = 20
+		self._fb_dist = 18
 
 		# --- State Machine ---
 		self.current_state = -1
@@ -224,7 +224,7 @@ class WarehouseExplore(Node):
 			else:
 				self.shelf_info = self.find_first_rectangle()
 				self.logger.info("Adjusting position to capture all objects...")
-				if self._fb_dist > 29: self._fb_dist -= 11
+				if self._fb_dist > 27: self._fb_dist -= 11
 				else: self._fb_dist += 11
 				self.current_state = self.MOVE_TO_SHELF
 		else:
@@ -233,7 +233,7 @@ class WarehouseExplore(Node):
 	# -------------------- QR PROCESSING --------------------
 
 	def handle_qr_navigation(self):
-		self.left, self.right = self.find_front_back_points(50,True)
+		self.left, self.right = self.find_front_back_points(23,True)
 		direction = self.shelf_info['orientation']['primary_direction']
 		self.target_view_point = self.left if self.calc_distance(self.buggy_map_xy, self.left) < self.calc_distance(self.buggy_map_xy, self.right) else self.right
 		yaw = self.find_angle_point_direction(self.shelf_info['center'], self.target_view_point, direction)
@@ -619,7 +619,7 @@ class WarehouseExplore(Node):
 					- front_point: The point at the specified distance in the chosen direction from the center.
 					- back_point: The point at the specified distance in the opposite direction from the center.
 			"""
-			
+
 			x, y = self.shelf_info['center']
 			if 'orientation' not in self.shelf_info:
 				self.logger.warn("No orientation information in shelf_info")
@@ -801,8 +801,8 @@ class WarehouseExplore(Node):
 			self.current_state = self.EXPLORE
 
 		elif self.current_state == self.EXPLORE:
-			self.frontier_explore()
-			# self.send_goal_closest_free_in_circles()
+			# self.frontier_explore()
+			self.send_goal_closest_free_in_circles()
 
 		elif self.current_state == self.MOVE_TO_SHELF:
 			self.handle_move_to_shelf()
