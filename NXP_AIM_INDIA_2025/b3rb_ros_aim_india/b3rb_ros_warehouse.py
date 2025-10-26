@@ -180,7 +180,7 @@ class WarehouseExplore(Node):
 		self.current_shelf_objects = None
 		self.search_point = None
 		self.current_shelf_number = 1
-		self._fb_dist = 42
+		self._fb_dist = 29
 
 		# --- State Machine ---
 		self.current_state = -1
@@ -224,7 +224,7 @@ class WarehouseExplore(Node):
 			else:
 				self.shelf_info = self.find_first_rectangle()
 				self.logger.info("Adjusting position to capture all objects...")
-				if self._fb_dist > 50: self._fb_dist -= 10
+				if self._fb_dist > 35: self._fb_dist -= 10
 				else: self._fb_dist += 10
 				self.current_state = self.MOVE_TO_SHELF
 		else:
@@ -233,7 +233,7 @@ class WarehouseExplore(Node):
 	# -------------------- QR PROCESSING --------------------
 
 	def handle_qr_navigation(self):
-		self.left, self.right = self.find_front_back_points(50,True)
+		self.left, self.right = self.find_front_back_points(38,True)
 		direction = self.shelf_info['orientation']['primary_direction']
 		self.target_view_point = self.left if self.calc_distance(self.buggy_map_xy, self.left) < self.calc_distance(self.buggy_map_xy, self.right) else self.right
 		yaw = self.find_angle_point_direction(self.shelf_info['center'], self.target_view_point, direction)
@@ -788,7 +788,7 @@ class WarehouseExplore(Node):
 		if self.qr_code_str is not None:
 			self.cancel_current_goal()
 			self.prev_shelf_center = self.shelf_info['center']
-			self.shelf_angle_deg = self.get_next_angle()
+			self.shelf_angle_deg = self.get_next_angle() + self.robot_initial_angle
 			self.shelf_objects_curr.qr_decoded = self.qr_code_str
 			self.publisher_shelf_data.publish(self.shelf_objects_curr)
 			self.send_request_to_server(rtype='upload')
@@ -852,7 +852,7 @@ class WarehouseExplore(Node):
 			None
 		"""
 		self.pose_curr = message
-		self.logger.info(f"Current pose: {self.pose_curr.pose.pose.orientation}")
+		# self.logger.info(f"Current pose: {self.pose_curr.pose.pose.orientation}")
 
 		self.buggy_pose_x = message.pose.pose.position.x
 		self.buggy_pose_y = message.pose.pose.position.y
