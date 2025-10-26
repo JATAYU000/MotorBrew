@@ -239,6 +239,7 @@ class WarehouseExplore(Node):
 		self.target_view_point = self.left if self.calc_distance(self.buggy_map_xy, self.left) < self.calc_distance(self.buggy_map_xy, self.right) else self.right
 		yaw = self.find_angle_point_direction(self.shelf_info['center'], self.target_view_point, direction)
 		goal_x, goal_y = self.get_world_coord_from_map_coord(float(self.target_view_point[0]), float(self.target_view_point[1]), self.global_map_curr.info)
+		self.qr_yaw = yaw
 		goal = self.create_goal_from_world_coord(goal_x, goal_y, math.radians(yaw))
 		if self.send_goal_from_world_pose(goal):
 			self.logger.info(f"NAV TO QR Goal sent to ({goal_x:.2f}, {goal_y:.2f}) with yaw {yaw:.2f}°")
@@ -248,17 +249,16 @@ class WarehouseExplore(Node):
 		
 	def adjust_qr(self):
 		if self.qr_code_str is not None:
-			angle_rn = self.get_yaw_from_quaternion(self.pose_curr.pose.pose.orientation)
 			# give new goal units in front of the robot
 			unit = 15
 			self.buggy_map_xy = self.get_map_coord_from_world_coord(self.buggy_pose_x, self.buggy_pose_y, self.global_map_curr.info)
 
-			goal_x = self.buggy_map_xy[0] + unit * math.cos(angle_rn)
-			goal_y = self.buggy_map_xy[1] + unit * math.sin(angle_rn)
+			goal_x = self.buggy_map_xy[0] + unit * math.cos(self.qr_yaw)
+			goal_y = self.buggy_map_xy[1] + unit * math.sin(self.qr_yaw)
 			goal_x,goal_y = self.get_world_coord_from_map_coord(goal_x, goal_y, self.global_map_curr.info)
-			goal = self.create_goal_from_world_coord(goal_x, goal_y, math.radians(angle_rn))
+			goal = self.create_goal_from_world_coord(goal_x, goal_y, math.radians(self.qr_yaw))
 			if self.send_goal_from_world_pose(goal):
-				self.logger.info(f"ADJUST TO QR Goal sent to ({goal_x:.2f}, {goal_y:.2f}) with yaw {math.degrees(angle_rn):.2f}°")
+				self.logger.info(f"ADJUST TO QR Goal sent to ({goal_x:.2f}, {goal_y:.2f}) with yaw {math.degrees(self.qr_yaw):.2f}°")
 				
 	def get_next_angle(self):
 		try:
