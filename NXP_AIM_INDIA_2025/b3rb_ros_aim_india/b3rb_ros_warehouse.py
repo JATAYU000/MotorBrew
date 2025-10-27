@@ -753,6 +753,10 @@ class WarehouseExplore(Node):
 		self.map_array = np.array(self.global_map_curr.data).reshape((self.global_map_curr.info.height, self.global_map_curr.info.width))
 		self.buggy_map_xy = self.get_map_coord_from_world_coord(self.buggy_pose_x, self.buggy_pose_y, self.global_map_curr.info)
 		
+		self.prev_shelf_center = self.get_map_coord_from_world_coord(
+				0.0,
+				0.0,
+				self.global_map_curr.info)
 		
 		# state machine
 		if self.current_state == -1:
