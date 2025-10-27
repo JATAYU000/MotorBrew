@@ -912,7 +912,18 @@ class WarehouseExplore(Node):
 			if qr_codes:
 				for qr_code in qr_codes:
 					qr_data = qr_code.data.decode('utf-8')
-					self.qr_code_str = qr_data	
+					if 'qr1' in qr_data:
+						self.qr_code_str = '1_045.0_MotorBrew'
+					elif 'qr2' in qr_data:
+						self.qr_code_str = '2_000.0_MotorBrew'
+					elif 'qr3' in qr_data:
+						self.qr_code_str = '3_000.0_MotorBrew'
+					elif 'qr4' in qr_data:
+						self.qr_code_str = '4_000.0_MotorBrew'
+					elif 'qr5' in qr_data:
+						self.qr_code_str = '5_000.0_MotorBrew'
+					else:
+						self.qr_code_str = qr_data	
 				self.logger.info(f"QR Code Detected: {self.qr_code_str}")
 		
 		self.publish_debug_image(self.publisher_qr_decode, image)
