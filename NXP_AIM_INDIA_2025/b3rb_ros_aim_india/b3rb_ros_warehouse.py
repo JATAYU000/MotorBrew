@@ -366,7 +366,7 @@ class WarehouseExplore(Node):
 				# Ensure chosen frontier is not too close to obstacles.
 				# If it is, step back along the line from center_map_point to the frontier
 				# until a cell with sufficient clearance is found.
-				clearance_cells = 7       # radius to check for clearance
+				clearance_cells = 5       # radius to check for clearance
 				required_free_pct = 90.0  # percent free required
 				step_back_cells = 5       # how far to move back each attempt (in map cells)
 				max_back_attempts = 8
@@ -423,7 +423,7 @@ class WarehouseExplore(Node):
 	
 	# -------------------- SHELF FINDING --------------------
 
-	def find_first_rectangle(self,rect_fill_ratio=0.50,min_pixel_area=250,max_pixel_area=1200,ignore_radius=30):
+	def find_first_rectangle(self,rect_fill_ratio=0.50,min_pixel_area=220,max_pixel_area=1200,ignore_radius=30):
 		start_point = self.prev_shelf_center
 		search_angle_deg = self.shelf_angle_deg
 
