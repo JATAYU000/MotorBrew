@@ -249,7 +249,6 @@ class WarehouseExplore(Node):
 		
 	def adjust_qr(self):
 		if self.qr_code_str is None:
-			angle_rn = self.get_yaw_from_quaternion(self.pose_curr.pose.pose.orientation)
 			# give new goal units in front of the robot
 			unit = 15
 			self.buggy_map_xy = self.get_map_coord_from_world_coord(self.buggy_pose_x, self.buggy_pose_y, self.global_map_curr.info)
@@ -267,10 +266,10 @@ class WarehouseExplore(Node):
 			
 			goal_x,goal_y = self.get_world_coord_from_map_coord(goal_x, goal_y, self.global_map_curr.info)
 			goal = self.create_goal_from_world_coord(goal_x, goal_y, math.radians(self.qr_yaw))
-			self.logger.info(f"Adjusting to QR at map coords ({goal_x:.2f}, {goal_y:.2f}) with yaw {math.degrees(self.qr_yaw):.2f}°")
+			self.logger.info(f"Adjusting to QR at map coords ({goal_x:.2f}, {goal_y:.2f}) with yaw {(self.qr_yaw):.2f}°")
 			if self.send_goal_from_world_pose(goal):
 				self.current_state = self.DEBUG
-				self.logger.info(f"ADJUST TO QR Goal sent to ({goal_x:.2f}, {goal_y:.2f}) with yaw {math.degrees(self.qr_yaw):.2f}°")
+				self.logger.info(f"ADJUST TO QR Goal sent to ({goal_x:.2f}, {goal_y:.2f}) with yaw {(self.qr_yaw):.2f}°")
 		else:
 			return
 
@@ -324,7 +323,9 @@ class WarehouseExplore(Node):
 				map_width = self.global_map_curr.info.width
 				edge_margin = 12
 				
-				start_x, start_y = self.prev_shelf_center
+				# start_x, start_y = self.prev_shelf_center
+				start_x, start_y = self.get_map_coord_from_world_coord(self.prev_shelf_center[0], self.prev_shelf_center[1], self.global_map_curr.info)
+                
 				
 				step_size = 10
 				current_x, current_y = start_x, start_y
@@ -423,9 +424,10 @@ class WarehouseExplore(Node):
 	
 	# -------------------- SHELF FINDING --------------------
 
-	def find_first_rectangle(self,rect_fill_ratio=0.50,min_pixel_area=220,max_pixel_area=1100,ignore_radius=30):
-		np.save("map_array_mon.npy", self.map_array)
-		start_point = self.prev_shelf_center
+	def find_first_rectangle(self,rect_fill_ratio=0.50,min_pixel_area=230,max_pixel_area=1200,ignore_radius=30):
+		# start_point = self.prev_shelf_center
+		start_point = self.get_map_coord_from_world_coord(self.prev_shelf_center[0], self.prev_shelf_center[1], self.global_map_curr.info)
+
 		search_angle_deg = self.shelf_angle_deg
 
 		binary_obstacle_map = np.zeros(self.map_array.shape, dtype=np.uint8)
@@ -486,7 +488,6 @@ class WarehouseExplore(Node):
 			rectangularity_ratio = object_area / bounding_box_area
 
 			if rectangularity_ratio >= rect_fill_ratio:
-				self.logger.info(f"  -> SUCCESS: Object is a valid rectangle (Ratio > {rect_fill_ratio}).")
 				oriented_w = max(w, h)
 				oriented_h = min(w, h)
 				wh_ratio = oriented_w / oriented_h
@@ -497,6 +498,8 @@ class WarehouseExplore(Node):
 				if not (1.7 <= wh_ratio <= 2.9):
 					self.logger.info(f"  -> FAILURE: W/H ratio {wh_ratio:.2f} not in [1.8, 2.9]. Skipping.")
 					continue
+				
+				self.logger.info(f"  -> SUCCESS: Object is a valid rectangle (Ratio > {rect_fill_ratio}).")
 
 				box_points = cv2.boxPoints(found_rect)
 				box_points = np.int0(box_points)
@@ -514,7 +517,7 @@ class WarehouseExplore(Node):
 					"box_points": box_points
 				}
 			else:
-				self.logger.info(f"  -> FAILURE: Not a rectangle. Skipping.")
+				self.logger.info(f"  -> FAILURE: Not a ratio. Skipping.")
 				continue 
 
 		self.logger.info("\nRay search finished without finding a valid rectangle.")
@@ -727,7 +730,9 @@ class WarehouseExplore(Node):
 			self.logger.info(f"\n\n\nQR code detected: {self.qr_code_str}, processing...")
 			self.cancel_current_goal()
 			self.further_angle_point = None
-			self.prev_shelf_center = self.shelf_info['center']
+			map_center = self.shelf_info['center']
+			self.prev_shelf_center = self.get_world_coord_from_map_coord(map_center[0], map_center[1], self.global_map_curr.info)
+
 			self.shelf_angle_deg = self.get_next_angle() + self.robot_initial_angle
 			self.shelf_objects_curr.qr_decoded = self.qr_code_str
 			self.publisher_shelf_data.publish(self.shelf_objects_curr)
@@ -751,20 +756,17 @@ class WarehouseExplore(Node):
 
 		
 		self.map_array = np.array(self.global_map_curr.data).reshape((self.global_map_curr.info.height, self.global_map_curr.info.width))
-		self.logger.info(f"Global map received with world center at {self.global_map_curr.info}")
 		self.buggy_map_xy = self.get_map_coord_from_world_coord(self.buggy_pose_x, self.buggy_pose_y, self.global_map_curr.info)
-		
-		self.prev_shelf_center = self.get_map_coord_from_world_coord(
-				0.0,
-				0.0,
-				self.global_map_curr.info)
+
 		
 		# state machine
 		if self.current_state == -1:
-			self.prev_shelf_center = self.get_map_coord_from_world_coord(
-				self.buggy_pose_x,
-				self.buggy_pose_y,
-				self.global_map_curr.info)
+			# self.prev_shelf_center = self.get_map_coord_from_world_coord(
+			# 	self.buggy_pose_x,
+			# 	self.buggy_pose_y,
+			# 	self.global_map_curr.info)
+			self.prev_shelf_center = (self.buggy_pose_x, self.buggy_pose_y)
+
 			self.current_state = self.EXPLORE
 
 		elif self.current_state == self.EXPLORE:
@@ -910,18 +912,7 @@ class WarehouseExplore(Node):
 			if qr_codes:
 				for qr_code in qr_codes:
 					qr_data = qr_code.data.decode('utf-8')
-					if '.app/qr1' in qr_data:
-						self.qr_code_str = '1_225.0_MotorBrew'	
-					elif '.app/qr2' in qr_data:
-						self.qr_code_str = '2_000.0_MotorBrew'
-					elif '.app/qr3' in qr_data:
-						self.qr_code_str = '3_120.0_MotorBrew'
-					elif '.app/qr4' in qr_data:
-						self.qr_code_str = '4_000.0_MotorBrew'
-					elif '.app/qr5' in qr_data:
-						self.qr_code_str = '5_000.0_MotorBrew'
-					else: self.qr_code_str = qr_data
-
+					self.qr_code_str = qr_data	
 				self.logger.info(f"QR Code Detected: {self.qr_code_str}")
 		
 		self.publish_debug_image(self.publisher_qr_decode, image)
@@ -1110,7 +1101,7 @@ class WarehouseExplore(Node):
 		
 		if self.current_state == self.EXPLORE:
 			if number_of_recoveries>2:
-				self.logger.info(f"Cancelling since trying to recover {number_of_recoveries}<15")
+				self.logger.info(f"Cancelling since trying to recover {number_of_recoveries} or dist {self.calc_distance(self.buggy_map_xy,self.curr_frontier_goal)}<15")
 				self.logger.info(f"\n\nRecoveries: {number_of_recoveries}, "
 				  f"Navigation time: {navigation_time}s, "
 				  f"Distance remaining: {distance_remaining:.2f}, "
