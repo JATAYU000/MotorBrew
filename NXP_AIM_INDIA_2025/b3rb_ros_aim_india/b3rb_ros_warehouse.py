@@ -167,7 +167,6 @@ class WarehouseExplore(Node):
 		self.max_step_dist_world_meters = 7.0
 		self.min_step_dist_world_meters = 4.0
 		self.full_map_explored_count = 0
-		self.further_angle_point = None
 		self.curr_frontier_goal = None
 
 		# --- QR Code Data ---
@@ -729,7 +728,6 @@ class WarehouseExplore(Node):
 		if self.qr_code_str is not None and (self.current_state == self.MOVE_TO_QR or self.current_state == self.ADJUST_TO):
 			self.logger.info(f"\n\n\nQR code detected: {self.qr_code_str}, processing...")
 			self.cancel_current_goal()
-			self.further_angle_point = None
 			map_center = self.shelf_info['center']
 			self.prev_shelf_center = self.get_world_coord_from_map_coord(map_center[0], map_center[1], self.global_map_curr.info)
 
@@ -1111,8 +1109,8 @@ class WarehouseExplore(Node):
 			self.cancel_current_goal()  # Unblock by discarding the current goal.
 		
 		if self.current_state == self.EXPLORE:
-			if number_of_recoveries>2:
-				self.logger.info(f"Cancelling since trying to recover {number_of_recoveries} or dist {self.calc_distance(self.buggy_map_xy,self.curr_frontier_goal)}<15")
+			if number_of_recoveries>5:
+				self.logger.info(f"Cancelling since trying to recover {number_of_recoveries}")
 				self.logger.info(f"\n\nRecoveries: {number_of_recoveries}, "
 				  f"Navigation time: {navigation_time}s, "
 				  f"Distance remaining: {distance_remaining:.2f}, "
