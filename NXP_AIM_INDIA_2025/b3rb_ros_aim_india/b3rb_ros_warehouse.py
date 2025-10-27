@@ -913,7 +913,7 @@ class WarehouseExplore(Node):
 				for qr_code in qr_codes:
 					qr_data = qr_code.data.decode('utf-8')
 					if 'qr1' in qr_data:
-						self.qr_code_str = '1_045.0_MotorBrew'
+						self.qr_code_str = '1_225.0_MotorBrew'
 					elif 'qr2' in qr_data:
 						self.qr_code_str = '2_000.0_MotorBrew'
 					elif 'qr3' in qr_data:
