@@ -423,7 +423,7 @@ class WarehouseExplore(Node):
 	
 	# -------------------- SHELF FINDING --------------------
 
-	def find_first_rectangle(self,rect_fill_ratio=0.50,min_pixel_area=220,max_pixel_area=1200,ignore_radius=30):
+	def find_first_rectangle(self,rect_fill_ratio=0.50,min_pixel_area=220,max_pixel_area=1100,ignore_radius=30):
 		np.save("map_array_mon.npy", self.map_array)
 		start_point = self.prev_shelf_center
 		search_angle_deg = self.shelf_angle_deg
@@ -494,8 +494,8 @@ class WarehouseExplore(Node):
 					self.logger.info(f"  -> FAILURE: Width {oriented_w:.1f} not in [31, 42]. Skipping.")
 					continue
 
-				if not (1.7 <= wh_ratio <= 2.6):
-					self.logger.info(f"  -> FAILURE: W/H ratio {wh_ratio:.2f} not in [1.8, 2.6]. Skipping.")
+				if not (1.7 <= wh_ratio <= 2.9):
+					self.logger.info(f"  -> FAILURE: W/H ratio {wh_ratio:.2f} not in [1.8, 2.9]. Skipping.")
 					continue
 
 				box_points = cv2.boxPoints(found_rect)
@@ -751,6 +751,7 @@ class WarehouseExplore(Node):
 
 		
 		self.map_array = np.array(self.global_map_curr.data).reshape((self.global_map_curr.info.height, self.global_map_curr.info.width))
+		self.logger.info(f"Global map received with world center at {self.global_map_curr.info}")
 		self.buggy_map_xy = self.get_map_coord_from_world_coord(self.buggy_pose_x, self.buggy_pose_y, self.global_map_curr.info)
 		
 		self.prev_shelf_center = self.get_map_coord_from_world_coord(
