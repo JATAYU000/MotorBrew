@@ -11,6 +11,7 @@ setup(
             ['resource/' + package_name]),
         ('share/ament_index/resource_index', ['resource/coco.yaml']),
         ('share/ament_index/resource_index', ['resource/yolov5n-int8.tflite']),
+        ('share/ament_index/resource_index', ['resource/yolo11n_int8.tflite']),
         ('share/' + package_name, ['package.xml']),
     ],
     install_requires=['setuptools'],
@@ -23,6 +24,8 @@ setup(
     entry_points={
         'console_scripts': [
                 'explore = b3rb_ros_aim_india.b3rb_ros_warehouse:main',
+                'visualize = b3rb_ros_aim_india.b3rb_ros_draw_map:main',
+                'remover = b3rb_ros_aim_india.b3rb_ros_model_remove:main',
                 'detect = b3rb_ros_aim_india.b3rb_ros_object_recog:main',
         ],
     },

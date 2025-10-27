@@ -49,11 +49,86 @@ from scipy.ndimage import label, center_of_mass
 from scipy.spatial.distance import euclidean
 from sklearn.decomposition import PCA
 
+import tkinter as tk
+from tkinter import ttk
 
 QOS_PROFILE_DEFAULT = 10
 SERVER_WAIT_TIMEOUT_SEC = 5.0
 
+PROGRESS_TABLE_GUI = True
 
+
+class WindowProgressTable:
+    def __init__(self, root, shelf_count):
+        self.root = root
+        self.root.title("Shelf Objects & QR Link")
+        self.root.attributes("-topmost", True)
+        
+        # Add lock for thread safety
+        self.lock = threading.Lock()
+
+        self.row_count = 2
+        self.col_count = shelf_count
+
+        self.boxes = []
+        for row in range(self.row_count):
+            row_boxes = []
+            for col in range(self.col_count):
+                box = tk.Text(root, width=10, height=3, wrap=tk.WORD, borderwidth=1,
+                          relief="solid", font=("Helvetica", 14))
+                box.insert(tk.END, "NULL")
+                box.grid(row=row, column=col, padx=3, pady=3, sticky="nsew")
+                row_boxes.append(box)
+            self.boxes.append(row_boxes)
+
+        # Make the grid layout responsive
+        for row in range(self.row_count):
+            self.root.grid_rowconfigure(row, weight=1)
+        for col in range(self.col_count):
+            self.root.grid_columnconfigure(col, weight=1)
+
+    def change_box_color(self, row, col, color):
+        """Thread-safe method to change box color"""
+        with self.lock:
+            if 0 <= row < self.row_count and 0 <= col < self.col_count:
+                self.root.after(0, lambda: self._update_color(row, col, color))
+
+    def change_box_text(self, row, col, text):
+        """Thread-safe method to change box text"""
+        with self.lock:
+            if 0 <= row < self.row_count and 0 <= col < self.col_count:
+                # Convert None to empty string
+                display_text = str(text) if text is not None else ""
+                self.root.after(0, lambda: self._update_text(row, col, display_text))
+
+    def _update_color(self, row, col, color):
+        """Internal method to update box color"""
+        try:
+            self.boxes[row][col].config(bg=color)
+        except Exception as e:
+            print(f"Error updating color: {e}")
+
+    def _update_text(self, row, col, text):
+        """Internal method to update box text"""
+        try:
+            self.boxes[row][col].delete(1.0, tk.END)
+            self.boxes[row][col].insert(tk.END, text)
+        except Exception as e:
+            print(f"Error updating text: {e}")
+
+    def cleanup(self):
+        """Clean up resources"""
+        with self.lock:
+            if self.root:
+                self.root.quit()
+                self.root.destroy()
+
+box_app = None
+def run_gui(shelf_count):
+	global box_app
+	root = tk.Tk()
+	box_app = WindowProgressTable(root, shelf_count)
+	root.mainloop()
 
 class WarehouseExplore(Node):
 	""" Initializes warehouse explorer node with the required publishers and subscriptions.
@@ -191,6 +266,11 @@ class WarehouseExplore(Node):
 		self.ADJUST_TO = 4
 		self.DEBUG = 5
 		self.start = time.time()
+
+		# --- Table GUI ---
+		if PROGRESS_TABLE_GUI:
+			self.table_row_count = 0
+			self.table_col_count = 0
 
 		self.send_request_to_server(rtype='reset')
 
@@ -946,16 +1026,11 @@ class WarehouseExplore(Node):
 				pass
 
 	def shelf_objects_callback(self, message):
-		"""Callback function to handle shelf objects updates.
-
-		Args:
-			message: ROS2 message containing shelf objects data.
-
-		Returns:
-			None
-		"""
+		"""Callback function to handle shelf objects updates."""
 		predicates = {'horse','car','banana','potted plant','clock','cup','zebra','teddy bear'}
-		mapping = {'potted plant': 'plant', 'teddy bear': 'teddy','zebra': 'zebra', 'cup': 'cup', 'clock': 'clock','horse':'horse','car':'car','banana':'banana'}
+		mapping = {'potted plant': 'plant', 'teddy bear': 'teddy','zebra': 'zebra', 'cup': 'cup', 
+				  'clock': 'clock','horse':'horse','car':'car','banana':'banana'}
+		
 		if self.current_state == self.CAPTURE_OBJECTS:
 			filtered_object_names = []
 			filtered_object_counts = []
@@ -974,22 +1049,33 @@ class WarehouseExplore(Node):
 				filtered_message.object_count = filtered_object_counts
 				self.current_shelf_objects = filtered_message
 
-		# How to send WarehouseShelf messages for evaluation.
-		"""
-		* Example for sending WarehouseShelf messages for evaluation.
-			shelf_data_message = WarehouseShelf()
+		# Update progress table
+		if PROGRESS_TABLE_GUI and box_app:
+			try:
+				# Display detected objects (current)
+				detected_str = "Detected:\n"
+				for name, count in zip(message.object_name, message.object_count):
+					if name.lower() in predicates:
+						detected_str += f"{mapping.get(name, name)}: {count}\n"
+				
+				# Display published objects (accumulated)
+				published_str = "\nPublished:\n"
+				for name, count in zip(self.shelf_objects_curr.object_name, self.shelf_objects_curr.object_count):
+					published_str += f"{name}: {count}\n"
 
-			shelf_data_message.object_name = ["car", "clock"]
-			shelf_data_message.object_count = [1, 2]
-			shelf_data_message.qr_decoded = "test qr string"
+				# Update first row with detected objects
+				box_app.change_box_text(0, self.table_col_count, detected_str)
+				box_app.change_box_color(0, self.table_col_count, "cyan")
 
-			self.publisher_shelf_data.publish(shelf_data_message)
+				# Update second row with published objects and QR code
+				display_text = published_str
+				if self.qr_code_str:
+					display_text += f"\nQR: {self.qr_code_str}"
+				box_app.change_box_text(1, self.table_col_count, display_text)
+				box_app.change_box_color(1, self.table_col_count, "yellow")
 
-		* Alternatively, you may store the QR for current shelf as self.qr_code_str.
-			Then, add it as self.shelf_objects_curr.qr_decoded = self.qr_code_str
-			Then, publish as self.publisher_shelf_data.publish(self.shelf_objects_curr)
-			This, will publish the current detected objects with the last QR decoded.
-		"""
+			except Exception as e:
+				self.logger.error(f"GUI update error: {e}")
 	
 	def rover_move_manual_mode(self, speed, turn):
 		"""Operates the rover in manual mode by publishing on /cerebri/in/joy.
@@ -1255,13 +1341,18 @@ class WarehouseExplore(Node):
 
 def main(args=None):
 	rclpy.init(args=args)
+
 	warehouse_explore = WarehouseExplore()
+
+	if PROGRESS_TABLE_GUI:
+		gui_thread = threading.Thread(target=run_gui, args=(warehouse_explore.shelf_count,))
+		gui_thread.start()
 
 	rclpy.spin(warehouse_explore)
 
+	
 	warehouse_explore.destroy_node()
 	rclpy.shutdown()
-
 
 if __name__ == '__main__':
 	main()
