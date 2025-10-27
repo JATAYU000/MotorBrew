@@ -248,18 +248,32 @@ class WarehouseExplore(Node):
 			self.logger.error("Failed to send navigation goal!")
 		
 	def adjust_qr(self):
-		if self.qr_code_str is not None:
+		if self.qr_code_str is None:
+			angle_rn = self.get_yaw_from_quaternion(self.pose_curr.pose.pose.orientation)
 			# give new goal units in front of the robot
 			unit = 15
 			self.buggy_map_xy = self.get_map_coord_from_world_coord(self.buggy_pose_x, self.buggy_pose_y, self.global_map_curr.info)
 
-			goal_x = self.buggy_map_xy[0] + unit * math.cos(self.qr_yaw)
-			goal_y = self.buggy_map_xy[1] + unit * math.sin(self.qr_yaw)
+			goalp_x = self.buggy_map_xy[0] + unit * math.cos(self.qr_yaw)
+			goalp_y = self.buggy_map_xy[1] + unit * math.sin(self.qr_yaw)
+			goaln_x = self.buggy_map_xy[0] - unit * math.cos(self.qr_yaw)
+			goaln_y = self.buggy_map_xy[1] - unit * math.sin(self.qr_yaw)
+			dist_p = self.calc_distance((goalp_x, goalp_y), self.shelf_info['center'])
+			dist_n = self.calc_distance((goaln_x, goaln_y), self.shelf_info['center'])
+			if dist_p < dist_n:
+				goal_x, goal_y = goalp_x, goalp_y
+			else:
+				goal_x, goal_y = goaln_x, goaln_y
+			
 			goal_x,goal_y = self.get_world_coord_from_map_coord(goal_x, goal_y, self.global_map_curr.info)
 			goal = self.create_goal_from_world_coord(goal_x, goal_y, math.radians(self.qr_yaw))
+			self.logger.info(f"Adjusting to QR at map coords ({goal_x:.2f}, {goal_y:.2f}) with yaw {math.degrees(self.qr_yaw):.2f}°")
 			if self.send_goal_from_world_pose(goal):
+				self.current_state = self.DEBUG
 				self.logger.info(f"ADJUST TO QR Goal sent to ({goal_x:.2f}, {goal_y:.2f}) with yaw {math.degrees(self.qr_yaw):.2f}°")
-				
+		else:
+			return
+
 	def get_next_angle(self):
 		try:
 			parts = self.qr_code_str.split('_')
@@ -271,78 +285,6 @@ class WarehouseExplore(Node):
 		return None
 
 	# -------------------- FRONTIER EXPLORATION --------------------
-
-	# def find_best_point(self):
-	# 	if self.further_angle_point == None:
-	# 		angle_rad = math.radians(self.shelf_angle_deg)
-	# 		h, w = self.map_array.shape
-	# 		x = float(self.prev_shelf_center[0])
-	# 		y = float(self.prev_shelf_center[1])
-	# 		step = 30.0
-
-	# 		last_x, last_y = int(x), int(y)
-	# 		while 0 <= int(y) < h and 0 <= int(x) < w:
-	# 			last_x, last_y = int(x), int(y)
-	# 			x += step * math.cos(angle_rad)
-	# 			y += step * math.sin(angle_rad)
-	# 		self.further_angle_point = (last_x, last_y)
-			
-	# def send_goal_closest_free_in_circles(self):
-	# 	"""
-	# 	Search map cells inside a circle (radius 35 then 25) around `center_map`
-	# 	and pick the free cell whose 5-cell neighbourhood is >=85% free and is
-	# 	closest to self.further_angle_point. Create and send a nav goal to that cell.
-
-	# 	Returns: True if a goal was sent, False otherwise.
-	# 	"""
-	# 	self.shelf_info = self.find_first_rectangle()
-	# 	self.logger.info(f"SHELF INFO: {self.shelf_info}")
-	# 	self.logger.info(f"prev shelf center: {self.prev_shelf_center}")
-
-	# 	if self.shelf_info is not None and self.find_free_space_around_point(self.shelf_info['center'], radius=75) > 30:
-	# 		self.logger.info(f"Map is mostly free, skipping exp: {self.find_free_space_around_point(self.shelf_info['center'], radius=75)}% free")
-	# 		self.current_state = self.MOVE_TO_SHELF
-	# 		return
-		
-	# 	self.logger.info("Exploring CIRCLES...")
-	# 	self.find_best_point()
-
-	# 	center_map = self.buggy_map_xy
-	# 	cx, cy = int(center_map[0]), int(center_map[1])
-	# 	h, w = self.map_array.shape
-	# 	for radius in (65, 45, 25):
-	# 		candidates = []
-	# 		r2 = radius * radius
-	# 		y0 = max(0, cy - radius)
-	# 		y1 = min(h - 1, cy + radius)
-	# 		x0 = max(0, cx - radius)
-	# 		x1 = min(w - 1, cx + radius)
-
-	# 		for y in range(y0, y1 + 1):
-	# 			dy = y - cy
-	# 			for x in range(x0, x1 + 1):
-	# 				dx = x - cx
-	# 				if dx * dx + dy * dy > r2:
-	# 					continue
-	# 				# must be a free cell
-	# 				if self.map_array[y, x] != 0:
-	# 					continue
-	# 				# neighbourhood free percent using existing helper
-	# 				pct = self.find_free_space_around_point((x, y), radius=7)
-	# 				if pct >= 80.0:
-	# 					candidates.append((x, y))
-
-	# 		if candidates:
-	# 			# pick candidate closest to further_angle_point (map coords)
-	# 			fx, fy = int(self.further_angle_point[0]), int(self.further_angle_point[1])
-	# 			best = min(candidates, key=lambda p: math.hypot(p[0] - fx, p[1] - fy))
-	# 			goal = self.create_goal_from_map_coord(best[0], best[1], self.global_map_curr.info)
-	# 			sent = self.send_goal_from_world_pose(goal)
-	# 			self.logger.info(f"send_goal_closest_free_in_circles: radius={radius} chosen={best} sent={sent}")
-	# 			return sent
-
-	# 	self.logger.info("send_goal_closest_free_in_circles: no suitable point found in radii 35 or 25")
-	# 	return False
 
 
 	def frontier_explore(self):
@@ -480,7 +422,8 @@ class WarehouseExplore(Node):
 			self.full_map_explored_count += 1
 	
 	# -------------------- SHELF FINDING --------------------
-	def find_first_rectangle(self,rect_fill_ratio=0.50,min_pixel_area=250,ignore_radius=30):
+
+	def find_first_rectangle(self,rect_fill_ratio=0.50,min_pixel_area=250,max_pixel_area=1200,ignore_radius=30):
 		start_point = self.prev_shelf_center
 		search_angle_deg = self.shelf_angle_deg
 
@@ -527,8 +470,8 @@ class WarehouseExplore(Node):
 				continue # Skip this object
 				
 			object_area = len(points)
-			if object_area < min_pixel_area:
-				self.logger.info(f"... Object is too small (Area: {object_area}). Skipping.")
+			if object_area < min_pixel_area or object_area > max_pixel_area:
+				self.logger.info(f"... Object is too small/large (Area: {object_area}). Skipping.")
 				continue 
 
 			found_rect = cv2.minAreaRect(points)
@@ -779,12 +722,12 @@ class WarehouseExplore(Node):
 		"""
 		self.global_map_curr = message
 
-		if self.qr_code_str is not None:
+		if self.qr_code_str is not None and (self.current_state == self.MOVE_TO_QR or self.current_state == self.ADJUST_TO):
 			self.logger.info(f"\n\n\nQR code detected: {self.qr_code_str}, processing...")
 			self.cancel_current_goal()
 			self.further_angle_point = None
 			self.prev_shelf_center = self.shelf_info['center']
-			self.shelf_angle_deg = self.get_next_angle()
+			self.shelf_angle_deg = self.get_next_angle() + self.robot_initial_angle
 			self.shelf_objects_curr.qr_decoded = self.qr_code_str
 			self.publisher_shelf_data.publish(self.shelf_objects_curr)
 			self.send_request_to_server(rtype='upload')
@@ -832,6 +775,7 @@ class WarehouseExplore(Node):
 			self.handle_qr_navigation()
 
 		elif self.current_state == self.ADJUST_TO:
+			self.logger.info("Adjusting position to QR code...")
 			self.adjust_qr()
 
 		elif self.current_state == self.DEBUG:
@@ -955,7 +899,7 @@ class WarehouseExplore(Node):
 		# Process the image from front camera as needed.
 
 		# Optional line for visualizing image on foxglove.
-		if self.current_state == self.MOVE_TO_QR:
+		if self.current_state == self.MOVE_TO_QR or self.current_state == self.ADJUST_TO:
 			qr_codes = pyzbar.decode(image)
 			if qr_codes:
 				for qr_code in qr_codes:
