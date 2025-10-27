@@ -268,9 +268,9 @@ class WarehouseExplore(Node):
 			goal = self.create_goal_from_world_coord(goal_x, goal_y, math.radians(self.qr_yaw))
 			self.logger.info(f"Adjusting to QR at map coords ({goal_x:.2f}, {goal_y:.2f}) with yaw {(self.qr_yaw):.2f}°")
 			if self.send_goal_from_world_pose(goal):
-				self.current_state = self.DEBUG
 				self.logger.info(f"ADJUST TO QR Goal sent to ({goal_x:.2f}, {goal_y:.2f}) with yaw {(self.qr_yaw):.2f}°")
 		else:
+			self.logger.info(f"QR code already detected {self.qr_code_str}, no adjustment needed.")
 			return
 
 	def get_next_angle(self):
