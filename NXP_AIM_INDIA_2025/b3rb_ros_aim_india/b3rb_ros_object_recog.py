@@ -210,7 +210,7 @@ class ObjectRecognizer(Node):
         
         resource_name_coco = "../../../../share/ament_index/resource_index/coco.yaml"
         resource_path_coco = pkg_resources.resource_filename(PACKAGE_NAME, resource_name_coco)
-        resource_name_yolo = "../../../../share/ament_index/resource_index/yolov8n_int8.tflite"
+        resource_name_yolo = "../../../../share/ament_index/resource_index/yolo11n_int8.tflite"
         resource_path_yolo = pkg_resources.resource_filename(PACKAGE_NAME, resource_name_yolo)
 
         with open(resource_path_coco) as f:
@@ -321,7 +321,7 @@ class ObjectRecognizer(Node):
                 pred = non_max_suppression_yolov11(pred, conf_thres=0.14, iou_thres=0.9, max_det=1000)
 
             total_dets = sum([len(d) for d in pred])
-            self.get_logger().info(f"NMS returned {total_dets} detections")
+            # self.get_logger().info(f"NMS returned {total_dets} detections")
 
             # Draw detections
             for i, det in enumerate(pred):
