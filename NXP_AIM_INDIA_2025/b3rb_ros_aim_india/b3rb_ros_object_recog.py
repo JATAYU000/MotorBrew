@@ -361,7 +361,7 @@ class ObjectRecognizer(Node):
             shelf_objects_message.object_name.append(key)
             shelf_objects_message.object_count.append(value)
 
-        self.get_logger().info(f"Publishing shelf_objects: {object_count_dict}")
+        # self.get_logger().info(f"Publishing shelf_objects: {object_count_dict}")
         self.publisher_shelf_objects.publish(shelf_objects_message)
 
 
