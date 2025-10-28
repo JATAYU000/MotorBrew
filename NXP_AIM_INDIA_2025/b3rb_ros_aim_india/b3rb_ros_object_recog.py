@@ -32,7 +32,7 @@ def xywh2xyxy(x):
 def non_max_suppression_yolov5(
     prediction,
     conf_thres=0.14,
-    iou_thres=0.3,
+    iou_thres=0.9,
     classes=None,
     agnostic=False,
     multi_label=False,
@@ -111,7 +111,7 @@ def non_max_suppression_yolov5(
     return output
 
 
-def non_max_suppression_yolov11(prediction, conf_thres=0.25, iou_thres=0.45, max_det=300):
+def non_max_suppression_yolov11(prediction, conf_thres=0.25, iou_thres=0.9, max_det=300):
     """
     NMS for YOLOv11 format
     Input can be:
@@ -204,6 +204,10 @@ class ObjectRecognizer(Node):
         self.publisher_object_recog = self.create_publisher(
             CompressedImage, "/debug_images/object_recog", QOS_PROFILE_DEFAULT)
 
+        ext_delegate_opts = {}
+        ext_delegate_opts = [tflite.load.load_delegate('/usr/lib/libvx_delegate.so', ext_delegate_opts)]
+
+        
         resource_name_coco = "../../../../share/ament_index/resource_index/coco.yaml"
         resource_path_coco = pkg_resources.resource_filename(PACKAGE_NAME, resource_name_coco)
         resource_name_yolo = "../../../../share/ament_index/resource_index/yolo11n_int8.tflite"
@@ -314,7 +318,7 @@ class ObjectRecognizer(Node):
             else:
                 # YOLOv11: Coordinates already in input_size scale for [1, 84, 8400] format
                 # No scaling needed before NMS
-                pred = non_max_suppression_yolov11(pred, conf_thres=0.25, iou_thres=0.45, max_det=1000)
+                pred = non_max_suppression_yolov11(pred, conf_thres=0.14, iou_thres=0.9, max_det=1000)
 
             total_dets = sum([len(d) for d in pred])
             self.get_logger().info(f"NMS returned {total_dets} detections")
