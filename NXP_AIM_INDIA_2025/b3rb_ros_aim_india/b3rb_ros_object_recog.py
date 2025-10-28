@@ -205,7 +205,7 @@ class ObjectRecognizer(Node):
             CompressedImage, "/debug_images/object_recog", QOS_PROFILE_DEFAULT)
 
         ext_delegate_opts = {}
-        ext_delegate_opts = [tflite.load.load_delegate('/usr/lib/libvx_delegate.so', ext_delegate_opts)]
+        ext_delegate_opts = [tflite.load_delegate('/usr/lib/libvx_delegate.so', ext_delegate_opts)]
 
         
         resource_name_coco = "../../../../share/ament_index/resource_index/coco.yaml"
