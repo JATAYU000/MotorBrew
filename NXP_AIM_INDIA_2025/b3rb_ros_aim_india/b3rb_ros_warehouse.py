@@ -167,6 +167,7 @@ class WarehouseExplore(Node):
 		self.max_step_dist_world_meters = 7.0
 		self.min_step_dist_world_meters = 4.0
 		self.full_map_explored_count = 0
+		self.further_angle_point = None
 		self.curr_frontier_goal = None
 
 		# --- QR Code Data ---
@@ -200,7 +201,8 @@ class WarehouseExplore(Node):
 		self.front, self.back = self.find_front_back_points(self._fb_dist,False)
 		direction = self.shelf_info['orientation']['secondary_direction']
 		self.target_view_point = self.front if self.calc_distance(self.buggy_map_xy, self.front) < self.calc_distance(self.buggy_map_xy, self.back) else self.back
-		yaw = self.find_angle_point_direction(self.shelf_info['center'], self.target_view_point, direction)
+		cen = self.get_map_coord_from_world_coord(float(self.shelf_info['center'][0]), float(self.shelf_info['center'][1]), self.global_map_curr.info)
+		yaw = self.find_angle_point_direction(cen, self.target_view_point, direction)
 		goal_x, goal_y = self.get_world_coord_from_map_coord(float(self.target_view_point[0]), float(self.target_view_point[1]), self.global_map_curr.info)
 		goal = self.create_goal_from_world_coord(goal_x, goal_y, math.radians(yaw))
 		if self.send_goal_from_world_pose(goal):
@@ -217,7 +219,7 @@ class WarehouseExplore(Node):
 			self.shelf_objects_curr.object_count = self.current_shelf_objects.object_count
 			self.logger.info(f"Captured {self.shelf_objects_curr.object_count} objects: {self.shelf_objects_curr.object_name}")
 
-			if sum(self.current_shelf_objects.object_count) >= 3:
+			if sum(self.current_shelf_objects.object_count) >= 5:
 				info = self.find_first_rectangle()
 				if info is not None: self.shelf_info = info
 				self.current_state = self.MOVE_TO_QR
@@ -236,7 +238,8 @@ class WarehouseExplore(Node):
 		self.left, self.right = self.find_front_back_points(35,True)
 		direction = self.shelf_info['orientation']['primary_direction']
 		self.target_view_point = self.left if self.calc_distance(self.buggy_map_xy, self.left) < self.calc_distance(self.buggy_map_xy, self.right) else self.right
-		yaw = self.find_angle_point_direction(self.shelf_info['center'], self.target_view_point, direction)
+		cen = self.get_map_coord_from_world_coord(float(self.shelf_info['center'][0]), float(self.shelf_info['center'][1]), self.global_map_curr.info)
+		yaw = self.find_angle_point_direction(cen, self.target_view_point, direction)
 		goal_x, goal_y = self.get_world_coord_from_map_coord(float(self.target_view_point[0]), float(self.target_view_point[1]), self.global_map_curr.info)
 		self.qr_yaw = yaw
 		goal = self.create_goal_from_world_coord(goal_x, goal_y, math.radians(yaw))
@@ -248,6 +251,7 @@ class WarehouseExplore(Node):
 		
 	def adjust_qr(self):
 		if self.qr_code_str is None:
+			angle_rn = self.get_yaw_from_quaternion(self.pose_curr.pose.pose.orientation)
 			# give new goal units in front of the robot
 			unit = 15
 			self.buggy_map_xy = self.get_map_coord_from_world_coord(self.buggy_pose_x, self.buggy_pose_y, self.global_map_curr.info)
@@ -256,8 +260,9 @@ class WarehouseExplore(Node):
 			goalp_y = self.buggy_map_xy[1] + unit * math.sin(self.qr_yaw)
 			goaln_x = self.buggy_map_xy[0] - unit * math.cos(self.qr_yaw)
 			goaln_y = self.buggy_map_xy[1] - unit * math.sin(self.qr_yaw)
-			dist_p = self.calc_distance((goalp_x, goalp_y), self.shelf_info['center'])
-			dist_n = self.calc_distance((goaln_x, goaln_y), self.shelf_info['center'])
+			cen = self.get_map_coord_from_world_coord(float(self.shelf_info['center'][0]), float(self.shelf_info['center'][1]), self.global_map_curr.info)
+			dist_p = self.calc_distance((goalp_x, goalp_y), cen)
+			dist_n = self.calc_distance((goaln_x, goaln_y), cen)
 			if dist_p < dist_n:
 				goal_x, goal_y = goalp_x, goalp_y
 			else:
@@ -269,7 +274,6 @@ class WarehouseExplore(Node):
 			if self.send_goal_from_world_pose(goal):
 				self.logger.info(f"ADJUST TO QR Goal sent to ({goal_x:.2f}, {goal_y:.2f}) with yaw {(self.qr_yaw):.2f}°")
 		else:
-			self.logger.info(f"QR code already detected {self.qr_code_str}, no adjustment needed.")
 			return
 
 	def get_next_angle(self):
@@ -289,9 +293,8 @@ class WarehouseExplore(Node):
 		self.shelf_info = self.find_first_rectangle()
 		self.logger.info(f"SHELF INFO: {self.shelf_info}")
 		self.logger.info(f"prev shelf center: {self.prev_shelf_center}")
-
-		if self.shelf_info is not None and self.find_free_space_around_point(self.shelf_info['center'], radius=75) > 10:
-			self.logger.info(f"Map is mostly free, skipping exp: {self.find_free_space_around_point(self.shelf_info['center'], radius=75)}% free")
+		if self.shelf_info is not None and self.find_free_space_around_point(self.get_map_coord_from_world_coord(float(self.shelf_info['center'][0]), float(self.shelf_info['center'][1]), self.global_map_curr.info), radius=75) > 10:
+			self.logger.info(f"Map is mostly free, skipping exp: {self.find_free_space_around_point(self.get_map_coord_from_world_coord(float(self.shelf_info['center'][0]), float(self.shelf_info['center'][1]), self.global_map_curr.info), radius=75)}% free")
 			self.current_state = self.MOVE_TO_SHELF
 			return
 		
@@ -305,13 +308,9 @@ class WarehouseExplore(Node):
 			min_distance_curr = float('inf')
 			
 			if self.shelf_info is not None:
-				world_self_center = self.get_world_coord_from_map_coord(
-					self.shelf_info['center'][0],
-					self.shelf_info['center'][1],
-					self.global_map_curr.info
-				)
+				world_self_center = self.shelf_info['center']
 				# map coordinates of the reference center
-				center_map_point = (int(self.shelf_info['center'][0]), int(self.shelf_info['center'][1]))
+				center_map_point = self.get_map_coord_from_world_coord(world_self_center[0], world_self_center[1], self.global_map_curr.info)
 			else:
 				self.logger.info(f"Initial world position: {self.prev_shelf_center}")
 				
@@ -322,7 +321,6 @@ class WarehouseExplore(Node):
 				map_width = self.global_map_curr.info.width
 				edge_margin = 12
 				
-				# start_x, start_y = self.prev_shelf_center
 				start_x, start_y = self.get_map_coord_from_world_coord(self.prev_shelf_center[0], self.prev_shelf_center[1], self.global_map_curr.info)
                 
 				
@@ -424,7 +422,6 @@ class WarehouseExplore(Node):
 	# -------------------- SHELF FINDING --------------------
 
 	def find_first_rectangle(self,rect_fill_ratio=0.50,min_pixel_area=230,max_pixel_area=1200,ignore_radius=30):
-		# start_point = self.prev_shelf_center
 		start_point = self.get_map_coord_from_world_coord(self.prev_shelf_center[0], self.prev_shelf_center[1], self.global_map_curr.info)
 
 		search_angle_deg = self.shelf_angle_deg
@@ -508,7 +505,7 @@ class WarehouseExplore(Node):
 				return {
 					"status": "Rectangle Found",
 					"object_id": current_object_id,
-					"center": center,
+					"center": self.get_world_coord_from_map_coord(center[0], center[1], self.global_map_curr.info),
 					"dimensions": (w, h),
 					"angle": angle,
 					"fill_ratio": rectangularity_ratio,
@@ -582,8 +579,8 @@ class WarehouseExplore(Node):
 					- front_point: The point at the specified distance in the chosen direction from the center.
 					- back_point: The point at the specified distance in the opposite direction from the center.
 			"""
-			
-			x, y = self.shelf_info['center']
+
+			x, y = self.get_map_coord_from_world_coord(self.shelf_info['center'][0], self.shelf_info['center'][1], self.global_map_curr.info)
 			if 'orientation' not in self.shelf_info:
 				self.logger.warn("No orientation information in shelf_info")
 				return (x, y), (x, y)
@@ -728,8 +725,8 @@ class WarehouseExplore(Node):
 		if self.qr_code_str is not None and (self.current_state == self.MOVE_TO_QR or self.current_state == self.ADJUST_TO):
 			self.logger.info(f"\n\n\nQR code detected: {self.qr_code_str}, processing...")
 			self.cancel_current_goal()
-			map_center = self.shelf_info['center']
-			self.prev_shelf_center = self.get_world_coord_from_map_coord(map_center[0], map_center[1], self.global_map_curr.info)
+			self.further_angle_point = None
+			self.prev_shelf_center = self.shelf_info['center']
 
 			self.shelf_angle_deg = self.get_next_angle() + self.robot_initial_angle
 			self.shelf_objects_curr.qr_decoded = self.qr_code_str
@@ -759,10 +756,6 @@ class WarehouseExplore(Node):
 		
 		# state machine
 		if self.current_state == -1:
-			# self.prev_shelf_center = self.get_map_coord_from_world_coord(
-			# 	self.buggy_pose_x,
-			# 	self.buggy_pose_y,
-			# 	self.global_map_curr.info)
 			self.prev_shelf_center = (self.buggy_pose_x, self.buggy_pose_y)
 
 			self.current_state = self.EXPLORE
