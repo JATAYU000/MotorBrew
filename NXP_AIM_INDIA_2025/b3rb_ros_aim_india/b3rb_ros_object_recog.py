@@ -286,7 +286,7 @@ class ObjectRecognizer(Node):
         startTime = time.time()
         self.interpreter.invoke()
         delta = time.time() - startTime
-        self.get_logger().info(f"Inference time: {delta*1000:.1f} ms")
+        # self.get_logger().info(f"Inference time: {delta*1000:.1f} ms")
 
         # Get output
         y = []
@@ -297,7 +297,7 @@ class ObjectRecognizer(Node):
                 x = (x.astype(np.float32) - zero_point) * scale
             y.append(x)
 
-        self.get_logger().debug(f"Output shapes: {[arr.shape for arr in y]}")
+        # self.get_logger().debug(f"Output shapes: {[arr.shape for arr in y]}")
 
         # Prepare image for drawing
         image *= 255
@@ -344,8 +344,8 @@ class ObjectRecognizer(Node):
                             object_name = self.label_names[cls_idx]
                             object_count_dict[object_name] = object_count_dict.get(object_name, 0) + 1
 
-                            self.get_logger().info(
-                                f"Detected: {object_name} conf={float(conf):.2f} bbox=({x1},{y1},{x2},{y2})")
+                            # self.get_logger().info(
+                            #     f"Detected: {object_name} conf={float(conf):.2f} bbox=({x1},{y1},{x2},{y2})")
 
                             # Draw on resized image (input_size)
                             start_point = (int(xyxy[0]), int(xyxy[1]))
