@@ -219,7 +219,7 @@ class WarehouseExplore(Node):
 			self.shelf_objects_curr.object_count = self.current_shelf_objects.object_count
 			self.logger.info(f"Captured {self.shelf_objects_curr.object_count} objects: {self.shelf_objects_curr.object_name}")
 
-			if sum(self.current_shelf_objects.object_count) >= 5:
+			if sum(self.current_shelf_objects.object_count) >= 3:
 				info = self.find_first_rectangle()
 				if info is not None: self.shelf_info = info
 				self.current_state = self.MOVE_TO_QR
