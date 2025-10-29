@@ -487,12 +487,12 @@ class WarehouseExplore(Node):
 				oriented_w = max(w, h)
 				oriented_h = min(w, h)
 				wh_ratio = oriented_w / oriented_h
-				if not (29 <= oriented_w <= 42):
-					self.logger.info(f"  -> FAILURE: Width {oriented_w:.1f} not in [31, 42]. Skipping.")
+				if not (31 <= oriented_w <= 45):
+					self.logger.info(f"  -> FAILURE: Width {oriented_w:.1f} not in [31, 45]. Skipping.")
 					continue
 
-				if not (1.7 <= wh_ratio <= 2.9):
-					self.logger.info(f"  -> FAILURE: W/H ratio {wh_ratio:.2f} not in [1.8, 2.9]. Skipping.")
+				if not (1.7 <= wh_ratio <= 3.0):
+					self.logger.info(f"  -> FAILURE: W/H ratio {wh_ratio:.2f} not in [1.7, 3.0]. Skipping.")
 					continue
 				
 				self.logger.info(f"  -> SUCCESS: Object is a valid rectangle (Ratio > {rect_fill_ratio}).")
