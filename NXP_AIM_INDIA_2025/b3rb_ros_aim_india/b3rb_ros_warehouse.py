@@ -1117,6 +1117,12 @@ class WarehouseExplore(Node):
 		elif self.current_state == self.CAPTURE_OBJECTS and self.current_shelf_objects!=None and sum(self.current_shelf_objects.object_count) == 6:
 			self.logger.info("All objects captured, cancelling goal.")
 			self.cancel_current_goal()
+		
+		elif self.current_state == self.MOVE_TO_QR:
+			if self.qr_code_str is not None:
+				self.logger.info("QR code detected during navigation, cancelling goal.")
+				self.logger.info(f"\n\n\nQR code detected: {self.qr_code_str}, processing...")
+				self.cancel_current_goal()
 
 	# -------------------- GOAL MANAGEMENT --------------------
 
