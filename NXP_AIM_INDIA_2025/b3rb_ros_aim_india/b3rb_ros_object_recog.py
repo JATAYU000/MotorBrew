@@ -318,7 +318,7 @@ class ObjectRecognizer(Node):
             else:
                 # YOLOv11: Coordinates already in input_size scale for [1, 84, 8400] format
                 # No scaling needed before NMS
-                pred = non_max_suppression_yolov11(pred, conf_thres=0.14, iou_thres=0.9, max_det=1000)
+                pred = non_max_suppression_yolov11(pred, conf_thres=0.14, iou_thres=0.1, max_det=1000)
 
             total_dets = sum([len(d) for d in pred])
             # self.get_logger().info(f"NMS returned {total_dets} detections")
