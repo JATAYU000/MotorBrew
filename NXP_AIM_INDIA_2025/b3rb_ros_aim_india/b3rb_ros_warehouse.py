@@ -44,6 +44,7 @@ from action_msgs.msg import GoalStatus
 
 from synapse_msgs.msg import Status
 from synapse_msgs.msg import WarehouseShelf
+from synapse_msgs.msg import DetectNotifier
 
 from scipy.ndimage import label, center_of_mass
 from scipy.spatial.distance import euclidean
@@ -63,6 +64,12 @@ class WarehouseExplore(Node):
 	"""
 	def __init__(self):
 		super().__init__('warehouse_explore')
+
+
+		self.detect_notify = self.create_publisher(
+			DetectNotifier,
+			'/detect_notifier',
+			QOS_PROFILE_DEFAULT)
 
 		self.action_client = ActionClient(
 			self,
@@ -193,6 +200,12 @@ class WarehouseExplore(Node):
 		self.start = time.time()
 
 		self.send_request_to_server(rtype='reset')
+
+	# -------------------- DETECT NOTIFIER-----------------------
+	def trigger_detection(self, detect = False):
+		detect_msg = DetectNotifier()
+		detect_msg.detect_mode = bool(detect)
+		self.detect_notify.publish(detect_msg)
 
 
 	# -------------------- MOVE TO THE SHELF -----------------------
@@ -753,7 +766,9 @@ class WarehouseExplore(Node):
 		self.map_array = np.array(self.global_map_curr.data).reshape((self.global_map_curr.info.height, self.global_map_curr.info.width))
 		self.buggy_map_xy = self.get_map_coord_from_world_coord(self.buggy_pose_x, self.buggy_pose_y, self.global_map_curr.info)
 
-		
+		if self.current_state == self.CAPTURE_OBJECTS:
+			self.trigger_detection(detect=True)
+
 		# state machine
 		if self.current_state == -1:
 			self.prev_shelf_center = (self.buggy_pose_x, self.buggy_pose_y)
