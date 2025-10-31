@@ -301,6 +301,10 @@ class WarehouseExplore(Node):
 
 	# -------------------- FRONTIER EXPLORATION --------------------
 
+		map_info = self.global_map_curr.info
+		if frontiers:
+			closest_frontier = None
+			min_distance_curr = float('inf')
 
 	def frontier_explore(self):
 		self.shelf_info = self.find_first_rectangle()
@@ -1289,6 +1293,9 @@ def main(args=None):
 
 	rclpy.spin(warehouse_explore)
 
+	# Destroy the node explicitly
+	# (optional - otherwise it will be done automatically
+	# when the garbage collector destroys the node object)
 	warehouse_explore.destroy_node()
 	rclpy.shutdown()
 
