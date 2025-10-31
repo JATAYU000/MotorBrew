@@ -4,6 +4,7 @@
 import rclpy
 from rclpy.node import Node
 from synapse_msgs.msg import WarehouseShelf
+from synapse_msgs.msg import DetectNotifier
 import cv2
 import numpy as np
 from sensor_msgs.msg import CompressedImage
@@ -203,14 +204,24 @@ class ObjectRecognizer(Node):
 
         self.publisher_object_recog = self.create_publisher(
             CompressedImage, "/debug_images/object_recog", QOS_PROFILE_DEFAULT)
+        
+        self.detect_mode_subscription = self.create_subscription(
+            DetectNotifier,
+            '/detect_notifier',
+            self.detect_mode_callback,
+            QOS_PROFILE_DEFAULT)
 
-        ext_delegate_opts = {}
-        ext_delegate_opts = [tflite.load_delegate('/usr/lib/libvx_delegate.so', ext_delegate_opts)]
+        # ext_delegate_opts = {}
+        # ext_delegate_opts = [tflite.load_delegate('/usr/lib/libvx_delegate.so', ext_delegate_opts)]
 
         
         resource_name_coco = "../../../../share/ament_index/resource_index/coco.yaml"
         resource_path_coco = pkg_resources.resource_filename(PACKAGE_NAME, resource_name_coco)
+<<<<<<< HEAD
         resource_name_yolo = "../../../../share/ament_index/resource_index/yolov8m_int8.tflite"
+=======
+        resource_name_yolo = "../../../../share/ament_index/resource_index/yolov5n_int8.tflite"
+>>>>>>> 8651e4d (custom topic)
         resource_path_yolo = pkg_resources.resource_filename(PACKAGE_NAME, resource_name_yolo)
 
         with open(resource_path_coco) as f:
@@ -261,7 +272,14 @@ class ObjectRecognizer(Node):
             message.data = encoded_data.tobytes()
             publisher.publish(message)
 
+    def detect_mode_callback(self, message):
+        self.get_logger().info(f"Detect mode set to: {message.detect_mode}")
+        self.detect_mode = message.detect_mode
+
     def camera_image_callback(self, message):
+        if not getattr(self, "detect_mode", False):
+            return
+
         np_arr = np.frombuffer(message.data, np.uint8)
         image_orig = cv2.imdecode(np_arr, cv2.IMREAD_COLOR)
         orig_height, orig_width, _ = image_orig.shape
