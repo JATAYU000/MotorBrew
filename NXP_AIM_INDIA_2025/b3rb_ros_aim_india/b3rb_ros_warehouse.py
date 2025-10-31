@@ -174,7 +174,6 @@ class WarehouseExplore(Node):
 		self.max_step_dist_world_meters = 7.0
 		self.min_step_dist_world_meters = 4.0
 		self.full_map_explored_count = 0
-		self.further_angle_point = None
 		self.curr_frontier_goal = None
 
 		# --- QR Code Data ---
@@ -188,6 +187,7 @@ class WarehouseExplore(Node):
 		self.search_point = None
 		self.current_shelf_number = 1
 		self._fb_dist = 17
+		self.big_dict = {1:None,2:None,3:None,4:None,5:None}
 
 		# --- State Machine ---
 		self.current_state = -1
@@ -195,7 +195,7 @@ class WarehouseExplore(Node):
 		self.MOVE_TO_SHELF = 1
 		self.CAPTURE_OBJECTS = 2
 		self.MOVE_TO_QR = 3
-		self.ADJUST_TO = 4
+		self.PUBLISH = 4
 		self.DEBUG = 5
 		self.start = time.time()
 
@@ -233,11 +233,11 @@ class WarehouseExplore(Node):
 			self.logger.info(f"Captured {self.shelf_objects_curr.object_count} objects: {self.shelf_objects_curr.object_name}")
 
 			if sum(self.current_shelf_objects.object_count) >= 3:
-				info = self.find_first_rectangle()
+				info = self.find_obstacles_on_ray()
 				if info is not None: self.shelf_info = info
 				self.current_state = self.MOVE_TO_QR
 			else:
-				self.shelf_info = self.find_first_rectangle()
+				self.shelf_info = self.find_obstacles_on_ray()
 				self.logger.info("Adjusting position to capture all objects...")
 				if self._fb_dist > 25: self._fb_dist -= 12
 				else: self._fb_dist += 12
@@ -258,7 +258,6 @@ class WarehouseExplore(Node):
 		goal = self.create_goal_from_world_coord(goal_x, goal_y, math.radians(yaw))
 		if self.send_goal_from_world_pose(goal):
 			self.logger.info(f"NAV TO QR Goal sent to ({goal_x:.2f}, {goal_y:.2f}) with yaw {yaw:.2f}°")
-			# self.current_state = self.ADJUST_TO
 		else:
 			self.logger.error("Failed to send navigation goal!")
 		
@@ -301,17 +300,17 @@ class WarehouseExplore(Node):
 
 	# -------------------- FRONTIER EXPLORATION --------------------
 
-		map_info = self.global_map_curr.info
-		if frontiers:
-			closest_frontier = None
-			min_distance_curr = float('inf')
 
 	def frontier_explore(self):
-		self.shelf_info = self.find_first_rectangle()
+		if self.big_dict[self.current_shelf_number] is not None:
+			self.current_state = self.PUBLISH 
+			return
+
+		self.shelf_info = self.find_obstacles_on_ray()
 		self.logger.info(f"SHELF INFO: {self.shelf_info}")
-		self.logger.info(f"prev shelf center: {self.prev_shelf_center}")
-		if self.shelf_info is not None and self.find_free_space_around_point(self.get_map_coord_from_world_coord(float(self.shelf_info['center'][0]), float(self.shelf_info['center'][1]), self.global_map_curr.info), radius=75) > 10:
-			self.logger.info(f"Map is mostly free, skipping exp: {self.find_free_space_around_point(self.get_map_coord_from_world_coord(float(self.shelf_info['center'][0]), float(self.shelf_info['center'][1]), self.global_map_curr.info), radius=75)}% free")
+		self.logger.info(f"prev shelf center: {self.get_map_coord_from_world_coord(self.prev_shelf_center[0], self.prev_shelf_center[1], self.global_map_curr.info)}")
+		if self.shelf_info is not None and self.find_free_space_around_point(self.get_map_coord_from_world_coord(float(self.shelf_info['center'][0]), float(self.shelf_info['center'][1]), self.global_map_curr.info), radius=55) > 55:
+			self.logger.info(f"Map is mostly free, skipping exp: {self.find_free_space_around_point(self.get_map_coord_from_world_coord(float(self.shelf_info['center'][0]), float(self.shelf_info['center'][1]), self.global_map_curr.info), radius=55)}% free")
 			self.current_state = self.MOVE_TO_SHELF
 			return
 		
@@ -438,6 +437,103 @@ class WarehouseExplore(Node):
 	
 	# -------------------- SHELF FINDING --------------------
 
+	def check_ray_rect_intersection(self,start_point, angle_degrees, rect):
+		"""
+		Checks if a ray intersects with an axis-aligned rectangle (bounding box).
+		(This function is unchanged)
+		"""
+		px, py = start_point
+		x, y, w, h = rect
+		
+		angle_rad_math = math.radians(angle_degrees)
+		dx = math.cos(angle_rad_math)
+		dy = -math.sin(angle_rad_math)
+		
+		if dx == 0:
+			if px < x or px > x + w: return False
+			t_xmin, t_xmax = -float('inf'), float('inf')
+		else:
+			t1_x = (x - px) / dx
+			t2_x = (x + w - px) / dx
+			t_xmin, t_xmax = min(t1_x, t2_x), max(t1_x, t2_x)
+			
+		if dy == 0:
+			if py < y or py > y + h: return False
+			t_ymin, t_ymax = -float('inf'), float('inf')
+		else:
+			t1_y = (y - py) / dy
+			t2_y = (y + h - py) / dy
+			t_ymin, t_ymax = min(t1_y, t2_y), max(t1_y, t2_y)
+
+		t_near = max(t_xmin, t_ymin)
+		t_far = min(t_xmax, t_ymax)
+		if t_near > t_far or t_far < 0:
+			return False
+			
+		return True
+
+	def find_obstacles_on_ray(self):
+		"""
+		Finds all obstacles whose bounding boxes intersect a ray.
+		NOW returns the precise rotated box corners.
+		"""
+		map_array = self.map_array
+		start_point = self.get_map_coord_from_world_coord(self.prev_shelf_center[0], self.prev_shelf_center[1], self.global_map_curr.info)
+		start_point = list(start_point)
+		angle_degrees = -self.shelf_angle_deg
+		start_point[0] += 30*math.cos(math.radians(angle_degrees))
+		start_point[1] += -30*math.sin(math.radians(angle_degrees))
+		binary_map = np.zeros(map_array.shape, dtype=np.uint8)
+		binary_map[map_array != 100] = 0
+		binary_map[map_array == 100] = 255
+		contours, _ = cv2.findContours(binary_map, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+		found_obstacles = []
+		angle_tolerance = 3.0
+		angles_to_check = np.linspace(angle_degrees - angle_tolerance, 
+                                  angle_degrees + angle_tolerance, 
+                                  num=3)
+    
+		found_contour_indices = set()
+		for i, contour in enumerate(contours):
+			# Get the coarse AABB
+			x, y, w, h = cv2.boundingRect(contour)
+			for ang in angles_to_check:
+				if self.check_ray_rect_intersection(start_point, ang, (x, y, w, h)):
+					if i not in found_contour_indices:
+						min_rect = cv2.minAreaRect(contour) 
+						box_points = cv2.boxPoints(min_rect)
+						box_points = np.intp(box_points) 
+						
+						obstacle_data = {
+							"bounding_box_AABB": (x, y, w, h), 
+							"rotated_rect_details": min_rect, 
+							"box_corners": box_points, 
+							"points": contour
+						}
+						found_obstacles.append(obstacle_data)
+						found_contour_indices.add(i)
+						break
+
+		for i in found_obstacles:
+			found_rect = i["rotated_rect_details"]
+			(center, (h,w), angle) = found_rect
+			if w>h:h,w = w,h
+			self.logger.info(f"Detected obstacle at center {center} with width {w:.2f} and height {h:.2f}")
+			if 24 <= h <= 29 and 8.5 <= w <= 11:
+				points = i["points"]
+				points_array = np.squeeze(points)
+				orientation_info = self.calculate_shelf_orientation(points_array)
+				
+				return {
+					"center": self.get_world_coord_from_map_coord(center[0], center[1], self.global_map_curr.info),
+					"dimensions": (w, h),
+					"angle": angle,
+					"orientation": orientation_info,
+					"box_points": box_points
+				}
+
+		return None
+
 	def find_first_rectangle(self,rect_fill_ratio=0.50,min_pixel_area=230,max_pixel_area=1200,ignore_radius=30):
 		start_point = self.get_map_coord_from_world_coord(self.prev_shelf_center[0], self.prev_shelf_center[1], self.global_map_curr.info)
 
@@ -504,12 +600,12 @@ class WarehouseExplore(Node):
 				oriented_w = max(w, h)
 				oriented_h = min(w, h)
 				wh_ratio = oriented_w / oriented_h
-				if not (31 <= oriented_w <= 45):
-					self.logger.info(f"  -> FAILURE: Width {oriented_w:.1f} not in [31, 45]. Skipping.")
+				if not (29 <= oriented_w <= 38):
+					self.logger.info(f"  -> FAILURE: Width {oriented_w:.1f} not in [31, 42]. Skipping.")
 					continue
 
-				if not (1.7 <= wh_ratio <= 3.0):
-					self.logger.info(f"  -> FAILURE: W/H ratio {wh_ratio:.2f} not in [1.7, 3.0]. Skipping.")
+				if not (1.8 <= wh_ratio <= 2.9):
+					self.logger.info(f"  -> FAILURE: W/H ratio {wh_ratio:.2f} not in [1.8, 2.6]. Skipping.")
 					continue
 				
 				self.logger.info(f"  -> SUCCESS: Object is a valid rectangle (Ratio > {rect_fill_ratio}).")
@@ -725,7 +821,55 @@ class WarehouseExplore(Node):
 				requests.post(url, json=data, headers=headers)
 			except requests.exceptions.RequestException as e:
 				self.logger.info(f"❌ Error: {e}")
+
+	
+	# -------------------- PUBLISH SHELF ------------------
+
+	def publish_shelf(self):
+		s_id = int(self.qr_code_str[0])
+		self.big_dict[s_id] = {
+			'info':self.shelf_info,
+			'psc':self.prev_shelf_center,
+			'qr':self.qr_code_str,
+			'obj':self.shelf_objects_curr.object_name,
+			'cnt':self.shelf_objects_curr.object_count
+		}
+
+		if self.big_dict[self.current_shelf_number] is None:
+			# wrong shelf reset and no publish
+			self.prev_shelf_center = self.shelf_info['center']
+			self.shelf_info = None
+			self.current_shelf_objects = None
+			self.shelf_objects_curr = WarehouseShelf()
+			self.qr_code_str = None
+			self.current_state = self.EXPLORE
+
+		
+		elif self.big_dict[self.current_shelf_number] is not None:
+			self.prev_shelf_center = self.big_dict[self.current_shelf_number]['psc']
+			self.qr_code_str = self.big_dict[self.current_shelf_number]['qr']
+			self.shelf_objects_curr.object_name = self.big_dict[self.current_shelf_number]['obj']
+			self.shelf_objects_curr.object_count = self.big_dict[self.current_shelf_number]['cnt']
+			# self.logger.info(self.big_dict)
+			# successful reset and publish
+			self.prev_shelf_center = self.big_dict[self.current_shelf_number]['info']['center']
+			self.shelf_angle_deg = self.get_next_angle() + self.robot_initial_angle
+			self.shelf_objects_curr.qr_decoded = self.qr_code_str
+			self.publisher_shelf_data.publish(self.shelf_objects_curr)
+			self.send_request_to_server(rtype='upload')
+			self.current_shelf_number+=1
+			if self.current_shelf_number>self.shelf_count:
+				self.current_state = self.DEBUG
+				self.logger.info("All shelves processed, entering DEBUG state.")
+				self.qr_code_str = None
+				return
 			
+			self.current_shelf_objects = None
+			self.shelf_objects_curr = WarehouseShelf()
+			self.qr_code_str = None
+			self.current_state = self.EXPLORE
+
+
 	# -------------------- CALLBACKS --------------------
 
 	def global_map_callback(self, message):
@@ -739,49 +883,28 @@ class WarehouseExplore(Node):
 		"""
 		self.global_map_curr = message
 
-		if self.qr_code_str is not None and (self.current_state == self.MOVE_TO_QR or self.current_state == self.ADJUST_TO):
+		if self.qr_code_str is not None and self.current_state == self.MOVE_TO_QR:
 			self.logger.info(f"\n\n\nQR code detected: {self.qr_code_str}, processing...")
 			self.cancel_current_goal()
-			self.further_angle_point = None
-			self.prev_shelf_center = self.shelf_info['center']
+			self.current_state = self.PUBLISH
 
-			self.shelf_angle_deg = self.get_next_angle() + self.robot_initial_angle
-			self.shelf_objects_curr.qr_decoded = self.qr_code_str
-			self.publisher_shelf_data.publish(self.shelf_objects_curr)
-			self.send_request_to_server(rtype='upload')
-			self.current_shelf_number+=1
-			if self.current_shelf_number>self.shelf_count:
-				self.current_state = self.DEBUG
-				self.logger.info("All shelves processed, entering DEBUG state.")
-				self.qr_code_str = None
-				return
-			self.current_shelf_objects = None
-			self.shelf_objects_curr = WarehouseShelf()
-			self.qr_code_str = None
-			self.current_state = self.EXPLORE
-
-			self.logger.info(f"QR processed, resuming exploration towards angle {self.shelf_angle_deg}°")
-			return
-	
 		if not self.goal_completed:
 			return	
 
 		
-		self.map_array = np.array(self.global_map_curr.data).reshape((self.global_map_curr.info.height, self.global_map_curr.info.width))
+		# self.map_array = np.array(self.global_map_curr.data).reshape((self.global_map_curr.info.height, self.global_map_curr.info.width))
 		self.buggy_map_xy = self.get_map_coord_from_world_coord(self.buggy_pose_x, self.buggy_pose_y, self.global_map_curr.info)
 
 		if self.current_state == self.CAPTURE_OBJECTS:
-			self.trigger_detection(detect=True)
-
+			self.trigger_deetection(detect=True)
+			
 		# state machine
 		if self.current_state == -1:
 			self.prev_shelf_center = (self.buggy_pose_x, self.buggy_pose_y)
-
 			self.current_state = self.EXPLORE
 
 		elif self.current_state == self.EXPLORE:
 			self.frontier_explore()
-			# self.send_goal_closest_free_in_circles()
 
 		elif self.current_state == self.MOVE_TO_SHELF:
 			self.handle_move_to_shelf()
@@ -792,9 +915,8 @@ class WarehouseExplore(Node):
 		elif self.current_state == self.MOVE_TO_QR:
 			self.handle_qr_navigation()
 
-		elif self.current_state == self.ADJUST_TO:
-			self.logger.info("Adjusting position to QR code...")
-			self.adjust_qr()
+		elif self.current_state == self.PUBLISH:
+			self.publish_shelf()
 
 		elif self.current_state == self.DEBUG:
 			self.time_taken = time.time() - self.start
@@ -839,6 +961,15 @@ class WarehouseExplore(Node):
 		self.world_center = self.get_world_coord_from_map_coord(
 			map_info.width / 2, map_info.height / 2, map_info
 		)
+		self.map_array = np.array(self.simple_map_curr.data).reshape((map_info.height, map_info.width))
+		np.save('simple_array.npy',self.map_array)
+		# if self.shelf_h is None or self.shelf_w is None:
+		# 	point1 = (0,0)
+		# 	point2 = (1,0)
+		# 	world_point1 = self.get_map_coord_from_world_coord(point1[0], point1[1], map_info)
+		# 	world_point2 = self.get_map_coord_from_world_coord(point2[0], point2[1], map_info)
+		# 	self.shelf_h = abs(int(world_point2[0]) - int(world_point1[0])) + 4
+		# 	self.shelf_w = int(self.shelf_h * .45)
 	
 	def get_frontiers_for_space_exploration(self, map_array):
 		"""Identifies frontiers for space exploration.
@@ -917,7 +1048,7 @@ class WarehouseExplore(Node):
 		# Process the image from front camera as needed.
 
 		# Optional line for visualizing image on foxglove.
-		if self.current_state == self.MOVE_TO_QR or self.current_state == self.ADJUST_TO:
+		if self.current_state == self.MOVE_TO_QR:
 			qr_codes = pyzbar.decode(image)
 			if qr_codes:
 				for qr_code in qr_codes:
@@ -1293,9 +1424,6 @@ def main(args=None):
 
 	rclpy.spin(warehouse_explore)
 
-	# Destroy the node explicitly
-	# (optional - otherwise it will be done automatically
-	# when the garbage collector destroys the node object)
 	warehouse_explore.destroy_node()
 	rclpy.shutdown()
 
