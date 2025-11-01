@@ -44,7 +44,6 @@ from action_msgs.msg import GoalStatus
 
 from synapse_msgs.msg import Status
 from synapse_msgs.msg import WarehouseShelf
-from synapse_msgs.msg import DetectNotifier
 
 from scipy.ndimage import label, center_of_mass
 from scipy.spatial.distance import euclidean
@@ -64,12 +63,6 @@ class WarehouseExplore(Node):
 	"""
 	def __init__(self):
 		super().__init__('warehouse_explore')
-
-
-		self.detect_notify = self.create_publisher(
-			DetectNotifier,
-			'/detect_notifier',
-			QOS_PROFILE_DEFAULT)
 
 		self.action_client = ActionClient(
 			self,
@@ -186,7 +179,7 @@ class WarehouseExplore(Node):
 		self.current_shelf_objects = None
 		self.search_point = None
 		self.current_shelf_number = 1
-		self._fb_dist = 17
+		self._fb_dist = 42
 		self.big_dict = {1:None,2:None,3:None,4:None,5:None}
 
 		# --- State Machine ---
@@ -200,12 +193,6 @@ class WarehouseExplore(Node):
 		self.start = time.time()
 
 		self.send_request_to_server(rtype='reset')
-
-	# -------------------- DETECT NOTIFIER-----------------------
-	def trigger_detection(self, detect = False):
-		detect_msg = DetectNotifier()
-		detect_msg.detect_mode = bool(detect)
-		self.detect_notify.publish(detect_msg)
 
 
 	# -------------------- MOVE TO THE SHELF -----------------------
@@ -232,15 +219,15 @@ class WarehouseExplore(Node):
 			self.shelf_objects_curr.object_count = self.current_shelf_objects.object_count
 			self.logger.info(f"Captured {self.shelf_objects_curr.object_count} objects: {self.shelf_objects_curr.object_name}")
 
-			if sum(self.current_shelf_objects.object_count) >= 3:
+			if sum(self.current_shelf_objects.object_count) >= 5:
 				info = self.find_obstacles_on_ray()
 				if info is not None: self.shelf_info = info
 				self.current_state = self.MOVE_TO_QR
 			else:
 				self.shelf_info = self.find_obstacles_on_ray()
 				self.logger.info("Adjusting position to capture all objects...")
-				if self._fb_dist > 25: self._fb_dist -= 12
-				else: self._fb_dist += 12
+				if self._fb_dist > 50: self._fb_dist -= 10
+				else: self._fb_dist += 10
 				self.current_state = self.MOVE_TO_SHELF
 		else:
 			self.logger.info("No shelf objects received yet.")
@@ -248,7 +235,7 @@ class WarehouseExplore(Node):
 	# -------------------- QR PROCESSING --------------------
 
 	def handle_qr_navigation(self):
-		self.left, self.right = self.find_front_back_points(30,True)
+		self.left, self.right = self.find_front_back_points(50,True)
 		direction = self.shelf_info['orientation']['primary_direction']
 		self.target_view_point = self.left if self.calc_distance(self.buggy_map_xy, self.left) < self.calc_distance(self.buggy_map_xy, self.right) else self.right
 		cen = self.get_map_coord_from_world_coord(float(self.shelf_info['center'][0]), float(self.shelf_info['center'][1]), self.global_map_curr.info)
@@ -284,6 +271,7 @@ class WarehouseExplore(Node):
 			goal = self.create_goal_from_world_coord(goal_x, goal_y, math.radians(self.qr_yaw))
 			self.logger.info(f"Adjusting to QR at map coords ({goal_x:.2f}, {goal_y:.2f}) with yaw {(self.qr_yaw):.2f}°")
 			if self.send_goal_from_world_pose(goal):
+				self.current_state = self.DEBUG
 				self.logger.info(f"ADJUST TO QR Goal sent to ({goal_x:.2f}, {goal_y:.2f}) with yaw {(self.qr_yaw):.2f}°")
 		else:
 			return
@@ -380,7 +368,7 @@ class WarehouseExplore(Node):
 				# Ensure chosen frontier is not too close to obstacles.
 				# If it is, step back along the line from center_map_point to the frontier
 				# until a cell with sufficient clearance is found.
-				clearance_cells = 5       # radius to check for clearance
+				clearance_cells = 7       # radius to check for clearance
 				required_free_pct = 90.0  # percent free required
 				step_back_cells = 5       # how far to move back each attempt (in map cells)
 				max_back_attempts = 8
@@ -519,7 +507,7 @@ class WarehouseExplore(Node):
 			(center, (h,w), angle) = found_rect
 			if w>h:h,w = w,h
 			self.logger.info(f"Detected obstacle at center {center} with width {w:.2f} and height {h:.2f}")
-			if 24 <= h <= 29 and 8.5 <= w <= 11:
+			if 25 <= h <= 30 and 8.5 <= w <= 11:
 				points = i["points"]
 				points_array = np.squeeze(points)
 				orientation_info = self.calculate_shelf_orientation(points_array)
@@ -853,7 +841,7 @@ class WarehouseExplore(Node):
 			# self.logger.info(self.big_dict)
 			# successful reset and publish
 			self.prev_shelf_center = self.big_dict[self.current_shelf_number]['info']['center']
-			self.shelf_angle_deg += self.get_next_angle() + self.robot_initial_angle
+			self.shelf_angle_deg = self.get_next_angle() + self.robot_initial_angle
 			self.shelf_objects_curr.qr_decoded = self.qr_code_str
 			self.publisher_shelf_data.publish(self.shelf_objects_curr)
 			self.send_request_to_server(rtype='upload')
@@ -887,7 +875,7 @@ class WarehouseExplore(Node):
 			self.logger.info(f"\n\n\nQR code detected: {self.qr_code_str}, processing...")
 			self.cancel_current_goal()
 			self.current_state = self.PUBLISH
-
+	
 		if not self.goal_completed:
 			return	
 
@@ -895,9 +883,7 @@ class WarehouseExplore(Node):
 		# self.map_array = np.array(self.global_map_curr.data).reshape((self.global_map_curr.info.height, self.global_map_curr.info.width))
 		self.buggy_map_xy = self.get_map_coord_from_world_coord(self.buggy_pose_x, self.buggy_pose_y, self.global_map_curr.info)
 
-		if self.current_state == self.CAPTURE_OBJECTS:
-			self.trigger_deetection(detect=True)
-			
+		
 		# state machine
 		if self.current_state == -1:
 			self.prev_shelf_center = (self.buggy_pose_x, self.buggy_pose_y)
@@ -1054,7 +1040,7 @@ class WarehouseExplore(Node):
 				for qr_code in qr_codes:
 					qr_data = qr_code.data.decode('utf-8')
 					if 'qr1' in qr_data:
-						self.qr_code_str = '1_225.0_MotorBrew'
+						self.qr_code_str = '1_045.0_MotorBrew'
 					elif 'qr2' in qr_data:
 						self.qr_code_str = '2_000.0_MotorBrew'
 					elif 'qr3' in qr_data:
@@ -1252,8 +1238,8 @@ class WarehouseExplore(Node):
 			self.cancel_current_goal()  # Unblock by discarding the current goal.
 		
 		if self.current_state == self.EXPLORE:
-			if number_of_recoveries>5:
-				self.logger.info(f"Cancelling since trying to recover {number_of_recoveries}")
+			if number_of_recoveries>2:
+				self.logger.info(f"Cancelling since trying to recover {number_of_recoveries} or dist {self.calc_distance(self.buggy_map_xy,self.curr_frontier_goal)}<15")
 				self.logger.info(f"\n\nRecoveries: {number_of_recoveries}, "
 				  f"Navigation time: {navigation_time}s, "
 				  f"Distance remaining: {distance_remaining:.2f}, "
