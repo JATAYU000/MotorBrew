@@ -82,8 +82,8 @@ controller_server:
     general_goal_checker:
       stateful: True
       plugin: "nav2_controller::SimpleGoalChecker"
-      xy_goal_tolerance: 0.27
-      yaw_goal_tolerance: 0.15
+      xy_goal_tolerance: 0.25
+      yaw_goal_tolerance: 0.2
     FollowPath:
       plugin: "nav2_regulated_pure_pursuit_controller::RegulatedPurePursuitController"
       desired_linear_vel: 0.5
@@ -128,7 +128,7 @@ local_costmap:
       inflation_layer:
         plugin: "nav2_costmap_2d::InflationLayer"
         cost_scaling_factor: 2.0
-        inflation_radius: 0.17
+        inflation_radius: 0.402
       voxel_layer:
         plugin: "nav2_costmap_2d::VoxelLayer"
         enabled: True
@@ -186,7 +186,7 @@ global_costmap:
       inflation_layer:
         plugin: "nav2_costmap_2d::InflationLayer"
         cost_scaling_factor: 2.0
-        inflation_radius: 0.05
+        inflation_radius: 0.402
       always_send_full_costmap: True
 
 planner_server:
@@ -279,8 +279,8 @@ velocity_smoother:
     smoothing_frequency: 20.0
     scale_velocities: False
     feedback: "OPEN_LOOP"
-    max_velocity: [1.0, 0.0, 1.0]
-    min_velocity: [-1.0, 0.0, -1.0]
+    max_velocity: [0.6, 0.0, 0.6]
+    min_velocity: [-0.6, 0.0, -0.6]
     max_accel: [2.5, 0.0, 2.0]
     max_decel: [-2.5, 0.0, -2.0]
     odom_topic: "/cerebri/out/odometry"
