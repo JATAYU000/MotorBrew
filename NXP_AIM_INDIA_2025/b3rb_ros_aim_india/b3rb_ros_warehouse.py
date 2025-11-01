@@ -896,7 +896,7 @@ class WarehouseExplore(Node):
 		self.buggy_map_xy = self.get_map_coord_from_world_coord(self.buggy_pose_x, self.buggy_pose_y, self.global_map_curr.info)
 
 		if self.current_state == self.CAPTURE_OBJECTS:
-			self.trigger_deetection(detect=True)
+			self.trigger_detection(detect=True)
 			
 		# state machine
 		if self.current_state == -1:
