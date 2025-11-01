@@ -382,7 +382,7 @@ class WarehouseExplore(Node):
 				# If it is, step back along the line from center_map_point to the frontier
 				# until a cell with sufficient clearance is found.
 				clearance_cells = 5       # radius to check for clearance
-				required_free_pct = 90.0  # percent free required
+				required_free_pct =75.0  # percent free required
 				step_back_cells = 5       # how far to move back each attempt (in map cells)
 				max_back_attempts = 8
 
