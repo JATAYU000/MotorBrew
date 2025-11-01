@@ -249,7 +249,7 @@ class WarehouseExplore(Node):
 	# -------------------- QR PROCESSING --------------------
 
 	def handle_qr_navigation(self):
-		self.left, self.right = self.find_front_back_points(36,True)
+		self.left, self.right = self.find_front_back_points(32,True)
 		direction = self.shelf_info['orientation']['primary_direction']
 		self.target_view_point = self.left if self.calc_distance(self.buggy_map_xy, self.left) < self.calc_distance(self.buggy_map_xy, self.right) else self.right
 		cen = self.get_map_coord_from_world_coord(float(self.shelf_info['center'][0]), float(self.shelf_info['center'][1]), self.global_map_curr.info)
