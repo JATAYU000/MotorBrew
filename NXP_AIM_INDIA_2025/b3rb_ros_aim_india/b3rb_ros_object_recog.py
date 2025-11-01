@@ -217,11 +217,7 @@ class ObjectRecognizer(Node):
         
         resource_name_coco = "../../../../share/ament_index/resource_index/coco.yaml"
         resource_path_coco = pkg_resources.resource_filename(PACKAGE_NAME, resource_name_coco)
-<<<<<<< HEAD
         resource_name_yolo = "../../../../share/ament_index/resource_index/yolov8m_int8.tflite"
-=======
-        resource_name_yolo = "../../../../share/ament_index/resource_index/yolov5n_int8.tflite"
->>>>>>> 8651e4d (custom topic)
         resource_path_yolo = pkg_resources.resource_filename(PACKAGE_NAME, resource_name_yolo)
 
         with open(resource_path_coco) as f:
