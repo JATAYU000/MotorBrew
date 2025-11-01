@@ -512,7 +512,7 @@ class WarehouseExplore(Node):
 			(center, (h,w), angle) = found_rect
 			if w>h:h,w = w,h
 			self.logger.info(f"Detected obstacle at center {center} with width {w:.2f} and height {h:.2f}")
-			if 25 <= h <= 30 and 8.5 <= w <= 11:
+			if 25 <= h <= 30 and 6.5 <= w <= 12.5:
 				points = i["points"]
 				points_array = np.squeeze(points)
 				orientation_info = self.calculate_shelf_orientation(points_array)
@@ -1015,11 +1015,11 @@ class WarehouseExplore(Node):
 				for qr_code in qr_codes:
 					qr_data = qr_code.data.decode('utf-8')
 					if 'qr1' in qr_data:
-						self.qr_code_str = '1_225.0_MotorBrew'
+						self.qr_code_str = '1_180.0_MotorBrew'
 					elif 'qr2' in qr_data:
-						self.qr_code_str = '2_000.0_MotorBrew'
+						self.qr_code_str = '2_215.0_MotorBrew'
 					elif 'qr3' in qr_data:
-						self.qr_code_str = '3_000.0_MotorBrew'
+						self.qr_code_str = '3_145.0_MotorBrew'
 					elif 'qr4' in qr_data:
 						self.qr_code_str = '4_000.0_MotorBrew'
 					elif 'qr5' in qr_data:
