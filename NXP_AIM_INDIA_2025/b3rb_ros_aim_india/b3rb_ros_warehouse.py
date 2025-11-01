@@ -323,105 +323,66 @@ class WarehouseExplore(Node):
 		
 		if frontiers:
 			closest_frontier = None
-			min_distance_curr = float('inf')
+			min_distance_curr = 1e10
 			
-			if self.shelf_info is not None:
-				world_self_center = self.shelf_info['center']
-				# map coordinates of the reference center
-				center_map_point = self.get_map_coord_from_world_coord(world_self_center[0], world_self_center[1], self.global_map_curr.info)
-			else:
-				self.logger.info(f"Initial world position: {self.prev_shelf_center}")
-				
-				angle_rad = math.radians(self.shelf_angle_deg)
-				self.logger.info(f"Initial angle: {self.shelf_angle_deg}°")
-				
-				map_height = self.global_map_curr.info.height
-				map_width = self.global_map_curr.info.width
-				edge_margin = 12
-				
-				start_x, start_y = self.get_map_coord_from_world_coord(self.prev_shelf_center[0], self.prev_shelf_center[1], self.global_map_curr.info)
-                
-				
-				step_size = 10
-				current_x, current_y = start_x, start_y
-				
-				while (edge_margin < current_x < map_width - edge_margin and 
-					   edge_margin < current_y < map_height - edge_margin):
-					current_x += step_size * math.cos(angle_rad)
-					current_y += step_size * math.sin(angle_rad)
-				
-				endpoint_x = int(current_x - step_size * math.cos(angle_rad))
-				endpoint_y = int(current_y - step_size * math.sin(angle_rad))
-				
-				self.logger.info(f"Map endpoint found at: ({endpoint_x}, {endpoint_y})")
-				
-				world_self_center = self.get_world_coord_from_map_coord(
-					endpoint_x, 
-					endpoint_y, 
-					self.global_map_curr.info
-				)
-				self.logger.info(f"Calculated world self center: {world_self_center}")
-				# use endpoint as map reference point
-				center_map_point = (endpoint_x, endpoint_y)
+			world_self_center = self.get_map_coord_from_world_coord(self.prev_shelf_center[0],self.prev_shelf_center[1],self.global_map_curr.info)
+			world_self_center = (world_self_center[0] + 500*math.cos(math.radians(self.shelf_angle_deg)), world_self_center[1] + 500*math.sin(math.radians(self.shelf_angle_deg)))
 
 			for fy, fx in frontiers:
 				fx_world, fy_world = self.get_world_coord_from_map_coord(fx, fy, self.global_map_curr.info)
 				distance = euclidean((fx_world, fy_world), world_self_center)
-				if (distance < min_distance_curr and
-					distance <= self.max_step_dist_world_meters and
-					distance >= self.min_step_dist_world_meters):
+				if (distance < min_distance_curr):
 					min_distance_curr = distance
 					closest_frontier = (fy, fx)
 
 			if closest_frontier:
 				fy, fx = closest_frontier
-				self.current_frontier_goal = [(fx, fy),0]
 				self.logger.info(f'\nFound frontier closest at: ({fx}, {fy})')
 				self.logger.info(f'World coordinates: ({fx_world}, {fy_world})')
 
-				# Ensure chosen frontier is not too close to obstacles.
-				# If it is, step back along the line from center_map_point to the frontier
-				# until a cell with sufficient clearance is found.
-				clearance_cells = 5       # radius to check for clearance
-				required_free_pct =75.0  # percent free required
-				step_back_cells = 5       # how far to move back each attempt (in map cells)
-				max_back_attempts = 8
+				# # Ensure chosen frontier is not too close to obstacles.
+				# # If it is, step back along the line from center_map_point to the frontier
+				# # until a cell with sufficient clearance is found.
+				# clearance_cells = 7       # radius to check for clearance
+				# required_free_pct = 90.0  # percent free required
+				# step_back_cells = 5       # how far to move back each attempt (in map cells)
+				# max_back_attempts = 8
 
-				# starting candidate
-				cand_x, cand_y = int(fx), int(fy)
+				# # starting candidate
+				# cand_x, cand_y = int(fx), int(fy)
 
-				# quick check: if frontier cell or its neighborhood isn't clear, step back
-				def candidate_is_safe(mx, my):
-					if not (0 <= my < self.map_array.shape[0] and 0 <= mx < self.map_array.shape[1]):
-						return False
-					# cell must be free
-					if self.map_array[my, mx] != 0:
-						return False
-					# neighborhood must be mostly free
-					pct = self.find_free_space_around_point((mx, my), radius=clearance_cells)
-					return pct >= required_free_pct
+				# # quick check: if frontier cell or its neighborhood isn't clear, step back
+				# def candidate_is_safe(mx, my):
+				# 	if not (0 <= my < self.map_array.shape[0] and 0 <= mx < self.map_array.shape[1]):
+				# 		return False
+				# 	# cell must be free
+				# 	if self.map_array[my, mx] != 0:
+				# 		return False
+				# 	# neighborhood must be mostly free
+				# 	pct = self.find_free_space_around_point((mx, my), radius=clearance_cells)
+				# 	return pct >= required_free_pct
 
-				if not candidate_is_safe(cand_x, cand_y):
-					cx, cy = center_map_point
-					vec_x = cand_x - cx
-					vec_y = cand_y - cy
-					norm = math.hypot(vec_x, vec_y)
-					if norm == 0:
-						self.logger.warn("Frontier coincides with center_map_point, cannot step back.")
-					else:
-						ux, uy = vec_x / norm, vec_y / norm
-						found_safe = False
-						for attempt in range(1, max_back_attempts + 1):
-							new_x = int(cand_x - attempt * step_back_cells * ux)
-							new_y = int(cand_y - attempt * step_back_cells * uy)
-							if candidate_is_safe(new_x, new_y):
-								self.logger.info(f"Adjusted frontier from ({cand_x},{cand_y}) to safer point ({new_x},{new_y})")
-								cand_x, cand_y = new_x, new_y
-								found_safe = True
-								break
-						if not found_safe:
-							self.logger.warn("Could not find safer point near chosen frontier; using original frontier (may be near obstacle)")
-
+				# if not candidate_is_safe(cand_x, cand_y):
+				# 	cx, cy = center_map_point
+				# 	vec_x = cand_x - cx
+				# 	vec_y = cand_y - cy
+				# 	norm = math.hypot(vec_x, vec_y)
+				# 	if norm == 0:
+				# 		self.logger.warn("Frontier coincides with center_map_point, cannot step back.")
+				# 	else:
+				# 		ux, uy = vec_x / norm, vec_y / norm
+				# 		found_safe = False
+				# 		for attempt in range(1, max_back_attempts + 1):
+				# 			new_x = int(cand_x - attempt * step_back_cells * ux)
+				# 			new_y = int(cand_y - attempt * step_back_cells * uy)
+				# 			if candidate_is_safe(new_x, new_y):
+				# 				self.logger.info(f"Adjusted frontier from ({cand_x},{cand_y}) to safer point ({new_x},{new_y})")
+				# 				cand_x, cand_y = new_x, new_y
+				# 				found_safe = True
+				# 				break
+				# 		if not found_safe:
+				# 			self.logger.warn("Could not find safer point near chosen frontier; using original frontier (may be near obstacle)")
+				cand_x,cand_y = fx,fy
 				# create and send goal using adjusted candidate
 				goal_x,goal_y = self.get_world_coord_from_map_coord(float(cand_x), float(cand_y), self.global_map_curr.info)
 				goal = self.create_goal_from_world_coord(goal_x, goal_y, math.radians(self.shelf_angle_deg))
@@ -1259,13 +1220,13 @@ class WarehouseExplore(Node):
 			self.cancel_current_goal()  # Unblock by discarding the current goal.
 		
 		if self.current_state == self.EXPLORE:
-			if number_of_recoveries>5:
-				self.logger.info(f"Cancelling since trying to recover {number_of_recoveries}")
-				self.logger.info(f"\n\nRecoveries: {number_of_recoveries}, "
-				  f"Navigation time: {navigation_time}s, "
-				  f"Distance remaining: {distance_remaining:.2f}, "
-				  f"Estimated time remaining: {estimated_time_remaining}s")
-				self.cancel_current_goal()
+			# if number_of_recoveries>5:
+			# 	self.logger.info(f"Cancelling since trying to recover {number_of_recoveries}")
+			# 	self.logger.info(f"\n\nRecoveries: {number_of_recoveries}, "
+			# 	  f"Navigation time: {navigation_time}s, "
+			# 	  f"Distance remaining: {distance_remaining:.2f}, "
+			# 	  f"Estimated time remaining: {estimated_time_remaining}s")
+			# 	self.cancel_current_goal()
 			if self.curr_frontier_goal is not None and self.calc_distance(self.buggy_map_xy,self.curr_frontier_goal)<15:
 				self.logger.info(f"Cancelling since dist {self.calc_distance(self.buggy_map_xy,self.curr_frontier_goal)}<15")
 				self.cancel_current_goal()
