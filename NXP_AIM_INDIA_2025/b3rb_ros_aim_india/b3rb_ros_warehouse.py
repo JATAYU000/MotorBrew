@@ -186,7 +186,7 @@ class WarehouseExplore(Node):
 		self.current_shelf_objects = None
 		self.search_point = None
 		self.current_shelf_number = 1
-		self._fb_dist = 24
+		self._fb_dist = 21
 		self.big_dict = {1:None,2:None,3:None,4:None,5:None}
 
 		# --- State Machine ---
@@ -237,7 +237,8 @@ class WarehouseExplore(Node):
 				if info is not None: self.shelf_info = info
 				self.current_state = self.MOVE_TO_QR
 			else:
-				self.shelf_info = self.find_obstacles_on_ray()
+				info =  self.find_obstacles_on_ray()
+				self.shelf_info = info if info is not None else self.shelf_info
 				self.logger.info("Adjusting position to capture all objects...")
 				if self._fb_dist > 30: self._fb_dist -= 12
 				else: self._fb_dist += 12
@@ -895,13 +896,14 @@ class WarehouseExplore(Node):
 		# self.map_array = np.array(self.global_map_curr.data).reshape((self.global_map_curr.info.height, self.global_map_curr.info.width))
 		self.buggy_map_xy = self.get_map_coord_from_world_coord(self.buggy_pose_x, self.buggy_pose_y, self.global_map_curr.info)
 
-		if self.current_state == self.MOVE_TO_SHELF or self.current_state == self.CAPTURE_OBJECTS:
-			self.trigger_detection(detect=True)
-		else:
-			self.trigger_detection(detect=False)
+		# if self.current_state == self.MOVE_TO_SHELF or self.current_state == self.CAPTURE_OBJECTS:
+		# 	self.trigger_detection(detect=True)
+		# else:
+		# 	self.trigger_detection(detect=False)
 			
 		# state machine
 		if self.current_state == -1:
+			self.trigger_detection(detect=True)
 			self.prev_shelf_center = (self.buggy_pose_x, self.buggy_pose_y)
 			self.current_state = self.EXPLORE
 
