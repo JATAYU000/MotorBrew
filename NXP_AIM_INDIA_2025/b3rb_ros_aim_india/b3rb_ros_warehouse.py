@@ -186,7 +186,7 @@ class WarehouseExplore(Node):
 		self.search_point = None
 		self.current_shelf_number = 1
 		self._fb_dist = 32
-		self._lr_dist = 40
+		self._lr_dist = 38
 
 		# --- State Machine ---
 		self.current_state = -1
@@ -261,8 +261,8 @@ class WarehouseExplore(Node):
 		
 	def adjust_qr(self):
 		if self.qr_code_str is None:
-			if self._lr_dist < 36:self._lr_dist+=12
-			else:self._lr_dist-=12
+			if self._lr_dist < 36:self._lr_dist+=14
+			else:self._lr_dist-=14
 			self.current_state = self.MOVE_TO_QR
 		else:
 			self.logger.info('ADJUST BUT QR GOT???????????/')
