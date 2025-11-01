@@ -186,6 +186,7 @@ class WarehouseExplore(Node):
 		self.search_point = None
 		self.current_shelf_number = 1
 		self._fb_dist = 21
+		self._lr_dist = 31
 
 		# --- State Machine ---
 		self.current_state = -1
@@ -244,7 +245,7 @@ class WarehouseExplore(Node):
 	# -------------------- QR PROCESSING --------------------
 
 	def handle_qr_navigation(self):
-		self.left, self.right = self.find_front_back_points(34,True)
+		self.left, self.right = self.find_front_back_points(self._lr_dist,True)
 		direction = self.shelf_info['orientation']['primary_direction']
 		self.target_view_point = self.left if self.calc_distance(self.buggy_map_xy, self.left) < self.calc_distance(self.buggy_map_xy, self.right) else self.right
 		cen = self.get_map_coord_from_world_coord(float(self.shelf_info['center'][0]), float(self.shelf_info['center'][1]), self.global_map_curr.info)
@@ -254,35 +255,16 @@ class WarehouseExplore(Node):
 		goal = self.create_goal_from_world_coord(goal_x, goal_y, math.radians(yaw))
 		if self.send_goal_from_world_pose(goal):
 			self.logger.info(f"NAV TO QR Goal sent to ({goal_x:.2f}, {goal_y:.2f}) with yaw {yaw:.2f}°")
-			# self.current_state = self.ADJUST_TO
+			self.current_state = self.ADJUST_TO
 		else:
 			self.logger.error("Failed to send navigation goal!")
 		
 	def adjust_qr(self):
 		if self.qr_code_str is None:
-			angle_rn = self.get_yaw_from_quaternion(self.pose_curr.pose.pose.orientation)
-			# give new goal units in front of the robot
-			unit = 15
-			self.buggy_map_xy = self.get_map_coord_from_world_coord(self.buggy_pose_x, self.buggy_pose_y, self.global_map_curr.info)
-
-			goalp_x = self.buggy_map_xy[0] + unit * math.cos(self.qr_yaw)
-			goalp_y = self.buggy_map_xy[1] + unit * math.sin(self.qr_yaw)
-			goaln_x = self.buggy_map_xy[0] - unit * math.cos(self.qr_yaw)
-			goaln_y = self.buggy_map_xy[1] - unit * math.sin(self.qr_yaw)
-			cen = self.get_map_coord_from_world_coord(float(self.shelf_info['center'][0]), float(self.shelf_info['center'][1]), self.global_map_curr.info)
-			dist_p = self.calc_distance((goalp_x, goalp_y), cen)
-			dist_n = self.calc_distance((goaln_x, goaln_y), cen)
-			if dist_p < dist_n:
-				goal_x, goal_y = goalp_x, goalp_y
-			else:
-				goal_x, goal_y = goaln_x, goaln_y
-			
-			goal_x,goal_y = self.get_world_coord_from_map_coord(goal_x, goal_y, self.global_map_curr.info)
-			goal = self.create_goal_from_world_coord(goal_x, goal_y, math.radians(self.qr_yaw))
-			self.logger.info(f"Adjusting to QR at map coords ({goal_x:.2f}, {goal_y:.2f}) with yaw {(self.qr_yaw):.2f}°")
-			if self.send_goal_from_world_pose(goal):
-				self.logger.info(f"ADJUST TO QR Goal sent to ({goal_x:.2f}, {goal_y:.2f}) with yaw {(self.qr_yaw):.2f}°")
+			if self._lr_dist > 36:self._lr_dist-=10
+			else:self._lr_dist+=10
 		else:
+			self.logger.info('ADJUST BUT QR GOT???????????/')
 			return
 
 	def get_next_angle(self):
@@ -512,7 +494,7 @@ class WarehouseExplore(Node):
 			(center, (h,w), angle) = found_rect
 			if w>h:h,w = w,h
 			self.logger.info(f"Detected obstacle at center {center} with width {w:.2f} and height {h:.2f}")
-			if 25 <= h <= 30 and 6.5 <= w <= 12.5:
+			if 25 <= h <= 37 and 6.5 <= w <= 13:
 				points = i["points"]
 				points_array = np.squeeze(points)
 				orientation_info = self.calculate_shelf_orientation(points_array)
