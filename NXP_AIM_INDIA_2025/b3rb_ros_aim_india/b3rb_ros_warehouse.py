@@ -185,7 +185,7 @@ class WarehouseExplore(Node):
 		self.current_shelf_objects = None
 		self.search_point = None
 		self.current_shelf_number = 1
-		self._fb_dist = 17
+		self._fb_dist = 21
 
 		# --- State Machine ---
 		self.current_state = -1
@@ -227,14 +227,15 @@ class WarehouseExplore(Node):
 			self.shelf_objects_curr.object_count = self.current_shelf_objects.object_count
 			self.logger.info(f"Captured {self.shelf_objects_curr.object_count} objects: {self.shelf_objects_curr.object_name}")
 
-			if sum(self.current_shelf_objects.object_count) >= 3:
-				info = self.find_first_rectangle()
+			if sum(self.current_shelf_objects.object_count) >= 4:
+				info = self.find_obstacles_on_ray()
 				if info is not None: self.shelf_info = info
 				self.current_state = self.MOVE_TO_QR
 			else:
-				self.shelf_info = self.find_first_rectangle()
+				info = self.find_obstacles_on_ray()
+				if info is not None: self.shelf_info = info
 				self.logger.info("Adjusting position to capture all objects...")
-				if self._fb_dist > 25: self._fb_dist -= 12
+				if self._fb_dist > 28: self._fb_dist -= 12
 				else: self._fb_dist += 12
 				self.current_state = self.MOVE_TO_SHELF
 		else:
@@ -243,7 +244,7 @@ class WarehouseExplore(Node):
 	# -------------------- QR PROCESSING --------------------
 
 	def handle_qr_navigation(self):
-		self.left, self.right = self.find_front_back_points(30,True)
+		self.left, self.right = self.find_front_back_points(34,True)
 		direction = self.shelf_info['orientation']['primary_direction']
 		self.target_view_point = self.left if self.calc_distance(self.buggy_map_xy, self.left) < self.calc_distance(self.buggy_map_xy, self.right) else self.right
 		cen = self.get_map_coord_from_world_coord(float(self.shelf_info['center'][0]), float(self.shelf_info['center'][1]), self.global_map_curr.info)
@@ -298,7 +299,7 @@ class WarehouseExplore(Node):
 
 
 	def frontier_explore(self):
-		self.shelf_info = self.find_first_rectangle()
+		self.shelf_info = self.find_obstacles_on_ray()
 		self.logger.info(f"SHELF INFO: {self.shelf_info}")
 		self.logger.info(f"prev shelf center: {self.prev_shelf_center}")
 		if self.shelf_info is not None and self.find_free_space_around_point(self.get_map_coord_from_world_coord(float(self.shelf_info['center'][0]), float(self.shelf_info['center'][1]), self.global_map_curr.info), radius=75) > 10:
@@ -373,7 +374,7 @@ class WarehouseExplore(Node):
 				# If it is, step back along the line from center_map_point to the frontier
 				# until a cell with sufficient clearance is found.
 				clearance_cells = 5       # radius to check for clearance
-				required_free_pct = 90.0  # percent free required
+				required_free_pct = 80.0  # percent free required
 				step_back_cells = 5       # how far to move back each attempt (in map cells)
 				max_back_attempts = 8
 
@@ -428,6 +429,104 @@ class WarehouseExplore(Node):
 			self.full_map_explored_count += 1
 	
 	# -------------------- SHELF FINDING --------------------
+
+	def check_ray_rect_intersection(self,start_point, angle_degrees, rect):
+		"""
+		Checks if a ray intersects with an axis-aligned rectangle (bounding box).
+		(This function is unchanged)
+		"""
+		px, py = start_point
+		x, y, w, h = rect
+		
+		angle_rad_math = math.radians(angle_degrees)
+		dx = math.cos(angle_rad_math)
+		dy = -math.sin(angle_rad_math)
+		
+		if dx == 0:
+			if px < x or px > x + w: return False
+			t_xmin, t_xmax = -float('inf'), float('inf')
+		else:
+			t1_x = (x - px) / dx
+			t2_x = (x + w - px) / dx
+			t_xmin, t_xmax = min(t1_x, t2_x), max(t1_x, t2_x)
+			
+		if dy == 0:
+			if py < y or py > y + h: return False
+			t_ymin, t_ymax = -float('inf'), float('inf')
+		else:
+			t1_y = (y - py) / dy
+			t2_y = (y + h - py) / dy
+			t_ymin, t_ymax = min(t1_y, t2_y), max(t1_y, t2_y)
+
+		t_near = max(t_xmin, t_ymin)
+		t_far = min(t_xmax, t_ymax)
+		if t_near > t_far or t_far < 0:
+			return False
+			
+		return True
+
+	def find_obstacles_on_ray(self):
+		"""
+		Finds all obstacles whose bounding boxes intersect a ray.
+		NOW returns the precise rotated box corners.
+		"""
+		map_array = self.simple_map_array
+		start_point = self.get_map_coord_from_world_coord(self.prev_shelf_center[0], self.prev_shelf_center[1], self.global_map_curr.info)
+		start_point = list(start_point)
+		angle_degrees = -self.shelf_angle_deg
+		start_point[0] += 30*math.cos(math.radians(angle_degrees))
+		start_point[1] += -30*math.sin(math.radians(angle_degrees))
+		binary_map = np.zeros(map_array.shape, dtype=np.uint8)
+		binary_map[map_array != 100] = 0
+		binary_map[map_array == 100] = 255
+		contours, _ = cv2.findContours(binary_map, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+		found_obstacles = []
+		angle_tolerance = 3.0
+		angles_to_check = np.linspace(angle_degrees - angle_tolerance, 
+                                  angle_degrees + angle_tolerance, 
+                                  num=3)
+    
+		found_contour_indices = set()
+		for i, contour in enumerate(contours):
+			# Get the coarse AABB
+			x, y, w, h = cv2.boundingRect(contour)
+			for ang in angles_to_check:
+				if self.check_ray_rect_intersection(start_point, ang, (x, y, w, h)):
+					if i not in found_contour_indices:
+						min_rect = cv2.minAreaRect(contour) 
+						box_points = cv2.boxPoints(min_rect)
+						box_points = np.intp(box_points) 
+						
+						obstacle_data = {
+							"bounding_box_AABB": (x, y, w, h), 
+							"rotated_rect_details": min_rect, 
+							"box_corners": box_points, 
+							"points": contour
+						}
+						found_obstacles.append(obstacle_data)
+						found_contour_indices.add(i)
+						break
+
+		for i in found_obstacles:
+			found_rect = i["rotated_rect_details"]
+			(center, (h,w), angle) = found_rect
+			if w>h:h,w = w,h
+			self.logger.info(f"Detected obstacle at center {center} with width {w:.2f} and height {h:.2f}")
+			if 25 <= h <= 30 and 8.5 <= w <= 11:
+				points = i["points"]
+				points_array = np.squeeze(points)
+				orientation_info = self.calculate_shelf_orientation(points_array)
+				
+				return {
+					"center": self.get_world_coord_from_map_coord(center[0], center[1], self.global_map_curr.info),
+					"dimensions": (w, h),
+					"angle": angle,
+					"orientation": orientation_info,
+					"box_points": box_points
+				}
+
+		return None
+
 
 	def find_first_rectangle(self,rect_fill_ratio=0.50,min_pixel_area=230,max_pixel_area=1200,ignore_radius=30):
 		start_point = self.get_map_coord_from_world_coord(self.prev_shelf_center[0], self.prev_shelf_center[1], self.global_map_curr.info)
@@ -830,6 +929,8 @@ class WarehouseExplore(Node):
 		self.world_center = self.get_world_coord_from_map_coord(
 			map_info.width / 2, map_info.height / 2, map_info
 		)
+		self.simple_map_array = np.array(self.simple_map_curr.data).reshape((map_info.height, map_info.width))
+		np.save('simple_array.npy',self.map_array)
 	
 	def get_frontiers_for_space_exploration(self, map_array):
 		"""Identifies frontiers for space exploration.
@@ -908,7 +1009,7 @@ class WarehouseExplore(Node):
 		# Process the image from front camera as needed.
 
 		# Optional line for visualizing image on foxglove.
-		if self.current_state == self.MOVE_TO_QR or self.current_state == self.ADJUST_TO:
+		if self.current_state == self.MOVE_TO_QR:
 			qr_codes = pyzbar.decode(image)
 			if qr_codes:
 				for qr_code in qr_codes:
@@ -1112,13 +1213,13 @@ class WarehouseExplore(Node):
 			self.cancel_current_goal()  # Unblock by discarding the current goal.
 		
 		if self.current_state == self.EXPLORE:
-			if number_of_recoveries>5:
-				self.logger.info(f"Cancelling since trying to recover {number_of_recoveries}")
-				self.logger.info(f"\n\nRecoveries: {number_of_recoveries}, "
-				  f"Navigation time: {navigation_time}s, "
-				  f"Distance remaining: {distance_remaining:.2f}, "
-				  f"Estimated time remaining: {estimated_time_remaining}s")
-				self.cancel_current_goal()
+			# if number_of_recoveries>5:
+			# 	self.logger.info(f"Cancelling since trying to recover {number_of_recoveries}")
+			# 	self.logger.info(f"\n\nRecoveries: {number_of_recoveries}, "
+			# 	  f"Navigation time: {navigation_time}s, "
+			# 	  f"Distance remaining: {distance_remaining:.2f}, "
+			# 	  f"Estimated time remaining: {estimated_time_remaining}s")
+			# 	self.cancel_current_goal()
 			if self.curr_frontier_goal is not None and self.calc_distance(self.buggy_map_xy,self.curr_frontier_goal)<15:
 				self.logger.info(f"Cancelling since dist {self.calc_distance(self.buggy_map_xy,self.curr_frontier_goal)}<15")
 				self.cancel_current_goal()
