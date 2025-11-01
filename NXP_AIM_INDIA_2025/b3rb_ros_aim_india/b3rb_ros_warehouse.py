@@ -828,6 +828,7 @@ class WarehouseExplore(Node):
 			None
 		"""
 		self.global_map_curr = message
+		self.map_array = np.array(self.global_map_curr.data).reshape((self.global_map_curr.info.height, self.global_map_curr.info.width))
 
 		if self.qr_code_str is not None and (self.current_state == self.MOVE_TO_QR or self.current_state == self.ADJUST_TO):
 			self.logger.info(f"\n\n\nQR code detected: {self.qr_code_str}, processing...")
@@ -930,7 +931,6 @@ class WarehouseExplore(Node):
 			map_info.width / 2, map_info.height / 2, map_info
 		)
 		self.simple_map_array = np.array(self.simple_map_curr.data).reshape((map_info.height, map_info.width))
-		np.save('simple_array.npy',self.map_array)
 	
 	def get_frontiers_for_space_exploration(self, map_array):
 		"""Identifies frontiers for space exploration.
