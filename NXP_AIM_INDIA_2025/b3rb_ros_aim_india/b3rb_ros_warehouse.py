@@ -248,7 +248,7 @@ class WarehouseExplore(Node):
 	# -------------------- QR PROCESSING --------------------
 
 	def handle_qr_navigation(self):
-		self.left, self.right = self.find_front_back_points(30,True)
+		self.left, self.right = self.find_front_back_points(36,True)
 		direction = self.shelf_info['orientation']['primary_direction']
 		self.target_view_point = self.left if self.calc_distance(self.buggy_map_xy, self.left) < self.calc_distance(self.buggy_map_xy, self.right) else self.right
 		cen = self.get_map_coord_from_world_coord(float(self.shelf_info['center'][0]), float(self.shelf_info['center'][1]), self.global_map_curr.info)
@@ -895,8 +895,10 @@ class WarehouseExplore(Node):
 		# self.map_array = np.array(self.global_map_curr.data).reshape((self.global_map_curr.info.height, self.global_map_curr.info.width))
 		self.buggy_map_xy = self.get_map_coord_from_world_coord(self.buggy_pose_x, self.buggy_pose_y, self.global_map_curr.info)
 
-		if self.current_state == self.CAPTURE_OBJECTS:
+		if self.current_state == self.MOVE_TO_SHELF or self.current_state == self.CAPTURE_OBJECTS:
 			self.trigger_detection(detect=True)
+		else:
+			self.trigger_detection(detect=False)
 			
 		# state machine
 		if self.current_state == -1:
