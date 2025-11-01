@@ -44,6 +44,7 @@ from action_msgs.msg import GoalStatus
 
 from synapse_msgs.msg import Status
 from synapse_msgs.msg import WarehouseShelf
+from synapse_msgs.msg import DetectNotifier
 
 from scipy.ndimage import label, center_of_mass
 from scipy.spatial.distance import euclidean
@@ -64,6 +65,10 @@ class WarehouseExplore(Node):
 	def __init__(self):
 		super().__init__('warehouse_explore')
 
+		self.detect_notify = self.create_publisher(
+			DetectNotifier,
+			'/detect_notifier',
+			QOS_PROFILE_DEFAULT)
 		self.action_client = ActionClient(
 			self,
 			NavigateToPose,
@@ -194,7 +199,10 @@ class WarehouseExplore(Node):
 
 		self.send_request_to_server(rtype='reset')
 
-
+	def trigger_detection(self, detect = False):
+		detect_msg = DetectNotifier()
+		detect_msg.detect_mode = bool(detect)
+		self.detect_notify.publish(detect_msg)
 	# -------------------- MOVE TO THE SHELF -----------------------
 
 	def handle_move_to_shelf(self):
@@ -475,7 +483,7 @@ class WarehouseExplore(Node):
 
 			found_rect = cv2.minAreaRect(points)
 			(center, (w, h), angle) = found_rect
-
+			if h>w:h,w = w,h
 			if w == 0 or h == 0:
 				self.logger.info("... Object is just a line. Skipping.")
 				continue # *** KEY CHANGE: Continue loop, don't return None
@@ -487,7 +495,7 @@ class WarehouseExplore(Node):
 				oriented_w = max(w, h)
 				oriented_h = min(w, h)
 				wh_ratio = oriented_w / oriented_h
-				if not (31 <= oriented_w <= 45):
+				if not (3 <= oriented_w <= 45):
 					self.logger.info(f"  -> FAILURE: Width {oriented_w:.1f} not in [31, 45]. Skipping.")
 					continue
 
@@ -506,7 +514,7 @@ class WarehouseExplore(Node):
 					"status": "Rectangle Found",
 					"object_id": current_object_id,
 					"center": self.get_world_coord_from_map_coord(center[0], center[1], self.global_map_curr.info),
-					"dimensions": (w, h),
+							"dimensions": (w, h),
 					"angle": angle,
 					"fill_ratio": rectangularity_ratio,
 					"orientation": orientation_info,
@@ -752,12 +760,14 @@ class WarehouseExplore(Node):
 		
 		self.map_array = np.array(self.global_map_curr.data).reshape((self.global_map_curr.info.height, self.global_map_curr.info.width))
 		self.buggy_map_xy = self.get_map_coord_from_world_coord(self.buggy_pose_x, self.buggy_pose_y, self.global_map_curr.info)
-
+		
+		# if self.current_state == self.CAPTURE_OBJECTS OR self.current_state == self.MOVE_TO_QR: 
+		# 	self.trigger_detection(detect=True)
 		
 		# state machine
 		if self.current_state == -1:
 			self.prev_shelf_center = (self.buggy_pose_x, self.buggy_pose_y)
-
+			self.trigger_detection(detect=True)
 			self.current_state = self.EXPLORE
 
 		elif self.current_state == self.EXPLORE:
