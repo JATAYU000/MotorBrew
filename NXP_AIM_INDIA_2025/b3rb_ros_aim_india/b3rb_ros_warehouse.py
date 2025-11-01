@@ -186,7 +186,7 @@ class WarehouseExplore(Node):
 		self.current_shelf_objects = None
 		self.search_point = None
 		self.current_shelf_number = 1
-		self._fb_dist = 21
+		self._fb_dist = 24
 		self.big_dict = {1:None,2:None,3:None,4:None,5:None}
 
 		# --- State Machine ---
@@ -519,7 +519,7 @@ class WarehouseExplore(Node):
 			(center, (h,w), angle) = found_rect
 			if w>h:h,w = w,h
 			self.logger.info(f"Detected obstacle at center {center} with width {w:.2f} and height {h:.2f}")
-			if 22 <= h <= 29 and 6.5 <= w <= 11:
+			if 22 <= h <= 29 and 6.5 <= w <= 13:
 				points = i["points"]
 				points_array = np.squeeze(points)
 				orientation_info = self.calculate_shelf_orientation(points_array)
