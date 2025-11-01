@@ -853,7 +853,7 @@ class WarehouseExplore(Node):
 			# self.logger.info(self.big_dict)
 			# successful reset and publish
 			self.prev_shelf_center = self.big_dict[self.current_shelf_number]['info']['center']
-			self.shelf_angle_deg = self.get_next_angle() + self.robot_initial_angle
+			self.shelf_angle_deg += self.get_next_angle() + self.robot_initial_angle
 			self.shelf_objects_curr.qr_decoded = self.qr_code_str
 			self.publisher_shelf_data.publish(self.shelf_objects_curr)
 			self.send_request_to_server(rtype='upload')
