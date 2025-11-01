@@ -13,6 +13,7 @@ setup(
         ('share/ament_index/resource_index', ['resource/yolov5n-int8.tflite']),
         ('share/ament_index/resource_index', ['resource/yolo11n_int8.tflite']),
         ('share/ament_index/resource_index', ['resource/yolov8m_int8.tflite']),
+        ('share/ament_index/resource_index', ['resource/yolo11m_integer_quant.tflite']),
         ('share/' + package_name, ['package.xml']),
     ],
     install_requires=['setuptools'],

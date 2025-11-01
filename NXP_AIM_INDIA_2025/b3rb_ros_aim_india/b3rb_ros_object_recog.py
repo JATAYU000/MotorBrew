@@ -32,7 +32,7 @@ def xywh2xyxy(x):
 
 def non_max_suppression_yolov5(
     prediction,
-    conf_thres=0.14,
+    conf_thres=0.05,  # lowered confidence
     iou_thres=0.9,
     classes=None,
     agnostic=False,
@@ -63,7 +63,7 @@ def non_max_suppression_yolov5(
     t = time.time()
     mi = 5 + nc
     output = [torch.zeros((0, 6 + nm), device=prediction.device)] * bs
-   
+
     for xi, x in enumerate(prediction):
         x = x[xc[xi]]
 
@@ -112,56 +112,40 @@ def non_max_suppression_yolov5(
     return output
 
 
-def non_max_suppression_yolov11(prediction, conf_thres=0.25, iou_thres=0.9, max_det=300):
-    """
-    NMS for YOLOv11 format
-    Input can be:
-      - [batch, 84, num_boxes] where 84 = 4 coords + 80 class scores (transposed)
-      - [batch, num_boxes, 84] (standard)
-      - [batch, num_boxes, 6] where 6 = x1,y1,x2,y2,conf,cls (post-processed)
-    """
+def non_max_suppression_yolov11(prediction, conf_thres=0.05, iou_thres=0.9, max_det=300):
+    """NMS for YOLOv11 format"""
     if isinstance(prediction, (list, tuple)):
         prediction = prediction[0]
-   
+
     batch_size = prediction.shape[0]
-   
-    # Handle transposed format [batch, 84, num_boxes] -> [batch, num_boxes, 84]
+
     if len(prediction.shape) == 3 and prediction.shape[1] in [6, 84] and prediction.shape[2] > prediction.shape[1]:
         prediction = prediction.permute(0, 2, 1)
-   
+
     output = []
-   
+
     for batch_idx in range(batch_size):
-        pred = prediction[batch_idx]  # [num_boxes, 84] or [num_boxes, 6]
-       
-        # If format is [num_boxes, 84] with class scores
+        pred = prediction[batch_idx]
+
         if pred.shape[1] == 84:
-            # Split into boxes and class scores
-            boxes_xywh = pred[:, :4]  # x_center, y_center, width, height
-            class_scores = pred[:, 4:]  # 80 class scores
-           
-            # Get max class score and index for each box
+            boxes_xywh = pred[:, :4]
+            class_scores = pred[:, 4:]
             class_conf, class_idx = class_scores.max(dim=1)
-           
-            # Convert xywh to xyxy
             boxes = torch.zeros_like(boxes_xywh)
-            boxes[:, 0] = boxes_xywh[:, 0] - boxes_xywh[:, 2] / 2  # x1
-            boxes[:, 1] = boxes_xywh[:, 1] - boxes_xywh[:, 3] / 2  # y1
-            boxes[:, 2] = boxes_xywh[:, 0] + boxes_xywh[:, 2] / 2  # x2
-            boxes[:, 3] = boxes_xywh[:, 1] + boxes_xywh[:, 3] / 2  # y2
-           
-            # Filter by confidence
+            boxes[:, 0] = boxes_xywh[:, 0] - boxes_xywh[:, 2] / 2
+            boxes[:, 1] = boxes_xywh[:, 1] - boxes_xywh[:, 3] / 2
+            boxes[:, 2] = boxes_xywh[:, 0] + boxes_xywh[:, 2] / 2
+            boxes[:, 3] = boxes_xywh[:, 1] + boxes_xywh[:, 3] / 2
+
             mask = class_conf > conf_thres
             boxes = boxes[mask]
             scores = class_conf[mask]
             classes = class_idx[mask]
-           
-        # If format is [num_boxes, 6] with x1,y1,x2,y2,conf,cls
+
         elif pred.shape[1] == 6:
             boxes = pred[:, :4]
             scores = pred[:, 4]
             classes = pred[:, 5]
-           
             mask = scores > conf_thres
             boxes = boxes[mask]
             scores = scores[mask]
@@ -169,23 +153,21 @@ def non_max_suppression_yolov11(prediction, conf_thres=0.25, iou_thres=0.9, max_
         else:
             output.append(torch.zeros((0, 6), device=pred.device))
             continue
-       
+
         if len(boxes) == 0:
             output.append(torch.zeros((0, 6), device=pred.device))
             continue
-       
-        # Apply NMS
+
         keep_indices = torchvision.ops.nms(boxes, scores, iou_thres)
         keep_indices = keep_indices[:max_det]
-       
-        # Create output in [x1, y1, x2, y2, conf, cls] format
+
         result = torch.zeros((len(keep_indices), 6), device=pred.device)
         result[:, :4] = boxes[keep_indices]
         result[:, 4] = scores[keep_indices]
         result[:, 5] = classes[keep_indices]
-       
+
         output.append(result)
-   
+
     return output
 
 
@@ -210,14 +192,12 @@ class ObjectRecognizer(Node):
             '/detect_notifier',
             self.detect_mode_callback,
             QOS_PROFILE_DEFAULT)
-
-        # ext_delegate_opts = {}
-        # ext_delegate_opts = [tflite.load_delegate('/usr/lib/libvx_delegate.so', ext_delegate_opts)]
-
+        ext_delegate_opts = {}
+        ext_delegate_opts = [tflite.load_delegate('/usr/lib/libvx_delegate.so', ext_delegate_opts)]
         
         resource_name_coco = "../../../../share/ament_index/resource_index/coco.yaml"
         resource_path_coco = pkg_resources.resource_filename(PACKAGE_NAME, resource_name_coco)
-        resource_name_yolo = "../../../../share/ament_index/resource_index/yolov8m_int8.tflite"
+        resource_name_yolo = "../../../../share/ament_index/resource_index/yolo11m_integer_quant.tflite"
         resource_path_yolo = pkg_resources.resource_filename(PACKAGE_NAME, resource_name_yolo)
 
         with open(resource_path_coco) as f:
@@ -228,37 +208,23 @@ class ObjectRecognizer(Node):
 
         self.input_details = self.interpreter.get_input_details()
         self.output_details = self.interpreter.get_output_details()
-       
-        # Auto-detect model type based on output shape
+
         output_shape = self.output_details[0]['shape']
         self.get_logger().info(f"Model output shape: {output_shape}")
-       
-        # YOLOv5: [1, 25200, 85] - last dim is 5 + num_classes (80)
-        # YOLOv11: [1, 84, 8400] - middle dim is 4 + num_classes (80)
-        # YOLOv11: [1, N, 6] - last dim is exactly 6
+
         if len(output_shape) == 3:
-            # YOLOv11 transposed: [1, 84, N] where 84 = 4 coords + 80 classes
             if output_shape[1] == 84 and output_shape[2] > 84:
                 self.model_type = 'yolov11'
-                self.get_logger().info("Detected YOLOv11 format (transposed [1, 84, 8400])")
-            # YOLOv11 with 6 attributes: [1, 6, N]
             elif output_shape[1] == 6 and output_shape[2] > 6:
                 self.model_type = 'yolov11'
-                self.get_logger().info("Detected YOLOv11 format (transposed [1, 6, N])")
-            # YOLOv11 standard: [1, N, 6]
             elif output_shape[2] == 6:
                 self.model_type = 'yolov11'
-                self.get_logger().info("Detected YOLOv11 format (standard [1, N, 6])")
-            # YOLOv5: [1, 25200, 85] where last dim = 5 + 80 classes
             elif output_shape[2] == 85 or (output_shape[2] > 10 and output_shape[1] > output_shape[2]):
                 self.model_type = 'yolov5'
-                self.get_logger().info("Detected YOLOv5 format")
             else:
                 self.model_type = 'yolov11'
-                self.get_logger().warn(f"Unknown format, defaulting to YOLOv11")
         else:
             self.model_type = 'yolov11'
-            self.get_logger().warn(f"Unexpected shape, defaulting to YOLOv11")
 
     def publish_debug_image(self, publisher, image):
         if image.size:
@@ -280,7 +246,6 @@ class ObjectRecognizer(Node):
         image_orig = cv2.imdecode(np_arr, cv2.IMREAD_COLOR)
         orig_height, orig_width, _ = image_orig.shape
 
-        # Preprocess
         input_size = self.input_details[0]['shape'][1]
         image = cv2.resize(image_orig, (input_size, input_size))
         image = image.astype(np.float32)
@@ -288,7 +253,6 @@ class ObjectRecognizer(Node):
         image /= 255
         img = np.expand_dims(image, axis=0)
 
-        # Quantization
         input_detail = self.input_details[0]
         int8 = input_detail["dtype"] == np.uint8
         if int8:
@@ -297,12 +261,8 @@ class ObjectRecognizer(Node):
        
         self.interpreter.set_tensor(input_detail["index"], img)
 
-        startTime = time.time()
         self.interpreter.invoke()
-        delta = time.time() - startTime
-        # self.get_logger().info(f"Inference time: {delta*1000:.1f} ms")
 
-        # Get output
         y = []
         for output in self.output_details:
             x = self.interpreter.get_tensor(output["index"])
@@ -311,62 +271,53 @@ class ObjectRecognizer(Node):
                 x = (x.astype(np.float32) - zero_point) * scale
             y.append(x)
 
-        # self.get_logger().debug(f"Output shapes: {[arr.shape for arr in y]}")
-
-        # Prepare image for drawing
         image *= 255
         image = cv2.cvtColor(image.astype(np.float32), cv2.COLOR_RGB2BGR)
 
         shelf_objects_message = WarehouseShelf()
         object_count_dict = {}
 
-        # Process output based on model type
+        # Grid setup
+        num_cols, num_rows = 3, 2
+        cell_width = orig_width / num_cols
+        cell_height = orig_height / num_rows
+
+        def is_in_grid(x_center, y_center):
+            """Return True if within 3x2 grid."""
+            return 0 <= x_center < orig_width and 0 <= y_center < orig_height
+
         for pred in y:
             pred = torch.tensor(pred)
-           
+
             if self.model_type == 'yolov5':
-                # YOLOv5: Scale coordinates then apply NMS
-                w, h = self.input_details[0]["shape"][1:3]
-                pred[0][..., :4] *= torch.tensor([w, h, w, h], device=pred.device)
-                pred = non_max_suppression_yolov5(pred, conf_thres=0.14, iou_thres=0.3, max_det=1000)
+                pred[0][..., :4] *= torch.tensor([input_size, input_size, input_size, input_size], device=pred.device)
+                pred = non_max_suppression_yolov5(pred, conf_thres=0.05, iou_thres=0.3, max_det=1000)
             else:
-                # YOLOv11: Coordinates already in input_size scale for [1, 84, 8400] format
-                # No scaling needed before NMS
-                pred = non_max_suppression_yolov11(pred, conf_thres=0.14, iou_thres=0.1, max_det=1000)
+                pred = non_max_suppression_yolov11(pred, conf_thres=0.05, iou_thres=0.1, max_det=1000)
 
-            total_dets = sum([len(d) for d in pred])
-            # self.get_logger().info(f"NMS returned {total_dets} detections")
-
-            # Draw detections
             for i, det in enumerate(pred):
                 if len(det):
                     for *xyxy, conf, cls in reversed(det):
-                        # Scale back to original image size
                         x1 = int(xyxy[0] * orig_width / input_size)
                         y1 = int(xyxy[1] * orig_height / input_size)
                         x2 = int(xyxy[2] * orig_width / input_size)
                         y2 = int(xyxy[3] * orig_height / input_size)
-                       
-                        # Clip to image bounds
-                        x1 = max(0, min(x1, orig_width))
-                        y1 = max(0, min(y1, orig_height))
-                        x2 = max(0, min(x2, orig_width))
-                        y2 = max(0, min(y2, orig_height))
-                       
+
+                        x_center = (x1 + x2) / 2
+                        y_center = (y1 + y2) / 2
+
+                        if not is_in_grid(x_center, y_center):
+                            continue
+
                         cls_idx = int(cls)
                         if cls_idx < len(self.label_names):
                             object_name = self.label_names[cls_idx]
                             object_count_dict[object_name] = object_count_dict.get(object_name, 0) + 1
 
-                            # self.get_logger().info(
-                            #     f"Detected: {object_name} conf={float(conf):.2f} bbox=({x1},{y1},{x2},{y2})")
-
-                            # Draw on resized image (input_size)
-                            start_point = (int(xyxy[0]), int(xyxy[1]))
-                            end_point = (int(xyxy[2]), int(xyxy[3]))
-                            cv2.rectangle(image, start_point, end_point, GREEN_COLOR, 2)
+                            cv2.rectangle(image, (int(xyxy[0]), int(xyxy[1])), (int(xyxy[2]), int(xyxy[3])), GREEN_COLOR, 2)
                             cv2.putText(image, f"{object_name} {float(conf):.2f}",
-                                      start_point, cv2.FONT_HERSHEY_SIMPLEX, 0.5, GREEN_COLOR, 2, cv2.LINE_AA)
+                                      (int(xyxy[0]), int(xyxy[1]) - 5),
+                                      cv2.FONT_HERSHEY_SIMPLEX, 0.5, GREEN_COLOR, 2, cv2.LINE_AA)
 
             image = cv2.resize(image, (orig_width, orig_height))
             self.publish_debug_image(self.publisher_object_recog, image)
@@ -375,7 +326,6 @@ class ObjectRecognizer(Node):
             shelf_objects_message.object_name.append(key)
             shelf_objects_message.object_count.append(value)
 
-        # self.get_logger().info(f"Publishing shelf_objects: {object_count_dict}")
         self.publisher_shelf_objects.publish(shelf_objects_message)
 
 
