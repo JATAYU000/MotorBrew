@@ -16,7 +16,7 @@ import yaml
 import tflite_runtime.interpreter as tflite
 
 QOS_PROFILE_DEFAULT = 10
-PACKAGE_NAME = 'b3rb_ros_aim_india'
+PACKAGE_NAME = "b3rb_ros_aim_india"
 GREEN_COLOR = (0, 255, 0)
 
 
@@ -112,14 +112,20 @@ def non_max_suppression_yolov5(
     return output
 
 
-def non_max_suppression_yolov11(prediction, conf_thres=0.05, iou_thres=0.9, max_det=300):
+def non_max_suppression_yolov11(
+    prediction, conf_thres=0.05, iou_thres=0.9, max_det=300
+):
     """NMS for YOLOv11 format"""
     if isinstance(prediction, (list, tuple)):
         prediction = prediction[0]
 
     batch_size = prediction.shape[0]
 
-    if len(prediction.shape) == 3 and prediction.shape[1] in [6, 84] and prediction.shape[2] > prediction.shape[1]:
+    if (
+        len(prediction.shape) == 3
+        and prediction.shape[1] in [6, 84]
+        and prediction.shape[2] > prediction.shape[1]
+    ):
         prediction = prediction.permute(0, 2, 1)
 
     output = []
@@ -173,35 +179,47 @@ def non_max_suppression_yolov11(prediction, conf_thres=0.05, iou_thres=0.9, max_
 
 class ObjectRecognizer(Node):
     def __init__(self):
-        super().__init__('object_recognizer')
+        super().__init__("object_recognizer")
 
         self.subscription_camera = self.create_subscription(
             CompressedImage,
-            '/camera/image_raw/compressed',
+            "/camera/image_raw/compressed",
             self.camera_image_callback,
-            QOS_PROFILE_DEFAULT)
+            QOS_PROFILE_DEFAULT,
+        )
 
         self.publisher_shelf_objects = self.create_publisher(
-            WarehouseShelf, '/shelf_objects', QOS_PROFILE_DEFAULT)
+            WarehouseShelf, "/shelf_objects", QOS_PROFILE_DEFAULT
+        )
 
         self.publisher_object_recog = self.create_publisher(
-            CompressedImage, "/debug_images/object_recog", QOS_PROFILE_DEFAULT)
-        
+            CompressedImage, "/debug_images/object_recog", QOS_PROFILE_DEFAULT
+        )
+
         self.detect_mode_subscription = self.create_subscription(
             DetectNotifier,
-            '/detect_notifier',
+            "/detect_notifier",
             self.detect_mode_callback,
-            QOS_PROFILE_DEFAULT)
+            QOS_PROFILE_DEFAULT,
+        )
         ext_delegate_opts = {}
-        ext_delegate_opts = [tflite.load_delegate('/usr/lib/libvx_delegate.so', ext_delegate_opts)]
-        
+        ext_delegate_opts = [
+            tflite.load_delegate("/usr/lib/libvx_delegate.so", ext_delegate_opts)
+        ]
+
         resource_name_coco = "../../../../share/ament_index/resource_index/coco.yaml"
-        resource_path_coco = pkg_resources.resource_filename(PACKAGE_NAME, resource_name_coco)
-        resource_name_yolo = "../../../../share/ament_index/resource_index/yolo11m_integer_quant.tflite"
-        resource_path_yolo = pkg_resources.resource_filename(PACKAGE_NAME, resource_name_yolo)
+        resource_path_coco = pkg_resources.resource_filename(
+            PACKAGE_NAME, resource_name_coco
+        )
+        resource_name_yolo = (
+            "../../../../share/ament_index/resource_index/yolov8m_int8.tflite"
+        )
+        resource_path_yolo = pkg_resources.resource_filename(
+            PACKAGE_NAME, resource_name_yolo
+        )
 
         with open(resource_path_coco) as f:
-            self.label_names = yaml.load(f, Loader=yaml.FullLoader)['names']
+            self.label_names = yaml.load(f, Loader=yaml.FullLoader)["names"]
 
         self.interpreter = tflite.Interpreter(model_path=resource_path_yolo)
         self.interpreter.allocate_tensors()
@@ -209,27 +227,29 @@ class ObjectRecognizer(Node):
         self.input_details = self.interpreter.get_input_details()
         self.output_details = self.interpreter.get_output_details()
 
-        output_shape = self.output_details[0]['shape']
+        output_shape = self.output_details[0]["shape"]
         self.get_logger().info(f"Model output shape: {output_shape}")
 
         if len(output_shape) == 3:
             if output_shape[1] == 84 and output_shape[2] > 84:
-                self.model_type = 'yolov11'
+                self.model_type = "yolov11"
             elif output_shape[1] == 6 and output_shape[2] > 6:
-                self.model_type = 'yolov11'
+                self.model_type = "yolov11"
             elif output_shape[2] == 6:
-                self.model_type = 'yolov11'
-            elif output_shape[2] == 85 or (output_shape[2] > 10 and output_shape[1] > output_shape[2]):
-                self.model_type = 'yolov5'
+                self.model_type = "yolov11"
+            elif output_shape[2] == 85 or (
+                output_shape[2] > 10 and output_shape[1] > output_shape[2]
+            ):
+                self.model_type = "yolov5"
             else:
-                self.model_type = 'yolov11'
+                self.model_type = "yolov11"
         else:
-            self.model_type = 'yolov11'
+            self.model_type = "yolov11"
 
     def publish_debug_image(self, publisher, image):
         if image.size:
             message = CompressedImage()
-            _, encoded_data = cv2.imencode('.jpg', image)
+            _, encoded_data = cv2.imencode(".jpg", image)
             message.format = "jpeg"
             message.data = encoded_data.tobytes()
             publisher.publish(message)
@@ -246,7 +266,7 @@ class ObjectRecognizer(Node):
         image_orig = cv2.imdecode(np_arr, cv2.IMREAD_COLOR)
         orig_height, orig_width, _ = image_orig.shape
 
-        input_size = self.input_details[0]['shape'][1]
+        input_size = self.input_details[0]["shape"][1]
         image = cv2.resize(image_orig, (input_size, input_size))
         image = image.astype(np.float32)
         image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
@@ -258,7 +278,7 @@ class ObjectRecognizer(Node):
         if int8:
             scale, zero_point = input_detail["quantization"]
             img = (img / scale + zero_point).astype(np.uint8)
-       
+
         self.interpreter.set_tensor(input_detail["index"], img)
 
         self.interpreter.invoke()
@@ -289,11 +309,17 @@ class ObjectRecognizer(Node):
         for pred in y:
             pred = torch.tensor(pred)
 
-            if self.model_type == 'yolov5':
-                pred[0][..., :4] *= torch.tensor([input_size, input_size, input_size, input_size], device=pred.device)
-                pred = non_max_suppression_yolov5(pred, conf_thres=0.05, iou_thres=0.3, max_det=1000)
+            if self.model_type == "yolov5":
+                pred[0][..., :4] *= torch.tensor(
+                    [input_size, input_size, input_size, input_size], device=pred.device
+                )
+                pred = non_max_suppression_yolov5(
+                    pred, conf_thres=0.05, iou_thres=0.3, max_det=1000
+                )
             else:
-                pred = non_max_suppression_yolov11(pred, conf_thres=0.05, iou_thres=0.1, max_det=1000)
+                pred = non_max_suppression_yolov11(
+                    pred, conf_thres=0.05, iou_thres=0.1, max_det=1000
+                )
 
             for i, det in enumerate(pred):
                 if len(det):
@@ -312,12 +338,27 @@ class ObjectRecognizer(Node):
                         cls_idx = int(cls)
                         if cls_idx < len(self.label_names):
                             object_name = self.label_names[cls_idx]
-                            object_count_dict[object_name] = object_count_dict.get(object_name, 0) + 1
+                            object_count_dict[object_name] = (
+                                object_count_dict.get(object_name, 0) + 1
+                            )
 
-                            cv2.rectangle(image, (int(xyxy[0]), int(xyxy[1])), (int(xyxy[2]), int(xyxy[3])), GREEN_COLOR, 2)
-                            cv2.putText(image, f"{object_name} {float(conf):.2f}",
-                                      (int(xyxy[0]), int(xyxy[1]) - 5),
-                                      cv2.FONT_HERSHEY_SIMPLEX, 0.5, GREEN_COLOR, 2, cv2.LINE_AA)
+                            cv2.rectangle(
+                                image,
+                                (int(xyxy[0]), int(xyxy[1])),
+                                (int(xyxy[2]), int(xyxy[3])),
+                                GREEN_COLOR,
+                                2,
+                            )
+                            cv2.putText(
+                                image,
+                                f"{object_name} {float(conf):.2f}",
+                                (int(xyxy[0]), int(xyxy[1]) - 5),
+                                cv2.FONT_HERSHEY_SIMPLEX,
+                                0.5,
+                                GREEN_COLOR,
+                                2,
+                                cv2.LINE_AA,
+                            )
 
             image = cv2.resize(image, (orig_width, orig_height))
             self.publish_debug_image(self.publisher_object_recog, image)
@@ -337,5 +378,5 @@ def main(args=None):
     rclpy.shutdown()
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     main()
