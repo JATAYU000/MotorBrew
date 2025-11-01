@@ -185,8 +185,8 @@ class WarehouseExplore(Node):
 		self.current_shelf_objects = None
 		self.search_point = None
 		self.current_shelf_number = 1
-		self._fb_dist = 21
-		self._lr_dist = 31
+		self._fb_dist = 32
+		self._lr_dist = 40
 
 		# --- State Machine ---
 		self.current_state = -1
@@ -236,8 +236,8 @@ class WarehouseExplore(Node):
 				info = self.find_obstacles_on_ray()
 				if info is not None: self.shelf_info = info
 				self.logger.info("Adjusting position to capture all objects...")
-				if self._fb_dist > 28: self._fb_dist -= 12
-				else: self._fb_dist += 12
+				if self._fb_dist < 25: self._fb_dist += 12
+				else: self._fb_dist -= 12
 				self.current_state = self.MOVE_TO_SHELF
 		else:
 			self.logger.info("No shelf objects received yet.")
@@ -261,8 +261,9 @@ class WarehouseExplore(Node):
 		
 	def adjust_qr(self):
 		if self.qr_code_str is None:
-			if self._lr_dist > 36:self._lr_dist-=10
-			else:self._lr_dist+=10
+			if self._lr_dist < 36:self._lr_dist+=12
+			else:self._lr_dist-=12
+			self.current_state = self.MOVE_TO_QR
 		else:
 			self.logger.info('ADJUST BUT QR GOT???????????/')
 			return
