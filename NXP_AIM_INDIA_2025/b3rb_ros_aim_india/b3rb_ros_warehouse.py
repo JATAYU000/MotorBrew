@@ -186,7 +186,7 @@ class WarehouseExplore(Node):
 		self.current_shelf_objects = None
 		self.search_point = None
 		self.current_shelf_number = 1
-		self._fb_dist = 17
+		self._fb_dist = 21
 		self.big_dict = {1:None,2:None,3:None,4:None,5:None}
 
 		# --- State Machine ---
@@ -239,7 +239,7 @@ class WarehouseExplore(Node):
 			else:
 				self.shelf_info = self.find_obstacles_on_ray()
 				self.logger.info("Adjusting position to capture all objects...")
-				if self._fb_dist > 25: self._fb_dist -= 12
+				if self._fb_dist > 30: self._fb_dist -= 12
 				else: self._fb_dist += 12
 				self.current_state = self.MOVE_TO_SHELF
 		else:
