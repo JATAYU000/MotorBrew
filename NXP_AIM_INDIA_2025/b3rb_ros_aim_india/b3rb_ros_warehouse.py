@@ -412,7 +412,7 @@ class WarehouseExplore(Node):
 			(center, (h,w), angle) = found_rect
 			if w>h:h,w = w,h
 			self.logger.info(f"Detected obstacle at center {center} with width {w:.2f} and height {h:.2f}")
-			if 25 <= h <= 37 and 6.5 <= w <= 13:
+			if 22 <= h <= 37 and 6.5 <= w <= 13:
 				points = i["points"]
 				points_array = np.squeeze(points)
 				orientation_info = self.calculate_shelf_orientation(points_array)
