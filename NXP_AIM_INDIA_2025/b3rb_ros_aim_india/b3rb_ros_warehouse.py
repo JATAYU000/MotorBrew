@@ -178,6 +178,7 @@ class WarehouseExplore(Node):
 
 		# --- QR Code Data ---
 		self.qr_code_str = None
+		self.ii = 0
 
 		# --- Shelf Data ---
 		self.shelf_objects_curr = WarehouseShelf()
@@ -186,7 +187,7 @@ class WarehouseExplore(Node):
 		self.current_shelf_objects = None
 		self.search_point = None
 		self.current_shelf_number = 1
-		self._fb_dist = 21
+		self._fb_dist = 20
 		self.big_dict = {1:None,2:None,3:None,4:None,5:None}
 
 		# --- State Machine ---
@@ -883,7 +884,7 @@ class WarehouseExplore(Node):
 			None
 		"""
 		self.global_map_curr = message
-
+		self.ii += 1
 		if self.qr_code_str is not None and self.current_state == self.MOVE_TO_QR:
 			self.logger.info(f"\n\n\nQR code detected: {self.qr_code_str}, processing...")
 			self.cancel_current_goal()
@@ -1048,6 +1049,8 @@ class WarehouseExplore(Node):
 			None
 		"""
 		np_arr = np.frombuffer(message.data, np.uint8)
+		if self.ii< 10:
+			np.save(f"frame_{self.ii}",np_arr)
 		image = cv2.imdecode(np_arr, cv2.IMREAD_COLOR)
 		# Process the image from front camera as needed.
 
