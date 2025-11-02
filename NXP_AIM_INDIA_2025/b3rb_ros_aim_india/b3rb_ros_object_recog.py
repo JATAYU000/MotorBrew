@@ -278,18 +278,24 @@ class ObjectRecognizer(Node):
 
         input_detail = self.input_details[0]
         dtype = input_detail["dtype"]
-        if dtype in [np.int8, np.uint8]:
+        is_quantized = dtype in [np.int8, np.uint8]
+        if is_quantized:
             scale, zero_point = input_detail["quantization"]
             img = (img / scale + zero_point).astype(dtype)
+
+        start_time = time.time()
 
         self.interpreter.set_tensor(input_detail["index"], img)
 
         self.interpreter.invoke()
 
+        inference_time = (time.time() - start_time) * 1000  # milliseconds
+        self.get_logger().info(f"Inference time: {inference_time:.2f} ms")
+
         y = []
         for output in self.output_details:
             x = self.interpreter.get_tensor(output["index"])
-            if int8:
+            if is_quantized:
                 scale, zero_point = output["quantization"]
                 x = (x.astype(np.float32) - zero_point) * scale
             y.append(x)
