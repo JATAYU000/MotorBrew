@@ -191,8 +191,8 @@ class WarehouseExplore(Node):
 		self.current_shelf_objects = None
 		self.search_point = None
 		self.current_shelf_number = 1
-		self._fb_dist = 30
-		self._lr_dist = 30
+		self._fb_dist = 35
+		self._lr_dist = 35
 
 		# --- State Machine ---
 		self.current_state = -1
@@ -245,10 +245,12 @@ class WarehouseExplore(Node):
 	def handle_move_to_shelf(self):
 			
 		self.front, self.back = self.find_front_back_points(self._fb_dist,False)
+		self.f, self.b = self.find_front_back_points(35,False)
+
 		direction = self.shelf_info['orientation']['secondary_direction']
 		self.logger.info(f" f b : {self.find_obs_around_point(self.front, 30)}, {self.find_obs_around_point(self.back,30)}")
 		# self.target_view_point = self.front if self.calc_distance(self.buggy_map_xy, self.front) < self.calc_distance(self.buggy_map_xy, self.back) else self.back
-		self.target_view_point = self.front if self.find_obs_around_point(self.front, 30) < self.find_obs_around_point(self.back,30)  else self.back
+		self.target_view_point = self.front if self.find_obs_around_point(self.f, 30) < self.find_obs_around_point(self.b,30)  else self.back
 		cen = self.get_map_coord_from_world_coord(float(self.shelf_info['center'][0]), float(self.shelf_info['center'][1]), self.global_map_curr.info)
 		yaw = self.find_angle_point_direction(cen, self.target_view_point, direction)
 		goal_x, goal_y = self.get_world_coord_from_map_coord(float(self.target_view_point[0]), float(self.target_view_point[1]), self.global_map_curr.info)
@@ -285,11 +287,13 @@ class WarehouseExplore(Node):
 
 	def handle_qr_navigation(self):
 		self.left, self.right = self.find_front_back_points(self._lr_dist,True)
+		self.l, self.r = self.find_front_back_points(35,True)
+
 		direction = self.shelf_info['orientation']['primary_direction']
 		self.logger.info(f" f b : {self.find_obs_around_point(self.left, 30)}, {self.find_obs_around_point(self.right,30)}")
 
 		# self.target_view_point = self.left if self.calc_distance(self.buggy_map_xy, self.left) < self.calc_distance(self.buggy_map_xy, self.right) else self.right
-		self.target_view_point = self.left if self.find_obs_around_point(self.left, 30) < self.find_obs_around_point(self.right,30)  else self.right
+		self.target_view_point = self.left if self.find_obs_around_point(self.l, 30) < self.find_obs_around_point(self.r,30)  else self.right
 
 		cen = self.get_map_coord_from_world_coord(float(self.shelf_info['center'][0]), float(self.shelf_info['center'][1]), self.global_map_curr.info)
 		yaw = self.find_angle_point_direction(cen, self.target_view_point, direction)
@@ -909,6 +913,7 @@ class WarehouseExplore(Node):
 			map_info.width / 2, map_info.height / 2, map_info
 		)
 		self.simple_map_array = np.array(self.simple_map_curr.data).reshape((map_info.height, map_info.width))
+		np.save("simap.npy",self.simple_map_array)
 	
 	def get_frontiers_for_space_exploration(self, map_array):
 		"""Identifies frontiers for space exploration.
