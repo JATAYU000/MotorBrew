@@ -186,7 +186,7 @@ class WarehouseExplore(Node):
 		self.search_point = None
 		self.current_shelf_number = 1
 		self._fb_dist = 32
-		self._lr_dist = 35
+		self._lr_dist = 32
 
 		# --- State Machine ---
 		self.current_state = -1
@@ -261,7 +261,7 @@ class WarehouseExplore(Node):
 		
 	def adjust_qr(self):
 		if self.qr_code_str is None:
-			if self._lr_dist < 36:self._lr_dist+=12
+			if self._lr_dist < 30:self._lr_dist+=12
 			else:self._lr_dist-=12
 			self.current_state = self.MOVE_TO_QR
 		else:
@@ -285,7 +285,7 @@ class WarehouseExplore(Node):
 		self.shelf_info = self.find_obstacles_on_ray()
 		self.logger.info(f"SHELF INFO: {self.shelf_info}")
 		self.logger.info(f"prev shelf center: {self.prev_shelf_center}")
-		if self.shelf_info is not None and self.find_free_space_around_point(self.get_map_coord_from_world_coord(float(self.shelf_info['center'][0]), float(self.shelf_info['center'][1]), self.global_map_curr.info), radius=75) > 10:
+		if self.shelf_info is not None and self.find_free_space_around_point(self.get_map_coord_from_world_coord(float(self.shelf_info['center'][0]), float(self.shelf_info['center'][1]), self.global_map_curr.info), radius=75) > 68:
 			self.logger.info(f"Map is mostly free, skipping exp: {self.find_free_space_around_point(self.get_map_coord_from_world_coord(float(self.shelf_info['center'][0]), float(self.shelf_info['center'][1]), self.global_map_curr.info), radius=75)}% free")
 			self.current_state = self.MOVE_TO_SHELF
 			return
@@ -769,6 +769,10 @@ class WarehouseExplore(Node):
 		if self.current_state == -1:
 			self.prev_shelf_center = (self.buggy_pose_x, self.buggy_pose_y)
 			self.trigger_detection(detect=True)
+			self.logger.info("GLOBAL")
+			info = self.simple_map_curr.info
+			self.logger.info(f"gmap info: {info}")
+			self.logger.info(f"00 : {self.get_map_coord_from_world_coord(0.0,0.0,info)} 11: {self.get_map_coord_from_world_coord(1.0,1.0,info)}")
 			self.current_state = self.EXPLORE
 
 		elif self.current_state == self.EXPLORE:
@@ -1114,13 +1118,11 @@ class WarehouseExplore(Node):
 			self.cancel_current_goal()  # Unblock by discarding the current goal.
 		
 		if self.current_state == self.EXPLORE:
-			# if number_of_recoveries>5:
-			# 	self.logger.info(f"Cancelling since trying to recover {number_of_recoveries}")
-			# 	self.logger.info(f"\n\nRecoveries: {number_of_recoveries}, "
-			# 	  f"Navigation time: {navigation_time}s, "
-			# 	  f"Distance remaining: {distance_remaining:.2f}, "
-			# 	  f"Estimated time remaining: {estimated_time_remaining}s")
-			# 	self.cancel_current_goal()
+			if self.shelf_info is not None and self.find_free_space_around_point(self.get_map_coord_from_world_coord(float(self.shelf_info['center'][0]), float(self.shelf_info['center'][1]), self.global_map_curr.info), radius=75) > 68:
+				self.logger.info(f"CLEAR ENOUGH STAWP FRONTIER")
+				self.cancel_current_goal()
+				self.current_state = self.MOVE_TO_SHELF
+
 			if self.curr_frontier_goal is not None and self.calc_distance(self.buggy_map_xy,self.curr_frontier_goal)<15:
 				self.logger.info(f"Cancelling since dist {self.calc_distance(self.buggy_map_xy,self.curr_frontier_goal)}<15")
 				self.cancel_current_goal()
