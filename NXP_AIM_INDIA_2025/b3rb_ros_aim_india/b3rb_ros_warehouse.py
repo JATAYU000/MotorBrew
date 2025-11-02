@@ -245,7 +245,8 @@ class WarehouseExplore(Node):
 	def handle_move_to_shelf(self):
 		self.front, self.back = self.find_front_back_points(self._fb_dist,False)
 		direction = self.shelf_info['orientation']['secondary_direction']
-		self.target_view_point = self.front if self.calc_distance(self.buggy_map_xy, self.front) < self.calc_distance(self.buggy_map_xy, self.back) else self.back
+		# self.target_view_point = self.front if self.calc_distance(self.buggy_map_xy, self.front) < self.calc_distance(self.buggy_map_xy, self.back) else self.back
+		self.target_view_point = self.front if self.find_obs_around_point(self.front, 30) < self.find_obs_around_point(self.back,30)  else self.back
 		cen = self.get_map_coord_from_world_coord(float(self.shelf_info['center'][0]), float(self.shelf_info['center'][1]), self.global_map_curr.info)
 		yaw = self.find_angle_point_direction(cen, self.target_view_point, direction)
 		goal_x, goal_y = self.get_world_coord_from_map_coord(float(self.target_view_point[0]), float(self.target_view_point[1]), self.global_map_curr.info)
@@ -283,7 +284,9 @@ class WarehouseExplore(Node):
 	def handle_qr_navigation(self):
 		self.left, self.right = self.find_front_back_points(self._lr_dist,True)
 		direction = self.shelf_info['orientation']['primary_direction']
-		self.target_view_point = self.left if self.calc_distance(self.buggy_map_xy, self.left) < self.calc_distance(self.buggy_map_xy, self.right) else self.right
+		# self.target_view_point = self.left if self.calc_distance(self.buggy_map_xy, self.left) < self.calc_distance(self.buggy_map_xy, self.right) else self.right
+		self.target_view_point = self.left if self.find_obs_around_point(self.left, 30) < self.find_obs_around_point(self.right,30)  else self.right
+
 		cen = self.get_map_coord_from_world_coord(float(self.shelf_info['center'][0]), float(self.shelf_info['center'][1]), self.global_map_curr.info)
 		yaw = self.find_angle_point_direction(cen, self.target_view_point, direction)
 		goal_x, goal_y = self.get_world_coord_from_map_coord(float(self.target_view_point[0]), float(self.target_view_point[1]), self.global_map_curr.info)
@@ -685,6 +688,33 @@ class WarehouseExplore(Node):
 					if 0 <= nx < self.map_array.shape[1] and 0 <= ny < self.map_array.shape[0]:
 						total_cells += 1
 						if self.map_array[ny, nx] == 0:
+							free_space_count += 1
+		if total_cells > 0:
+			return (free_space_count / total_cells) * 100
+		return 0
+	
+	def find_obs_around_point(self, point, radius):
+		"""
+		Calculates the percentage of free space (cells with value 0) within a circular area around a given point in a 2D map array.
+		Parameters:
+			map_array (np.ndarray): 2D numpy array representing the map, where 0 indicates free space and other values indicate obstacles or unknown areas.
+			point (tuple): (x, y) coordinates of the center point around which to calculate free space.
+			radius (int or float): Radius of the circular area (in cells) to consider around the point.
+		Returns:
+			float: Percentage of free space within the specified circular area. Returns 0 if no valid cells are found within the area.
+		"""
+		x, y = int(point[0]), int(point[1])
+		radius = int(radius)
+		free_space_count = 0
+		total_cells = 0
+		
+		for dy in range(-radius, radius + 1):
+			for dx in range(-radius, radius + 1):
+				if dx**2 + dy**2 <= radius**2:
+					ny, nx = y + dy, x + dx
+					if 0 <= nx < self.map_array.shape[1] and 0 <= ny < self.map_array.shape[0]:
+						total_cells += 1
+						if 95 <=self.map_array[ny, nx] <=101:
 							free_space_count += 1
 		if total_cells > 0:
 			return (free_space_count / total_cells) * 100
