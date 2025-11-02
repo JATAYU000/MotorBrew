@@ -951,6 +951,7 @@ class WarehouseExplore(Node):
 
 					for ny, nx in neighbors_cardinal:
 						if map_array[ny, nx] == 0:  # Free space.
+							self.logger.info(f"obs percent {self.find_obs_around_point((nx,ny),10)}")
 							frontiers.append((ny, nx))
 							break
 
@@ -1199,8 +1200,8 @@ class WarehouseExplore(Node):
 				self.cancel_current_goal()
 				self.current_state = self.MOVE_TO_SHELF
 
-			if self.curr_frontier_goal is not None and self.calc_distance(self.buggy_map_xy,self.curr_frontier_goal)<15:
-				self.logger.info(f"Cancelling since dist {self.calc_distance(self.buggy_map_xy,self.curr_frontier_goal)}<15")
+			if self.curr_frontier_goal is not None and self.calc_distance(self.buggy_map_xy,self.curr_frontier_goal)<20:
+				self.logger.info(f"Cancelling since dist {self.calc_distance(self.buggy_map_xy,self.curr_frontier_goal)}<20")
 				self.cancel_current_goal()
 				self.curr_frontier_goal = None
 
