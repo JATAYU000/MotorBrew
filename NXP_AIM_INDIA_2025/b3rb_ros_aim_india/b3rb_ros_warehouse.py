@@ -950,7 +950,7 @@ class WarehouseExplore(Node):
 					]
 
 					for ny, nx in neighbors_cardinal:
-						if map_array[ny, nx] == 0 and self.find_obs_around_point((nx,ny),10) <10:  # Free space.
+						if map_array[ny, nx] == 0 and self.find_obs_around_point((nx,ny),10) <12:  # Free space.
 							# self.logger.info(f"obs percent {self.find_obs_around_point((nx,ny),10)}")
 							frontiers.append((ny, nx))
 							break
