@@ -262,8 +262,8 @@ class ObjectRecognizer(Node):
         self.detect_mode = message.detect_mode
 
     def camera_image_callback(self, message):
-        if not getattr(self, "detect_mode", False):
-            return
+        # if not getattr(self, "detect_mode", False):
+        #     return
 
         np_arr = np.frombuffer(message.data, np.uint8)
         image_orig = cv2.imdecode(np_arr, cv2.IMREAD_COLOR)
@@ -290,7 +290,7 @@ class ObjectRecognizer(Node):
         self.interpreter.invoke()
 
         inference_time = (time.time() - start_time) * 1000  # milliseconds
-        self.get_logger().info(f"Inference time: {inference_time:.2f} ms")
+        print(f"Inference time: {inference_time:.2f} ms")
 
         y = []
         for output in self.output_details:
