@@ -1198,7 +1198,7 @@ class WarehouseExplore(Node):
 		if number_of_recoveries > self.recovery_threshold and not self.cancelling_goal:
 			self.logger.warn(f"Cancelling. Recoveries = {number_of_recoveries}.")
 			self.cancel_current_goal()  # Unblock by discarding the current goal.
-			self.current_state = self.MOVE_TO_SHELF if self.current_state == self.CAPTURE_OBJECT else self.current_state
+			self.current_state = self.MOVE_TO_SHELF if self.current_state == self.CAPTURE_OBJECTS else self.current_state
 		
 		if self.current_state == self.EXPLORE:
 			if self.shelf_info is not None and self.find_free_space_around_point(self.get_map_coord_from_world_coord(float(self.shelf_info['center'][0]), float(self.shelf_info['center'][1]), self.global_map_curr.info), radius=75) > 48:
