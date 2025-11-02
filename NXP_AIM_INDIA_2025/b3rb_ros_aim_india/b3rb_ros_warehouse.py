@@ -243,10 +243,6 @@ class WarehouseExplore(Node):
 	# -------------------- MOVE TO THE SHELF -----------------------
 
 	def handle_move_to_shelf(self):
-		if sum(self.current_shelf_objects.object_count) >= 4:
-			info = self.find_obstacles_on_ray()
-			if info is not None: self.shelf_info = info
-			self.current_state = self.MOVE_TO_QR
 			
 		self.front, self.back = self.find_front_back_points(self._fb_dist,False)
 		direction = self.shelf_info['orientation']['secondary_direction']
