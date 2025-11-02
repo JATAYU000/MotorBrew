@@ -258,7 +258,7 @@ class WarehouseExplore(Node):
 		goal = self.create_goal_from_world_coord(goal_x, goal_y, math.radians(yaw))
 		if self.send_goal_from_world_pose(goal):
 			self.logger.info(f"NAV TO SHELF Goal sent to ({goal_x:.2f}, {goal_y:.2f}) with yaw {yaw:.2f}°")
-			self.nxt_state = self.CAPTURE_OBJECTS
+			self.current_state = self.CAPTURE_OBJECTS
 		else:
 			self.logger.error("Failed to send navigation goal!")
 		
@@ -1199,6 +1199,7 @@ class WarehouseExplore(Node):
 			self.logger.warn(f"Cancelling. Recoveries = {number_of_recoveries}.")
 			self.cancel_current_goal()  # Unblock by discarding the current goal.
 			self.current_state = self.MOVE_TO_SHELF if self.current_state == self.CAPTURE_OBJECTS else self.current_state
+			
 		
 		if self.current_state == self.EXPLORE:
 			if self.shelf_info is not None and self.find_free_space_around_point(self.get_map_coord_from_world_coord(float(self.shelf_info['center'][0]), float(self.shelf_info['center'][1]), self.global_map_curr.info), radius=75) > 48:
