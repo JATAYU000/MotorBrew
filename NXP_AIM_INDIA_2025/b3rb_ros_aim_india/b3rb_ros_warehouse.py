@@ -65,6 +65,12 @@ class WarehouseExplore(Node):
 	def __init__(self):
 		super().__init__('warehouse_explore')
 
+		self.scan_data = self.create_subscription(
+			LaserScan,
+			'/scan',
+			self.scan_callback,
+			QOS_PROFILE_DEFAULT)
+		
 		self.detect_notify = self.create_publisher(
 			DetectNotifier,
 			'/detect_notifier',
@@ -196,6 +202,7 @@ class WarehouseExplore(Node):
 		self.MOVE_TO_QR = 3
 		self.ADJUST_TO = 4
 		self.DEBUG = 5
+		self.RECOVER = 6
 		self.start = time.time()
 
 		self.send_request_to_server(rtype='reset')
@@ -204,6 +211,35 @@ class WarehouseExplore(Node):
 		detect_msg = DetectNotifier()
 		detect_msg.detect_mode = bool(detect)
 		self.detect_notify.publish(detect_msg)
+
+	def scan_callback(self, message):
+		if self.current_state == self.RECOVER:
+			self.scan_data = message
+			self.scan_ranges = np.array(message.ranges)
+			self.scan_ranges = np.nan_to_num(self.scan_ranges, nan=message.range_max, posinf=message.range_max)
+			self.logger.info(f"In recover mode trying to calculate free space")
+			curr_angle = math.radians(self.get_yaw_from_quaternion(self.pose_curr.pose.pose.orientation))
+			threshold = 0.8  
+			free_indices = np.where(self.scan_ranges > threshold)[0]
+
+			if len(free_indices) == 0:
+				self.get_logger().info("No free direction!")
+				return
+
+			best_index = int(np.argmax(self.scan_ranges))
+			best_angle = message.angle_min + best_index * message.angle_increment
+			escape_dist = self.scan_ranges[best_index]
+
+			self.escape_angle = curr_angle + best_angle
+			target_x = self.buggy_pose_x + math.cos(self.escape_angle) * escape_dist * 0.4
+			target_y = self.buggy_pose_y + math.cos(self.escape_angle) * escape_dist * 0.4
+			
+
+			goal = self.create_goal_from_world_coord(target_x, target_y, self.escape_angle)
+			if self.send_goal_from_world_pose(goal):
+				self.logger.info(f"NAV TO SHELF Goal sent to ({target_x:.2f}, {target_y:.2f}) with yaw {self.escape_angle:.2f}°") 
+				self.current_state = self.EXPLORE
+			
 	# -------------------- MOVE TO THE SHELF -----------------------
 
 	def handle_move_to_shelf(self):
@@ -1119,6 +1155,7 @@ class WarehouseExplore(Node):
 		if number_of_recoveries > self.recovery_threshold and not self.cancelling_goal:
 			self.logger.warn(f"Cancelling. Recoveries = {number_of_recoveries}.")
 			self.cancel_current_goal()  # Unblock by discarding the current goal.
+			self.current_state = self.RECOVER
 		
 		if self.current_state == self.EXPLORE:
 			if self.shelf_info is not None and self.find_free_space_around_point(self.get_map_coord_from_world_coord(float(self.shelf_info['center'][0]), float(self.shelf_info['center'][1]), self.global_map_curr.info), radius=75) > 58:
