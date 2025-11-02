@@ -277,10 +277,10 @@ class ObjectRecognizer(Node):
         img = np.expand_dims(image, axis=0)
 
         input_detail = self.input_details[0]
-        int8 = input_detail["dtype"] == np.uint8
-        if int8:
+        dtype = input_detail["dtype"]
+        if dtype in [np.int8, np.uint8]:
             scale, zero_point = input_detail["quantization"]
-            img = (img / scale + zero_point).astype(np.uint8)
+            img = (img / scale + zero_point).astype(dtype)
 
         self.interpreter.set_tensor(input_detail["index"], img)
 
