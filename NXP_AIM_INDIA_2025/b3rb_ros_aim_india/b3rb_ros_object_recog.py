@@ -202,9 +202,9 @@ class ObjectRecognizer(Node):
             self.detect_mode_callback,
             QOS_PROFILE_DEFAULT,
         )
-        ext_delegate_opts = {}
+        ext_delegate_options = {}
         ext_delegate_opts = [
-            tflite.load_delegate("/usr/lib/libvx_delegate.so", ext_delegate_opts)
+            tflite.load_delegate("/usr/lib/libvx_delegate.so", ext_delegate_options)
         ]
 
         resource_name_coco = "../../../../share/ament_index/resource_index/coco.yaml"
@@ -221,7 +221,9 @@ class ObjectRecognizer(Node):
         with open(resource_path_coco) as f:
             self.label_names = yaml.load(f, Loader=yaml.FullLoader)["names"]
 
-        self.interpreter = tflite.Interpreter(model_path=resource_path_yolo)
+        self.interpreter = tflite.Interpreter(
+            model_path=resource_path_yolo, experimental_delegates=ext_delegate_opts
+        )
         self.interpreter.allocate_tensors()
 
         self.input_details = self.interpreter.get_input_details()
