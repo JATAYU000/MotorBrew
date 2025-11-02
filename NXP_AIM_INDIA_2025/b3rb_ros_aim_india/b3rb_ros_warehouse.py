@@ -196,6 +196,7 @@ class WarehouseExplore(Node):
 
 		# --- State Machine ---
 		self.current_state = -1
+		self.prev_state = -1
 		self.EXPLORE = 0
 		self.MOVE_TO_SHELF = 1
 		self.CAPTURE_OBJECTS = 2
@@ -257,7 +258,7 @@ class WarehouseExplore(Node):
 		goal = self.create_goal_from_world_coord(goal_x, goal_y, math.radians(yaw))
 		if self.send_goal_from_world_pose(goal):
 			self.logger.info(f"NAV TO SHELF Goal sent to ({goal_x:.2f}, {goal_y:.2f}) with yaw {yaw:.2f}°")
-			self.current_state = self.CAPTURE_OBJECTS
+			self.nxt_state = self.CAPTURE_OBJECTS
 		else:
 			self.logger.error("Failed to send navigation goal!")
 		
@@ -1197,22 +1198,20 @@ class WarehouseExplore(Node):
 		if number_of_recoveries > self.recovery_threshold and not self.cancelling_goal:
 			self.logger.warn(f"Cancelling. Recoveries = {number_of_recoveries}.")
 			self.cancel_current_goal()  # Unblock by discarding the current goal.
-			# self.current_state = self.RECOVER
+			self.current_state = self.MOVE_TO_SHELF if self.current_state == self.CAPTURE_OBJECT else self.current_state
 		
 		if self.current_state == self.EXPLORE:
 			if self.shelf_info is not None and self.find_free_space_around_point(self.get_map_coord_from_world_coord(float(self.shelf_info['center'][0]), float(self.shelf_info['center'][1]), self.global_map_curr.info), radius=75) > 48:
 				self.logger.info(f"CLEAR ENOUGH STAWP FRONTIER")
 				self.cancel_current_goal()
 				self.current_state = self.MOVE_TO_SHELF
+				self.prev_state = self.MOVE_TO_SHELF
 
 			if self.curr_frontier_goal is not None and self.calc_distance(self.buggy_map_xy,self.curr_frontier_goal)<15:
 				self.logger.info(f"Cancelling since dist {self.calc_distance(self.buggy_map_xy,self.curr_frontier_goal)}<20")
 				self.cancel_current_goal()
 				self.curr_frontier_goal = None
 
-		elif self.current_state == self.CAPTURE_OBJECTS and self.current_shelf_objects!=None and sum(self.current_shelf_objects.object_count) == 6:
-			self.logger.info("All objects captured, cancelling goal.")
-			self.cancel_current_goal()
 		
 		elif self.current_state == self.MOVE_TO_QR:
 			if self.qr_code_str is not None:
