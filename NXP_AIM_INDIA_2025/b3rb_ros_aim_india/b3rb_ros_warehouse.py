@@ -245,6 +245,7 @@ class WarehouseExplore(Node):
 	def handle_move_to_shelf(self):
 		self.front, self.back = self.find_front_back_points(self._fb_dist,False)
 		direction = self.shelf_info['orientation']['secondary_direction']
+		self.logger.info(f" f b : {self.find_obs_around_point(self.front, 30)}, {self.find_obs_around_point(self.back,30)}")
 		# self.target_view_point = self.front if self.calc_distance(self.buggy_map_xy, self.front) < self.calc_distance(self.buggy_map_xy, self.back) else self.back
 		self.target_view_point = self.front if self.find_obs_around_point(self.front, 30) < self.find_obs_around_point(self.back,30)  else self.back
 		cen = self.get_map_coord_from_world_coord(float(self.shelf_info['center'][0]), float(self.shelf_info['center'][1]), self.global_map_curr.info)
@@ -284,6 +285,8 @@ class WarehouseExplore(Node):
 	def handle_qr_navigation(self):
 		self.left, self.right = self.find_front_back_points(self._lr_dist,True)
 		direction = self.shelf_info['orientation']['primary_direction']
+		self.logger.info(f" f b : {self.find_obs_around_point(self.left, 30)}, {self.find_obs_around_point(self.right,30)}")
+
 		# self.target_view_point = self.left if self.calc_distance(self.buggy_map_xy, self.left) < self.calc_distance(self.buggy_map_xy, self.right) else self.right
 		self.target_view_point = self.left if self.find_obs_around_point(self.left, 30) < self.find_obs_around_point(self.right,30)  else self.right
 
