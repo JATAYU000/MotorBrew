@@ -243,6 +243,11 @@ class WarehouseExplore(Node):
 	# -------------------- MOVE TO THE SHELF -----------------------
 
 	def handle_move_to_shelf(self):
+		if sum(self.current_shelf_objects.object_count) >= 4:
+			info = self.find_obstacles_on_ray()
+			if info is not None: self.shelf_info = info
+			self.current_state = self.MOVE_TO_QR
+			
 		self.front, self.back = self.find_front_back_points(self._fb_dist,False)
 		direction = self.shelf_info['orientation']['secondary_direction']
 		self.logger.info(f" f b : {self.find_obs_around_point(self.front, 30)}, {self.find_obs_around_point(self.back,30)}")
@@ -1190,7 +1195,7 @@ class WarehouseExplore(Node):
 		if number_of_recoveries > self.recovery_threshold and not self.cancelling_goal:
 			self.logger.warn(f"Cancelling. Recoveries = {number_of_recoveries}.")
 			self.cancel_current_goal()  # Unblock by discarding the current goal.
-			self.current_state = self.RECOVER
+			# self.current_state = self.RECOVER
 		
 		if self.current_state == self.EXPLORE:
 			if self.shelf_info is not None and self.find_free_space_around_point(self.get_map_coord_from_world_coord(float(self.shelf_info['center'][0]), float(self.shelf_info['center'][1]), self.global_map_curr.info), radius=75) > 48:
