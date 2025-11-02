@@ -252,9 +252,6 @@ class ObjectRecognizer(Node):
             _, encoded_data = cv2.imencode(".jpg", image)
             message.format = "jpeg"
             message.data = encoded_data.tobytes()
-            self.get_logger().info(
-                "Publishing debug image....with bounding boxes......../debug_images/object_recog"
-            )
             publisher.publish(message)
 
     def detect_mode_callback(self, message):
