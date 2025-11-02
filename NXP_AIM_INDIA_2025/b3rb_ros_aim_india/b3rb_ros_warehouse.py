@@ -1205,7 +1205,7 @@ class WarehouseExplore(Node):
 				self.cancel_current_goal()
 				self.current_state = self.MOVE_TO_SHELF
 
-			if self.curr_frontier_goal is not None and self.calc_distance(self.buggy_map_xy,self.curr_frontier_goal)<20:
+			if self.curr_frontier_goal is not None and self.calc_distance(self.buggy_map_xy,self.curr_frontier_goal)<15:
 				self.logger.info(f"Cancelling since dist {self.calc_distance(self.buggy_map_xy,self.curr_frontier_goal)}<20")
 				self.cancel_current_goal()
 				self.curr_frontier_goal = None
