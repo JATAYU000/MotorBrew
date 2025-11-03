@@ -192,11 +192,10 @@ class WarehouseExplore(Node):
 		self.search_point = None
 		self.current_shelf_number = 1
 		self._fb_dist = 35
-		self._lr_dist = 35
+		self._lr_dist = 37
 
 		# --- State Machine ---
 		self.current_state = -1
-		self.prev_state = -1
 		self.EXPLORE = 0
 		self.MOVE_TO_SHELF = 1
 		self.CAPTURE_OBJECTS = 2
@@ -288,7 +287,7 @@ class WarehouseExplore(Node):
 
 	def handle_qr_navigation(self):
 		self.left, self.right = self.find_front_back_points(self._lr_dist,True)
-		self.l, self.r = self.find_front_back_points(35,True)
+		self.l, self.r = self.find_front_back_points(37,True)
 
 		direction = self.shelf_info['orientation']['primary_direction']
 		self.logger.info(f" f b : {self.find_obs_around_point(self.left, 30)}, {self.find_obs_around_point(self.right,30)}")
@@ -914,7 +913,7 @@ class WarehouseExplore(Node):
 			map_info.width / 2, map_info.height / 2, map_info
 		)
 		self.simple_map_array = np.array(self.simple_map_curr.data).reshape((map_info.height, map_info.width))
-		np.save("simap.npy",self.simple_map_array)
+		np.save("simap_mon.npy",self.simple_map_array)
 	
 	def get_frontiers_for_space_exploration(self, map_array):
 		"""Identifies frontiers for space exploration.
@@ -993,18 +992,16 @@ class WarehouseExplore(Node):
 		image = cv2.imdecode(np_arr, cv2.IMREAD_COLOR)
 		# Process the image from front camera as needed.
 
-		# Optional line for visualizing image on foxglove.
-		# if self.current_state == self.MOVE_TO_QR:
 		qr_codes = pyzbar.decode(image)
 		if qr_codes:
 			for qr_code in qr_codes:
 				qr_data = qr_code.data.decode('utf-8')
 				if 'qr1' in qr_data:
-					self.qr_code_str = '1_180.0_MotorBrew'
+					self.qr_code_str = '1_150.0_MotorBrew'
 				elif 'qr2' in qr_data:
 					self.qr_code_str = '2_215.0_MotorBrew'
 				elif 'qr3' in qr_data:
-					self.qr_code_str = '3_145.0_MotorBrew'
+					self.qr_code_str = '3_210.0_MotorBrew'
 				elif 'qr4' in qr_data:
 					self.qr_code_str = '4_000.0_MotorBrew'
 				elif 'qr5' in qr_data:
@@ -1206,7 +1203,6 @@ class WarehouseExplore(Node):
 				self.logger.info(f"CLEAR ENOUGH STAWP FRONTIER")
 				self.cancel_current_goal()
 				self.current_state = self.MOVE_TO_SHELF
-				self.prev_state = self.MOVE_TO_SHELF
 
 			if self.curr_frontier_goal is not None and self.calc_distance(self.buggy_map_xy,self.curr_frontier_goal)<15:
 				self.logger.info(f"Cancelling since dist {self.calc_distance(self.buggy_map_xy,self.curr_frontier_goal)}<20")
