@@ -15,7 +15,7 @@ setup(
         # ("share/ament_index/resource_index", ["resource/yolo11m_integer_quant.tflite"]),
         (
             "share/ament_index/resource_index",
-            ["resource/yolo11m_full_integer_quant.tflite"],
+            ["resource/yolov8m_full_integer_quant.tflite"],
         ),
         ("share/" + package_name, ["package.xml"]),
     ],
