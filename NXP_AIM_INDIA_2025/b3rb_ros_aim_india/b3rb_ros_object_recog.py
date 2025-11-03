@@ -14,12 +14,12 @@ import torchvision
 import time
 import yaml
 import tflite_runtime.interpreter as tflite
-from vision_msgs.msg import (
-    Detection2D,
-    Detection2DArray,
-    ObjectHypothesisWithPose,
-    BoundingBox2D,
-)
+# from vision_msgs.msg import (
+#     Detection2D,
+#     Detection2DArray,
+#     ObjectHypothesisWithPose,
+#     BoundingBox2D,
+# )
 
 
 QOS_PROFILE_DEFAULT = 10
@@ -210,9 +210,9 @@ class ObjectRecognizer(Node):
             QOS_PROFILE_DEFAULT,
         )
 
-        self.publisher_bboxes = self.create_publisher(
-            Detection2DArray, "/object_bboxes", QOS_PROFILE_DEFAULT
-        )
+        # self.publisher_bboxes = self.create_publisher(
+        #     Detection2DArray, "/object_bboxes", QOS_PROFILE_DEFAULT
+        # )
 
         ext_delegate_options = {}
         ext_delegate_opts = [
@@ -223,7 +223,7 @@ class ObjectRecognizer(Node):
         resource_path_coco = pkg_resources.resource_filename(
             PACKAGE_NAME, resource_name_coco
         )
-        resource_name_yolo = "../../../../share/ament_index/resource_index/yolo11l_full_integer_quant.tflite"
+        resource_name_yolo = "../../../../share/ament_index/resource_index/yolo11m_full_integer_quant.tflite"
         resource_path_yolo = pkg_resources.resource_filename(
             PACKAGE_NAME, resource_name_yolo
         )
@@ -339,9 +339,9 @@ class ObjectRecognizer(Node):
                     pred, conf_thres=0.05, iou_thres=0.1, max_det=1000
                 )
 
-            detections_msg = Detection2DArray()
-            detections_msg.header.stamp = msg.header.stamp
-            detections_msg.header.frame_id = msg.header.frame_id
+            # detections_msg = Detection2DArray()
+            # detections_msg.header.stamp = msg.header.stamp
+            # detections_msg.header.frame_id = msg.header.frame_id
 
             for i, det in enumerate(pred):
                 if len(det):
