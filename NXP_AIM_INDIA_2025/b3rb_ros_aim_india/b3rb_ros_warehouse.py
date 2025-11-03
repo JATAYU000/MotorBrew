@@ -191,8 +191,8 @@ class WarehouseExplore(Node):
 		self.current_shelf_objects = None
 		self.search_point = None
 		self.current_shelf_number = 1
-		self._fb_dist = 40
-		self._lr_dist = 40
+		self._fb_dist = 38
+		self._lr_dist = 38
 		self.obj_retry = 0
 
 		# --- State Machine ---
