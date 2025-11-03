@@ -191,7 +191,7 @@ class WarehouseExplore(Node):
 		self.current_shelf_objects = None
 		self.search_point = None
 		self.current_shelf_number = 1
-		self._fb_dist = 39
+		self._fb_dist = 36
 		self._lr_dist = 39
 		self.obj_retry = 0
 
@@ -279,7 +279,7 @@ class WarehouseExplore(Node):
 				if info is not None: self.shelf_info = info
 				self.logger.info("Adjusting position to capture all objects...")
 				if self._fb_dist < 31: self._fb_dist = 35
-				else: self._fb_dist == 28
+				else: self._fb_dist == 30
 				self.obj_retry +=1
 				self.current_state = self.MOVE_TO_SHELF
 		else:
@@ -737,7 +737,7 @@ class WarehouseExplore(Node):
 			self.qr_code_str = None
 			self.current_state = self.EXPLORE
 			self.shelf_info = None
-			self._fb_dist = 39
+			self._fb_dist = 36
 			self._lr_dist = 39
 
 			self.logger.info(f"QR processed, resuming exploration towards angle {self.shelf_angle_deg}°")
@@ -908,7 +908,7 @@ class WarehouseExplore(Node):
 					elif 'qr2' in qr_data:
 						self.qr_code_str = '2_280.0_MotorBrew'
 					elif 'qr3' in qr_data:
-						self.qr_code_str = '3_290.0_MotorBrew'
+						self.qr_code_str = '3_315.0_MotorBrew'
 					elif 'qr4' in qr_data:
 						self.qr_code_str = '4_240.0_MotorBrew'
 					elif 'qr5' in qr_data:
