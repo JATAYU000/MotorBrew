@@ -481,104 +481,6 @@ class WarehouseExplore(Node):
 		return None
 
 
-	def find_first_rectangle(self,rect_fill_ratio=0.50,min_pixel_area=230,max_pixel_area=1200,ignore_radius=30):
-		start_point = self.get_map_coord_from_world_coord(self.prev_shelf_center[0], self.prev_shelf_center[1], self.global_map_curr.info)
-
-		search_angle_deg = self.shelf_angle_deg
-
-		binary_obstacle_map = np.zeros(self.map_array.shape, dtype=np.uint8)
-		binary_obstacle_map[self.map_array == 99] = 255 # Mark obstacles
-		binary_obstacle_map[self.map_array == 100] = 255 # Mark obstacles
-		num_labels, labels_map = cv2.connectedComponents(binary_obstacle_map)
-		
-		if num_labels <= 1:
-			self.logger.info("No obstacles (value 99 or 100) found in the map.")
-			return None
-
-		search_angle_rad = math.radians(search_angle_deg)
-		map_height, map_width = labels_map.shape
-		max_range = int(math.hypot(map_height, map_width))
-		
-		last_hit_object_id = -1 
-
-		self.logger.info(f"Starting ray cast from {start_point} at {search_angle_deg} deg...")
-		for t in range(ignore_radius, max_range):
-			x = int(start_point[0] + t * math.cos(search_angle_rad))
-			y = int(start_point[1] + t * math.sin(search_angle_rad))
-			
-			# Check boundaries
-			if not (0 <= y < map_height and 0 <= x < map_width):
-				break # Ray went out of bounds
-				
-			current_object_id = labels_map[y, x]
-			
-			if current_object_id == 0:
-				last_hit_object_id = -1 
-				continue 
-
-			if current_object_id == last_hit_object_id:
-				continue # Don't re-validate, just move along the ray
-				
-			self.logger.info(f"\nRay hit new object with ID: {current_object_id} at distance {t}")
-			last_hit_object_id = current_object_id 
-			object_mask = np.uint8(labels_map == current_object_id)
-			points = cv2.findNonZero(object_mask)
-			
-			if points is None:
-				self.logger.info("... Error: Could not extract points. Skipping.")
-				continue # Skip this object
-				
-			object_area = len(points)
-			if object_area < min_pixel_area or object_area > max_pixel_area:
-				self.logger.info(f"... Object is too small/large (Area: {object_area}). Skipping.")
-				continue 
-
-			found_rect = cv2.minAreaRect(points)
-			(center, (w, h), angle) = found_rect
-			if h>w:h,w = w,h
-			if w == 0 or h == 0:
-				self.logger.info("... Object is just a line. Skipping.")
-				continue # *** KEY CHANGE: Continue loop, don't return None
-
-			bounding_box_area = w * h
-			rectangularity_ratio = object_area / bounding_box_area
-
-			if rectangularity_ratio >= rect_fill_ratio:
-				oriented_w = max(w, h)
-				oriented_h = min(w, h)
-				wh_ratio = oriented_w / oriented_h
-				if not (3 <= oriented_w <= 45):
-					self.logger.info(f"  -> FAILURE: Width {oriented_w:.1f} not in [31, 45]. Skipping.")
-					continue
-
-				if not (1.7 <= wh_ratio <= 3.0):
-					self.logger.info(f"  -> FAILURE: W/H ratio {wh_ratio:.2f} not in [1.7, 3.0]. Skipping.")
-					continue
-				
-				self.logger.info(f"  -> SUCCESS: Object is a valid rectangle (Ratio > {rect_fill_ratio}).")
-
-				box_points = cv2.boxPoints(found_rect)
-				box_points = np.int0(box_points)
-				points_array = np.squeeze(points)
-				orientation_info = self.calculate_shelf_orientation(points_array)
-				
-				return {
-					"status": "Rectangle Found",
-					"object_id": current_object_id,
-					"center": self.get_world_coord_from_map_coord(center[0], center[1], self.global_map_curr.info),
-							"dimensions": (w, h),
-					"angle": angle,
-					"fill_ratio": rectangularity_ratio,
-					"orientation": orientation_info,
-					"box_points": box_points
-				}
-			else:
-				self.logger.info(f"  -> FAILURE: Not a ratio. Skipping.")
-				continue 
-
-		self.logger.info("\nRay search finished without finding a valid rectangle.")
-		return None
-	
 	def calculate_shelf_orientation(self, points):
 		"""
 		Calculates the orientation and geometric properties of a shelf given a set of 2D points.
@@ -852,7 +754,6 @@ class WarehouseExplore(Node):
 		if self.current_state == -1:
 			self.prev_shelf_center = (self.buggy_pose_x, self.buggy_pose_y)
 			self.trigger_detection(detect=True)
-			self.logger.info("GLOBAL")
 			info = self.simple_map_curr.info
 			self.logger.info(f"gmap info: {info}")
 			self.logger.info(f"00 : {self.get_map_coord_from_world_coord(0.0,0.0,info)} 11: {self.get_map_coord_from_world_coord(1.0,1.0,info)}")
@@ -860,7 +761,6 @@ class WarehouseExplore(Node):
 
 		elif self.current_state == self.EXPLORE:
 			self.frontier_explore()
-			# self.send_goal_closest_free_in_circles()
 
 		elif self.current_state == self.MOVE_TO_SHELF:
 			self.handle_move_to_shelf()
