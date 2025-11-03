@@ -999,22 +999,26 @@ class WarehouseExplore(Node):
 		# Process the image from front camera as needed.
 
 		qr_codes = pyzbar.decode(image)
-		if qr_codes:
-			for qr_code in qr_codes:
-				qr_data = qr_code.data.decode('utf-8')
-				if 'qr1' in qr_data:
-					self.qr_code_str = '1_270.0_MotorBrew'
-				elif 'qr2' in qr_data:
-					self.qr_code_str = '2_280.0_MotorBrew'
-				elif 'qr3' in qr_data:
-					self.qr_code_str = '3_290.0_MotorBrew'
-				elif 'qr4' in qr_data:
-					self.qr_code_str = '4_240.0_MotorBrew'
-				elif 'qr5' in qr_data:
-					self.qr_code_str = '5_000.0_MotorBrew'
-				else:
-					self.qr_code_str = qr_data	
-			self.logger.info(f"QR Code Detected: {self.qr_code_str}")
+		if self.current_state == self.MOVE_TO_QR:
+			if qr_codes:
+				for qr_code in qr_codes:
+					qr_data = qr_code.data.decode('utf-8')
+					if 'qr1' in qr_data:
+						self.qr_code_str = '1_270.0_MotorBrew'
+					elif 'qr2' in qr_data:
+						self.qr_code_str = '2_280.0_MotorBrew'
+					elif 'qr3' in qr_data:
+						self.qr_code_str = '3_290.0_MotorBrew'
+					elif 'qr4' in qr_data:
+						self.qr_code_str = '4_240.0_MotorBrew'
+					elif 'qr5' in qr_data:
+						self.qr_code_str = '5_000.0_MotorBrew'
+					else:
+						self.qr_code_str = qr_data	
+				self.logger.info(f"QR Code Detected: {self.qr_code_str}")
+		else:
+			if self.current_shelf_number != int(self.qr_code_str[0]):
+				self.qr_code_str = None
 		
 		self.publish_debug_image(self.publisher_qr_decode, image)
 
