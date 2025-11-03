@@ -257,7 +257,7 @@ class WarehouseExplore(Node):
 		goal = self.create_goal_from_world_coord(goal_x, goal_y, math.radians(yaw))
 		if self.send_goal_from_world_pose(goal):
 			self.logger.info(f"NAV TO SHELF Goal sent to ({goal_x:.2f}, {goal_y:.2f}) with yaw {yaw:.2f}°")
-			# self.current_state = self.CAPTURE_OBJECTS
+			self.current_state = self.CAPTURE_OBJECTS
 			self.logger.info("waiting for goal success@")
 		else:
 			self.logger.error("Failed to send navigation goal!")
@@ -284,6 +284,7 @@ class WarehouseExplore(Node):
 				self.current_state = self.MOVE_TO_SHELF
 		else:
 			self.logger.info("No shelf objects received yet.")
+			self.current_state = self.MOVE_TO_SHELF
 
 	# -------------------- QR PROCESSING --------------------
 
@@ -1151,7 +1152,6 @@ class WarehouseExplore(Node):
 
 		if status == GoalStatus.STATUS_SUCCEEDED:
 			self.logger.info("Goal completed successfully!")
-			self.current_state = self.CAPTURE_OBJECTS if self.current_state == self.MOVE_TO_SHELF  else self.current_state
 		else:
 			self.logger.warn(f"Goal failed with status: {status}")
 			self.current_state = self.MOVE_TO_SHELF if self.current_state == self.CAPTURE_OBJECTS else self.current_state
