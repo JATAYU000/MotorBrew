@@ -816,7 +816,8 @@ class WarehouseExplore(Node):
 			self.further_angle_point = None
 			self.prev_shelf_center = self.shelf_info['center']
 
-			self.shelf_angle_deg = self.get_next_angle()
+			self.shelf_angle_deg += self.get_next_angle()
+			self.logger.info(f"\n\n New SHelf ANGLE: {self.shelf_angle_deg}\n")
 			self.shelf_objects_curr.qr_decoded = self.qr_code_str
 			self.publisher_shelf_data.publish(self.shelf_objects_curr)
 			self.send_request_to_server(rtype='upload')
