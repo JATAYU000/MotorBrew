@@ -191,7 +191,7 @@ class WarehouseExplore(Node):
 		self.current_shelf_objects = None
 		self.search_point = None
 		self.current_shelf_number = 1
-		self._fb_dist = 35
+		self._fb_dist = 33
 		self._lr_dist = 39
 		self.obj_retry = 0
 
@@ -245,7 +245,7 @@ class WarehouseExplore(Node):
 
 	def handle_move_to_shelf(self):
 		self.front, self.back = self.find_front_back_points(self._fb_dist,False)
-		self.f, self.b = self.find_front_back_points(36,False)
+		self.f, self.b = self.find_front_back_points(33,False)
 
 		direction = self.shelf_info['orientation']['secondary_direction']
 		self.logger.info(f" f b : {self.find_obs_around_point(self.front, 30)}, {self.find_obs_around_point(self.back,30)}")
@@ -278,8 +278,8 @@ class WarehouseExplore(Node):
 				info = self.find_obstacles_on_ray()
 				if info is not None: self.shelf_info = info
 				self.logger.info("Adjusting position to capture all objects...")
-				if self._fb_dist < 31: self._fb_dist = 35
-				else: self._fb_dist == 30
+				if self._fb_dist < 31: self._fb_dist = 33
+				else: self._fb_dist == 27
 				self.obj_retry +=1
 				self.current_state = self.MOVE_TO_SHELF
 		else:
