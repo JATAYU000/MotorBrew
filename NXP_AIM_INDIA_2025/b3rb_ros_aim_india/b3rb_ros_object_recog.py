@@ -15,7 +15,7 @@ import time
 import yaml
 import tflite_runtime.interpreter as tflite
 # from vision_msgs.msg import (
-#     Detection2D,
+#/t Detection2D,
 #     Detection2DArray,
 #     ObjectHypothesisWithPose,
 #     BoundingBox2D,
@@ -341,32 +341,32 @@ class ObjectRecognizer(Node):
 
 
                         cls_idx = int(cls)
-                        if cls_idx < len(self.label_names):
-                            object_name = self.label_names[cls_idx]
-                            object_count_dict[object_name] = (
-                                object_count_dict.get(object_name, 0) + 1
-                            )
+                        
+                        object_name = self.label_names[cls_idx]
+                        object_count_dict[object_name] = (
+                        object_count_dict.get(object_name, 0) + 1
+                        )
+                        
+                        cv2.rectangle(
+                        image,
+                        (int(xyxy[0]), int(xyxy[1])),
+                        (int(xyxy[2]), int(xyxy[3])),
+                        GREEN_COLOR,
+                        2,
+                        )
+                        cv2.putText(
+                        image,
+                        f"{object_name} {float(conf):.2f}",
+                        (int(xyxy[0]), int(xyxy[1]) - 5),
+                        cv2.FONT_HERSHEY_SIMPLEX,
+                        0.5,
+                        GREEN_COLOR,
+                        2,
+                        cv2.LINE_AA,
+                        )
 
-                            cv2.rectangle(
-                                image,
-                                (int(xyxy[0]), int(xyxy[1])),
-                                (int(xyxy[2]), int(xyxy[3])),
-                                GREEN_COLOR,
-                                2,
-                            )
-                            cv2.putText(
-                                image,
-                                f"{object_name} {float(conf):.2f}",
-                                (int(xyxy[0]), int(xyxy[1]) - 5),
-                                cv2.FONT_HERSHEY_SIMPLEX,
-                                0.5,
-                                GREEN_COLOR,
-                                2,
-                                cv2.LINE_AA,
-                            )
-
-        image = cv2.resize(image, (orig_width, orig_height))
-        self.publish_debug_image(self.publisher_object_recog, image)
+            image = cv2.resize(image, (orig_width, orig_height))
+            self.publish_debug_image(self.publisher_object_recog, image)
 
         for key, value in object_count_dict.items():
             shelf_objects_message.object_name.append(key)
