@@ -14,6 +14,13 @@ import torchvision
 import time
 import yaml
 import tflite_runtime.interpreter as tflite
+from vision_msgs.msg import (
+    Detection2D,
+    Detection2DArray,
+    ObjectHypothesisWithPose,
+    BoundingBox2D,
+)
+
 
 QOS_PROFILE_DEFAULT = 10
 PACKAGE_NAME = "b3rb_ros_aim_india"
@@ -202,6 +209,11 @@ class ObjectRecognizer(Node):
             self.detect_mode_callback,
             QOS_PROFILE_DEFAULT,
         )
+
+        self.publisher_bboxes = self.create_publisher(
+            Detection2DArray, "/object_bboxes", QOS_PROFILE_DEFAULT
+        )
+
         ext_delegate_options = {}
         ext_delegate_opts = [
             tflite.load_delegate("/usr/lib/libvx_delegate.so", ext_delegate_options)
@@ -327,6 +339,10 @@ class ObjectRecognizer(Node):
                     pred, conf_thres=0.05, iou_thres=0.1, max_det=1000
                 )
 
+            detections_msg = Detection2DArray()
+            detections_msg.header.stamp = self.get_clock().now().to_msg()
+            detections_msg.header.frame_id = "camera_link"
+
             for i, det in enumerate(pred):
                 if len(det):
                     for *xyxy, conf, cls in reversed(det):
@@ -338,33 +354,64 @@ class ObjectRecognizer(Node):
                         x_center = (x1 + x2) / 2
                         y_center = (y1 + y2) / 2
 
-                        if not is_in_grid(x_center, y_center):
-                            continue
+                        # if not is_in_grid(x_center, y_center):
+                        #     continue
 
-                        cls_idx = int(cls)
-                        if cls_idx < len(self.label_names):
-                            object_name = self.label_names[cls_idx]
-                            object_count_dict[object_name] = (
-                                object_count_dict.get(object_name, 0) + 1
-                            )
+                        width = x2 - x1
+                        height = y2 - y1
 
-                            cv2.rectangle(
-                                image,
-                                (int(xyxy[0]), int(xyxy[1])),
-                                (int(xyxy[2]), int(xyxy[3])),
-                                GREEN_COLOR,
-                                2,
-                            )
-                            cv2.putText(
-                                image,
-                                f"{object_name} {float(conf):.2f}",
-                                (int(xyxy[0]), int(xyxy[1]) - 5),
-                                cv2.FONT_HERSHEY_SIMPLEX,
-                                0.5,
-                                GREEN_COLOR,
-                                2,
-                                cv2.LINE_AA,
-                            )
+                        detection = Detection2D()
+                        detection.bbox.center.x = float(x_center)
+                        detection.bbox.center.y = float(y_center)
+                        detection.bbox.size_x = float(width)
+                        detection.bbox.size_y = float(height)
+
+                        # cls_idx = int(cls)
+                        # if cls_idx < len(self.label_names):
+                        #     object_name = self.label_names[cls_idx]
+                        #     object_count_dict[object_name] = (
+                        #         object_count_dict.get(object_name, 0) + 1
+                        #     )
+
+                        #     cv2.rectangle(
+                        #         image,
+                        #         (int(xyxy[0]), int(xyxy[1])),
+                        #         (int(xyxy[2]), int(xyxy[3])),
+                        #         GREEN_COLOR,
+                        #         2,
+                        #     )
+                        #     cv2.putText(
+                        #         image,
+                        #         f"{object_name} {float(conf):.2f}",
+                        #         (int(xyxy[0]), int(xyxy[1]) - 5),
+                        #         cv2.FONT_HERSHEY_SIMPLEX,
+                        #         0.5,
+                        #         GREEN_COLOR,
+                        #         2,
+                        #         cv2.LINE_AA,
+                        #     )
+
+                        hyp = ObjectHypothesisWithPose()
+                        hyp.hypothesis.class_id = self.label_names[int(cls)]
+                        hyp.hypothesis.score = float(conf)
+                        detection.results.append(hyp)
+
+                        detections_msg.detections.append(detection)
+
+                        # Draw rectangle on debug image
+                        cv2.rectangle(image, (x1, y1), (x2, y2), GREEN_COLOR, 2)
+                        cv2.putText(
+                            image,
+                            f"{self.label_names[int(cls)]} {float(conf):.2f}",
+                            (x1, y1 - 5),
+                            cv2.FONT_HERSHEY_SIMPLEX,
+                            0.5,
+                            GREEN_COLOR,
+                            2,
+                            cv2.LINE_AA,
+                        )
+
+            self.publisher_bboxes.publish(detections_msg)
 
             image = cv2.resize(image, (orig_width, orig_height))
             self.publish_debug_image(self.publisher_object_recog, image)
