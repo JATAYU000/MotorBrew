@@ -244,7 +244,6 @@ class WarehouseExplore(Node):
 	# -------------------- MOVE TO THE SHELF -----------------------
 
 	def handle_move_to_shelf(self):
-			
 		self.front, self.back = self.find_front_back_points(self._fb_dist,False)
 		self.f, self.b = self.find_front_back_points(35,False)
 
@@ -1202,6 +1201,10 @@ class WarehouseExplore(Node):
 			
 		
 		if self.current_state == self.EXPLORE:
+			if number_of_recoveries > 4:
+				self.logger.info("Retry limit for frontier")
+				self.cancel_current_goal()
+			
 			if self.shelf_info is not None and self.find_free_space_around_point(self.get_map_coord_from_world_coord(float(self.shelf_info['center'][0]), float(self.shelf_info['center'][1]), self.global_map_curr.info), radius=75) > 48:
 				self.logger.info(f"CLEAR ENOUGH STAWP FRONTIER")
 				self.cancel_current_goal()
