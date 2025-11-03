@@ -808,7 +808,7 @@ class WarehouseExplore(Node):
 		"""Callback function to handle simple map updates.
 
 		Args:
-			message: ROS2 message containing the simple map data.
+			message: ROS2 message containing the simple map data. 
 
 		Returns:
 			None
@@ -917,7 +917,7 @@ class WarehouseExplore(Node):
 						self.qr_code_str = qr_data	
 				self.logger.info(f"QR Code Detected: {self.qr_code_str}")
 		else:
-			if self.current_shelf_number != int(self.qr_code_str[0]):
+			if self.qr_code_str is not None and self.current_shelf_number != int(self.qr_code_str[0]):
 				self.qr_code_str = None
 		
 		self.publish_debug_image(self.publisher_qr_decode, image)
