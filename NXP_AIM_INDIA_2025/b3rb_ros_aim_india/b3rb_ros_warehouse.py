@@ -1061,7 +1061,7 @@ class WarehouseExplore(Node):
 		"""
 		predicates = {'horse','car','banana','potted plant','clock','cup','zebra','teddy bear'}
 		mapping = {'potted plant': 'plant', 'teddy bear': 'teddy','zebra': 'zebra', 'cup': 'cup', 'clock': 'clock','horse':'horse','car':'car','banana':'banana'}
-		if self.current_state == self.CAPTURE_OBJECTS or self.current_state == selfDEBUG:
+		if self.current_state == self.CAPTURE_OBJECTS or self.current_state == self.DEBUG:
 			filtered_object_names = []
 			filtered_object_counts = []
 			
@@ -1078,6 +1078,7 @@ class WarehouseExplore(Node):
 				filtered_message.object_name = filtered_object_names
 				filtered_message.object_count = filtered_object_counts
 				self.current_shelf_objects = filtered_message
+			self.logger.info(f'filtered: {filtered_object_names}')
 
 
 		# How to send WarehouseShelf messages for evaluation.
