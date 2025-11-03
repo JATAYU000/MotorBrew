@@ -322,7 +322,7 @@ class ObjectRecognizer(Node):
 
         def is_in_grid(x_center, y_center):
             """Return True if within 3x2 grid."""
-            return 0 <= x_center < orig_width and 0 <= y_center < orig_height
+            return True
 
         for pred in y:
             pred = torch.tensor(pred)
@@ -420,6 +420,9 @@ class ObjectRecognizer(Node):
             shelf_objects_message.object_name.append(key)
             shelf_objects_message.object_count.append(value)
 
+        self.get_logger().info(
+            f"Object recognition completed {shelf_objects_message.object_name}"
+        )
         self.publisher_shelf_objects.publish(shelf_objects_message)
 
 
