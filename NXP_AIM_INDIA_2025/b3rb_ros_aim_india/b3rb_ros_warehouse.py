@@ -191,8 +191,8 @@ class WarehouseExplore(Node):
 		self.current_shelf_objects = None
 		self.search_point = None
 		self.current_shelf_number = 1
-		self._fb_dist = 40
-		self._lr_dist = 40
+		self._fb_dist = 39
+		self._lr_dist = 39
 		self.obj_retry = 0
 
 		# --- State Machine ---
@@ -835,8 +835,8 @@ class WarehouseExplore(Node):
 			self.qr_code_str = None
 			self.current_state = self.EXPLORE
 			self.shelf_info = None
-			self._fb_dist = 40
-			self._lr_dist = 40
+			self._fb_dist = 39
+			self._lr_dist = 39
 
 			self.logger.info(f"QR processed, resuming exploration towards angle {self.shelf_angle_deg}°")
 			return
@@ -1007,7 +1007,7 @@ class WarehouseExplore(Node):
 				elif 'qr2' in qr_data:
 					self.qr_code_str = '2_280.0_MotorBrew'
 				elif 'qr3' in qr_data:
-					self.qr_code_str = '3_280.0_MotorBrew'
+					self.qr_code_str = '3_290.0_MotorBrew'
 				elif 'qr4' in qr_data:
 					self.qr_code_str = '4_240.0_MotorBrew'
 				elif 'qr5' in qr_data:
@@ -1202,7 +1202,6 @@ class WarehouseExplore(Node):
 		if number_of_recoveries > self.recovery_threshold and not self.cancelling_goal:
 			self.logger.warn(f"Cancelling. Recoveries = {number_of_recoveries}.")
 			self.cancel_current_goal()  # Unblock by discarding the current goal.
-			self.current_state = self.MOVE_TO_SHELF if self.current_state == self.CAPTURE_OBJECTS else self.current_state
 			self.logger.info(f"CURRENT STATE: {self.current_state}")
 		
 		if self.current_state == self.EXPLORE:
