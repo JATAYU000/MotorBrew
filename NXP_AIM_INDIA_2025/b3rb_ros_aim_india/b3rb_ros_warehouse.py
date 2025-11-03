@@ -191,8 +191,8 @@ class WarehouseExplore(Node):
 		self.current_shelf_objects = None
 		self.search_point = None
 		self.current_shelf_number = 1
-		self._fb_dist = 37
-		self._lr_dist = 37
+		self._fb_dist = 40
+		self._lr_dist = 40
 		self.obj_retry = 0
 
 		# --- State Machine ---
@@ -278,8 +278,8 @@ class WarehouseExplore(Node):
 				info = self.find_obstacles_on_ray()
 				if info is not None: self.shelf_info = info
 				self.logger.info("Adjusting position to capture all objects...")
-				if self._fb_dist < 28: self._fb_dist += 15
-				else: self._fb_dist -= 15
+				if self._fb_dist < 31: self._fb_dist = 32
+				else: self._fb_dist == 26
 				self.obj_retry +=1
 				self.current_state = self.MOVE_TO_SHELF
 		else:
