@@ -336,12 +336,12 @@ class WarehouseExplore(Node):
 		if self.shelf_info is not None:
 			self.logger.info(f"Map : {self.find_free_space_around_point(self.get_map_coord_from_world_coord(float(self.shelf_info['center'][0]), float(self.shelf_info['center'][1]), self.global_map_curr.info), radius=75)}% free")
 
-		if self.shelf_info is not None and self.find_free_space_around_point(self.get_map_coord_from_world_coord(float(self.shelf_info['center'][0]), float(self.shelf_info['center'][1]), self.global_map_curr.info), radius=75) > 48:
+		if self.shelf_info is not None and self.find_free_space_around_point(self.get_map_coord_from_world_coord(float(self.shelf_info['center'][0]), float(self.shelf_info['center'][1]), self.global_map_curr.info), radius=75) > 45:
 			self.logger.info(f"Map is mostly free, skipping exp: {self.find_free_space_around_point(self.get_map_coord_from_world_coord(float(self.shelf_info['center'][0]), float(self.shelf_info['center'][1]), self.global_map_curr.info), radius=75)}% free")
 			self.current_state = self.MOVE_TO_SHELF
 			return
 		
-		self.logger.info("Exploring frontier...")
+		self.logger.info("Calculating frontier...")
 		frontiers = self.get_frontiers_for_space_exploration(self.map_array)
 		self.logger.info(f"Found {len(frontiers)} frontiers in the map.")
 		self.logger.info(f"world center: {self.world_center}, Current shelf info: {self.shelf_info}\n")
@@ -351,7 +351,7 @@ class WarehouseExplore(Node):
 			min_distance_curr = 1e10
 			
 			world_self_center = self.get_map_coord_from_world_coord(self.prev_shelf_center[0],self.prev_shelf_center[1],self.global_map_curr.info)
-			world_self_center = (world_self_center[0] + 500*math.cos(math.radians(self.shelf_angle_deg)), world_self_center[1] + 500*math.sin(math.radians(self.shelf_angle_deg)))
+			world_self_center = (world_self_center[0] + 200*math.cos(math.radians(self.shelf_angle_deg)), world_self_center[1] + 200*math.sin(math.radians(self.shelf_angle_deg)))
 
 			for fy, fx in frontiers:
 				fx_world, fy_world = self.get_world_coord_from_map_coord(fx, fy, self.global_map_curr.info)
@@ -1153,6 +1153,8 @@ class WarehouseExplore(Node):
 			self.logger.info("Goal completed successfully!")
 		else:
 			self.logger.warn(f"Goal failed with status: {status}")
+			self.current_state = self.MOVE_TO_SHELF if self.current_state == self.CAPTURE_OBJECTS else self.current_state
+
 
 		self.goal_completed = True  # Mark goal as completed.
 		self.goal_handle_curr = None  # Clear goal handle.
@@ -1198,7 +1200,7 @@ class WarehouseExplore(Node):
 			self.logger.warn(f"Cancelling. Recoveries = {number_of_recoveries}.")
 			self.cancel_current_goal()  # Unblock by discarding the current goal.
 			self.current_state = self.MOVE_TO_SHELF if self.current_state == self.CAPTURE_OBJECTS else self.current_state
-			
+			self.logger.info(f"CURRENT STATE: {self.current_state}")
 		
 		if self.current_state == self.EXPLORE:
 			if number_of_recoveries > 8:
