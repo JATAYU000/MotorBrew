@@ -1201,7 +1201,7 @@ class WarehouseExplore(Node):
 			
 		
 		if self.current_state == self.EXPLORE:
-			if number_of_recoveries > 4:
+			if number_of_recoveries > 8:
 				self.logger.info("Retry limit for frontier")
 				self.cancel_current_goal()
 			
