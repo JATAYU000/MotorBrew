@@ -191,8 +191,8 @@ class WarehouseExplore(Node):
 		self.current_shelf_objects = None
 		self.search_point = None
 		self.current_shelf_number = 1
-		self._fb_dist = 34
-		self._lr_dist = 37
+		self._fb_dist = 30
+		self._lr_dist = 36
 		self.obj_retry = 0
 
 		# --- State Machine ---
@@ -245,7 +245,7 @@ class WarehouseExplore(Node):
 
 	def handle_move_to_shelf(self):
 		self.front, self.back = self.find_front_back_points(self._fb_dist,False)
-		self.f, self.b = self.find_front_back_points(32,False)
+		self.f, self.b = self.find_front_back_points(30,False)
 
 		direction = self.shelf_info['orientation']['secondary_direction']
 		self.logger.info(f" f b : {self.find_obs_around_point(self.front, 30)}, {self.find_obs_around_point(self.back,30)}")
