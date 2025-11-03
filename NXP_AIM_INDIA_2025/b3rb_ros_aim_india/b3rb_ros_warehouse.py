@@ -284,7 +284,6 @@ class WarehouseExplore(Node):
 				self.current_state = self.MOVE_TO_SHELF
 		else:
 			self.logger.info("No shelf objects received yet.")
-			self.current_state = self.MOVE_TO_SHELF
 
 	# -------------------- QR PROCESSING --------------------
 
@@ -854,7 +853,7 @@ class WarehouseExplore(Node):
 			info = self.simple_map_curr.info
 			self.logger.info(f"gmap info: {info}")
 			self.logger.info(f"00 : {self.get_map_coord_from_world_coord(0.0,0.0,info)} 11: {self.get_map_coord_from_world_coord(1.0,1.0,info)}")
-			self.current_state = self.EXPLORE
+			self.current_state = self.DEBUG
 
 		elif self.current_state == self.EXPLORE:
 			self.frontier_explore()
@@ -1062,7 +1061,7 @@ class WarehouseExplore(Node):
 		"""
 		predicates = {'horse','car','banana','potted plant','clock','cup','zebra','teddy bear'}
 		mapping = {'potted plant': 'plant', 'teddy bear': 'teddy','zebra': 'zebra', 'cup': 'cup', 'clock': 'clock','horse':'horse','car':'car','banana':'banana'}
-		if self.current_state == self.CAPTURE_OBJECTS:
+		if self.current_state == self.CAPTURE_OBJECTS or self.current_state == selfDEBUG:
 			filtered_object_names = []
 			filtered_object_counts = []
 			
