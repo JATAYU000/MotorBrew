@@ -203,13 +203,6 @@ class ObjectRecognizer(Node):
             CompressedImage, "/debug_images/object_recog", QOS_PROFILE_DEFAULT
         )
 
-        self.detect_mode_subscription = self.create_subscription(
-            DetectNotifier,
-            "/detect_notifier",
-            self.detect_mode_callback,
-            QOS_PROFILE_DEFAULT,
-        )
-
         # self.publisher_bboxes = self.create_publisher(
         #     Detection2DArray, "/object_bboxes", QOS_PROFILE_DEFAULT
         # )
@@ -266,10 +259,6 @@ class ObjectRecognizer(Node):
             message.data = encoded_data.tobytes()
             publisher.publish(message)
 
-    def detect_mode_callback(self, message):
-        self.get_logger().info(f"Detect mode set to: {message.detect_mode}")
-        self.detect_mode = message.detect_mode
-
     def camera_image_callback(self, message):
         # if not getattr(self, "detect_mode", False):
         #     return
@@ -320,10 +309,6 @@ class ObjectRecognizer(Node):
         cell_width = orig_width / num_cols
         cell_height = orig_height / num_rows
 
-        def is_in_grid(x_center, y_center):
-            """Return True if within 3x2 grid."""
-            return True
-
         for pred in y:
             pred = torch.tensor(pred)
 
@@ -353,9 +338,6 @@ class ObjectRecognizer(Node):
 
                         x_center = (x1 + x2) / 2
                         y_center = (y1 + y2) / 2
-
-                        if not is_in_grid(x_center, y_center):
-                            continue
 
 
                         cls_idx = int(cls)
