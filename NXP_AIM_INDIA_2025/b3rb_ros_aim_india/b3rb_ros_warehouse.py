@@ -1108,6 +1108,8 @@ class WarehouseExplore(Node):
 			self.logger.warn(f"Cancelling. Recoveries = {number_of_recoveries}.")
 			self.cancel_current_goal()  # Unblock by discarding the current goal.
 			self.logger.info(f"CURRENT STATE: {self.current_state}")
+			if self.current_state == self.CAPTURE_OBJECTS:
+				self.current_state = self.MOVE_TO_SHELF
 		
 		if self.current_state == self.EXPLORE:
 			if number_of_recoveries > 8:
