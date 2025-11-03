@@ -39,7 +39,7 @@ def xywh2xyxy(x):
 
 def non_max_suppression_yolov5(
     prediction,
-    conf_thres=0.05,  # lowered confidence
+    conf_thres=0.01,  # lowered confidence
     iou_thres=0.9,
     classes=None,
     agnostic=False,
@@ -120,7 +120,7 @@ def non_max_suppression_yolov5(
 
 
 def non_max_suppression_yolov11(
-    prediction, conf_thres=0.05, iou_thres=0.9, max_det=300
+    prediction, conf_thres=0.01, iou_thres=0.9, max_det=300
 ):
     """NMS for YOLOv11 format"""
     if isinstance(prediction, (list, tuple)):
