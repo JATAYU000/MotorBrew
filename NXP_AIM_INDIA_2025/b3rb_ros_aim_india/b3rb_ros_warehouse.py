@@ -278,8 +278,8 @@ class WarehouseExplore(Node):
 				info = self.find_obstacles_on_ray()
 				if info is not None: self.shelf_info = info
 				self.logger.info("Adjusting position to capture all objects...")
-				if self._fb_dist < 31: self._fb_dist = 32
-				else: self._fb_dist == 26
+				if self._fb_dist < 31: self._fb_dist = 35
+				else: self._fb_dist == 28
 				self.obj_retry +=1
 				self.current_state = self.MOVE_TO_SHELF
 		else:
@@ -810,6 +810,9 @@ class WarehouseExplore(Node):
 		self.global_map_curr = message
 		self.map_array = np.array(self.global_map_curr.data).reshape((self.global_map_curr.info.height, self.global_map_curr.info.width))
 
+		if not self.goal_completed:
+			return	
+		
 		if self.qr_code_str is not None and (self.current_state == self.MOVE_TO_QR or self.current_state == self.ADJUST_TO):
 			self.logger.info(f"\n\n\nQR code detected: {self.qr_code_str}, processing...")
 			self.cancel_current_goal()
@@ -825,7 +828,6 @@ class WarehouseExplore(Node):
 			if self.current_shelf_number>self.shelf_count:
 				self.current_state = self.DEBUG
 				self.logger.info("All shelves processed, entering DEBUG state.")
-				self.qr_code_str = None
 				return
 			self.obj_retry = 0
 			self.current_shelf_objects = None
@@ -833,12 +835,11 @@ class WarehouseExplore(Node):
 			self.qr_code_str = None
 			self.current_state = self.EXPLORE
 			self.shelf_info = None
+			self._fb_dist = 40
+			self._lr_dist = 40
 
 			self.logger.info(f"QR processed, resuming exploration towards angle {self.shelf_angle_deg}°")
 			return
-	
-		if not self.goal_completed:
-			return	
 
 		
 		self.map_array = np.array(self.global_map_curr.data).reshape((self.global_map_curr.info.height, self.global_map_curr.info.width))
