@@ -270,7 +270,7 @@ class WarehouseExplore(Node):
 			self.shelf_objects_curr.object_count = self.current_shelf_objects.object_count
 			self.logger.info(f"Captured {self.shelf_objects_curr.object_count} objects: {self.shelf_objects_curr.object_name}")
 
-			if sum(self.current_shelf_objects.object_count) >=3 or self.obj_retry>4:
+			if sum(self.current_shelf_objects.object_count) >=4 or self.obj_retry>4:
 				info = self.find_obstacles_on_ray()
 				if info is not None: self.shelf_info = info
 				self.current_state = self.MOVE_TO_QR
@@ -278,7 +278,7 @@ class WarehouseExplore(Node):
 				info = self.find_obstacles_on_ray()
 				if info is not None: self.shelf_info = info
 				self.logger.info("Adjusting position to capture all objects...")
-				if self._fb_dist < 25: self._fb_dist += 10
+				if self._fb_dist < 28: self._fb_dist += 10
 				else: self._fb_dist -= 10
 				self.obj_retry +=1
 				self.current_state = self.MOVE_TO_SHELF
@@ -853,7 +853,7 @@ class WarehouseExplore(Node):
 			info = self.simple_map_curr.info
 			self.logger.info(f"gmap info: {info}")
 			self.logger.info(f"00 : {self.get_map_coord_from_world_coord(0.0,0.0,info)} 11: {self.get_map_coord_from_world_coord(1.0,1.0,info)}")
-			self.current_state = self.DEBUG
+			self.current_state = self.EXPLORE
 
 		elif self.current_state == self.EXPLORE:
 			self.frontier_explore()
@@ -1061,7 +1061,7 @@ class WarehouseExplore(Node):
 		"""
 		predicates = {'horse','car','banana','potted plant','clock','cup','zebra','teddy bear'}
 		mapping = {'potted plant': 'plant', 'teddy bear': 'teddy','zebra': 'zebra', 'cup': 'cup', 'clock': 'clock','horse':'horse','car':'car','banana':'banana'}
-		if self.current_state == self.CAPTURE_OBJECTS or self.current_state == self.DEBUG:
+		if self.current_state == self.CAPTURE_OBJECTS:
 			filtered_object_names = []
 			filtered_object_counts = []
 			
@@ -1078,7 +1078,6 @@ class WarehouseExplore(Node):
 				filtered_message.object_name = filtered_object_names
 				filtered_message.object_count = filtered_object_counts
 				self.current_shelf_objects = filtered_message
-			self.logger.info(f'filtered: {filtered_object_names}')
 
 
 		# How to send WarehouseShelf messages for evaluation.
@@ -1154,7 +1153,7 @@ class WarehouseExplore(Node):
 			self.logger.info("Goal completed successfully!")
 		else:
 			self.logger.warn(f"Goal failed with status: {status}")
-			self.current_state = self.MOVE_TO_SHELF if self.current_state == self.CAPTURE_OBJECTS else self.current_state
+			# self.current_state = self.MOVE_TO_SHELF if self.current_state == self.CAPTURE_OBJECTS else self.current_state
 
 
 		self.goal_completed = True  # Mark goal as completed.
