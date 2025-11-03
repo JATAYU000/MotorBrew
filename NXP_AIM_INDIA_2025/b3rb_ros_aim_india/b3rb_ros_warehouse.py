@@ -191,8 +191,8 @@ class WarehouseExplore(Node):
 		self.current_shelf_objects = None
 		self.search_point = None
 		self.current_shelf_number = 1
-		self._fb_dist = 30
-		self._lr_dist = 36
+		self._fb_dist = 37
+		self._lr_dist = 37
 		self.obj_retry = 0
 
 		# --- State Machine ---
@@ -245,7 +245,7 @@ class WarehouseExplore(Node):
 
 	def handle_move_to_shelf(self):
 		self.front, self.back = self.find_front_back_points(self._fb_dist,False)
-		self.f, self.b = self.find_front_back_points(30,False)
+		self.f, self.b = self.find_front_back_points(36,False)
 
 		direction = self.shelf_info['orientation']['secondary_direction']
 		self.logger.info(f" f b : {self.find_obs_around_point(self.front, 30)}, {self.find_obs_around_point(self.back,30)}")
@@ -278,8 +278,8 @@ class WarehouseExplore(Node):
 				info = self.find_obstacles_on_ray()
 				if info is not None: self.shelf_info = info
 				self.logger.info("Adjusting position to capture all objects...")
-				if self._fb_dist < 28: self._fb_dist += 10
-				else: self._fb_dist -= 10
+				if self._fb_dist < 28: self._fb_dist += 15
+				else: self._fb_dist -= 15
 				self.obj_retry +=1
 				self.current_state = self.MOVE_TO_SHELF
 		else:
@@ -310,8 +310,8 @@ class WarehouseExplore(Node):
 		
 	def adjust_qr(self):
 		if self.qr_code_str is None:
-			if self._lr_dist < 30:self._lr_dist+=10
-			else:self._lr_dist-=10
+			if self._lr_dist < 30:self._lr_dist+=15
+			else:self._lr_dist-=15
 			self.current_state = self.MOVE_TO_QR
 		else:
 			self.logger.info('ADJUST BUT QR GOT???????????/')
@@ -816,7 +816,7 @@ class WarehouseExplore(Node):
 			self.further_angle_point = None
 			self.prev_shelf_center = self.shelf_info['center']
 
-			self.shelf_angle_deg = self.get_next_angle() + self.robot_initial_angle
+			self.shelf_angle_deg = self.get_next_angle()
 			self.shelf_objects_curr.qr_decoded = self.qr_code_str
 			self.publisher_shelf_data.publish(self.shelf_objects_curr)
 			self.send_request_to_server(rtype='upload')
@@ -831,6 +831,7 @@ class WarehouseExplore(Node):
 			self.shelf_objects_curr = WarehouseShelf()
 			self.qr_code_str = None
 			self.current_state = self.EXPLORE
+			self.shelf_info = None
 
 			self.logger.info(f"QR processed, resuming exploration towards angle {self.shelf_angle_deg}°")
 			return
