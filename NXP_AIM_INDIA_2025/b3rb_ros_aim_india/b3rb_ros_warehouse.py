@@ -757,7 +757,7 @@ class WarehouseExplore(Node):
 			info = self.simple_map_curr.info
 			self.logger.info(f"gmap info: {info}")
 			self.logger.info(f"00 : {self.get_map_coord_from_world_coord(0.0,0.0,info)} 11: {self.get_map_coord_from_world_coord(1.0,1.0,info)}")
-			self.current_state = self.EXLPORE
+			self.current_state = self.EXPLORE
 
 		elif self.current_state == self.EXPLORE:
 			self.frontier_explore()
