@@ -191,8 +191,8 @@ class WarehouseExplore(Node):
 		self.current_shelf_objects = None
 		self.search_point = None
 		self.current_shelf_number = 1
-		self._fb_dist = 35
-		self._lr_dist = 37
+		self._fb_dist = 32
+		self._lr_dist = 35
 		self.obj_retry = 0
 
 		# --- State Machine ---
@@ -245,7 +245,7 @@ class WarehouseExplore(Node):
 
 	def handle_move_to_shelf(self):
 		self.front, self.back = self.find_front_back_points(self._fb_dist,False)
-		self.f, self.b = self.find_front_back_points(35,False)
+		self.f, self.b = self.find_front_back_points(32,False)
 
 		direction = self.shelf_info['orientation']['secondary_direction']
 		self.logger.info(f" f b : {self.find_obs_around_point(self.front, 30)}, {self.find_obs_around_point(self.back,30)}")
@@ -278,8 +278,8 @@ class WarehouseExplore(Node):
 				info = self.find_obstacles_on_ray()
 				if info is not None: self.shelf_info = info
 				self.logger.info("Adjusting position to capture all objects...")
-				if self._fb_dist < 25: self._fb_dist += 12
-				else: self._fb_dist -= 12
+				if self._fb_dist < 25: self._fb_dist += 10
+				else: self._fb_dist -= 10
 				self.obj_retry +=1
 				self.current_state = self.MOVE_TO_SHELF
 		else:
@@ -289,7 +289,7 @@ class WarehouseExplore(Node):
 
 	def handle_qr_navigation(self):
 		self.left, self.right = self.find_front_back_points(self._lr_dist,True)
-		self.l, self.r = self.find_front_back_points(37,True)
+		self.l, self.r = self.find_front_back_points(36,True)
 
 		direction = self.shelf_info['orientation']['primary_direction']
 		self.logger.info(f" f b : {self.find_obs_around_point(self.left, 30)}, {self.find_obs_around_point(self.right,30)}")
@@ -310,8 +310,8 @@ class WarehouseExplore(Node):
 		
 	def adjust_qr(self):
 		if self.qr_code_str is None:
-			if self._lr_dist < 30:self._lr_dist+=12
-			else:self._lr_dist-=12
+			if self._lr_dist < 30:self._lr_dist+=10
+			else:self._lr_dist-=10
 			self.current_state = self.MOVE_TO_QR
 		else:
 			self.logger.info('ADJUST BUT QR GOT???????????/')
@@ -427,8 +427,8 @@ class WarehouseExplore(Node):
 		start_point = self.get_map_coord_from_world_coord(self.prev_shelf_center[0], self.prev_shelf_center[1], self.global_map_curr.info)
 		start_point = list(start_point)
 		angle_degrees = -self.shelf_angle_deg
-		start_point[0] += 30*math.cos(math.radians(angle_degrees))
-		start_point[1] += -30*math.sin(math.radians(angle_degrees))
+		start_point[0] += 35*math.cos(math.radians(angle_degrees))
+		start_point[1] += -35*math.sin(math.radians(angle_degrees))
 		binary_map = np.zeros(map_array.shape, dtype=np.uint8)
 		binary_map[map_array != 100] = 0
 		binary_map[map_array == 100] = 255
