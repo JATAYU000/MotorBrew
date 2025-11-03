@@ -193,6 +193,7 @@ class WarehouseExplore(Node):
 		self.current_shelf_number = 1
 		self._fb_dist = 35
 		self._lr_dist = 37
+		self.obj_retry = 0
 
 		# --- State Machine ---
 		self.current_state = -1
@@ -269,7 +270,7 @@ class WarehouseExplore(Node):
 			self.shelf_objects_curr.object_count = self.current_shelf_objects.object_count
 			self.logger.info(f"Captured {self.shelf_objects_curr.object_count} objects: {self.shelf_objects_curr.object_name}")
 
-			if sum(self.current_shelf_objects.object_count) >= 4:
+			if sum(self.current_shelf_objects.object_count) >= 4 or self.obj_retry>4:
 				info = self.find_obstacles_on_ray()
 				if info is not None: self.shelf_info = info
 				self.current_state = self.MOVE_TO_QR
@@ -279,6 +280,7 @@ class WarehouseExplore(Node):
 				self.logger.info("Adjusting position to capture all objects...")
 				if self._fb_dist < 25: self._fb_dist += 12
 				else: self._fb_dist -= 12
+				self.obj_retry +=1
 				self.current_state = self.MOVE_TO_SHELF
 		else:
 			self.logger.info("No shelf objects received yet.")
@@ -824,6 +826,7 @@ class WarehouseExplore(Node):
 				self.logger.info("All shelves processed, entering DEBUG state.")
 				self.qr_code_str = None
 				return
+			self.obj_retry = 0
 			self.current_shelf_objects = None
 			self.shelf_objects_curr = WarehouseShelf()
 			self.qr_code_str = None
