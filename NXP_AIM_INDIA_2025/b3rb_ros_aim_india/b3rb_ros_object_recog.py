@@ -223,7 +223,7 @@ class ObjectRecognizer(Node):
         resource_path_coco = pkg_resources.resource_filename(
             PACKAGE_NAME, resource_name_coco
         )
-        resource_name_yolo = "../../../../share/ament_index/resource_index/yolov8m_full_integer_quant.tflite"
+        resource_name_yolo = "../../../../share/ament_index/resource_index/yolo11m_full_integer_quant.tflite"
         resource_path_yolo = pkg_resources.resource_filename(
             PACKAGE_NAME, resource_name_yolo
         )
@@ -420,9 +420,6 @@ class ObjectRecognizer(Node):
             shelf_objects_message.object_name.append(key)
             shelf_objects_message.object_count.append(value)
 
-        self.get_logger().info(
-            f"Object recognition completed {shelf_objects_message.object_name}"
-        )
         self.publisher_shelf_objects.publish(shelf_objects_message)
 
 
