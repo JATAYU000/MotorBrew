@@ -1079,6 +1079,7 @@ class WarehouseExplore(Node):
 				filtered_message.object_count = filtered_object_counts
 				self.current_shelf_objects = filtered_message
 			self.logger.info(f'filtered: {filtered_object_names}')
+		self.logger.info("BITHC")
 
 
 		# How to send WarehouseShelf messages for evaluation.
