@@ -757,7 +757,7 @@ class WarehouseExplore(Node):
 			info = self.simple_map_curr.info
 			self.logger.info(f"gmap info: {info}")
 			self.logger.info(f"00 : {self.get_map_coord_from_world_coord(0.0,0.0,info)} 11: {self.get_map_coord_from_world_coord(1.0,1.0,info)}")
-			self.current_state = self.DEBUG
+			self.current_state = self.EXPLORE
 
 		elif self.current_state == self.EXPLORE:
 			self.frontier_explore()
@@ -904,7 +904,7 @@ class WarehouseExplore(Node):
 				for qr_code in qr_codes:
 					qr_data = qr_code.data.decode('utf-8')
 					if 'qr1' in qr_data:
-						self.qr_code_str = '1_270.0_MotorBrew'
+						self.qr_code_str = '1_225.0_MotorBrew'
 					elif 'qr2' in qr_data:
 						self.qr_code_str = '2_280.0_MotorBrew'
 					elif 'qr3' in qr_data:
