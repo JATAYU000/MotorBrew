@@ -56,7 +56,7 @@ def xywh2xyxy(x):
 def non_max_suppression(
 	prediction,
 	conf_thres=0.05,
-	iou_thres=0.45,
+	iou_thres=0.1,
 	classes=None,
 	agnostic=False,
 	multi_label=False,
@@ -190,7 +190,7 @@ class ObjectRecognizer(Node):
 
 		resource_name_coco = "../../../../share/ament_index/resource_index/coco.yaml"
 		resource_path_coco = pkg_resources.resource_filename(PACKAGE_NAME, resource_name_coco)
-		resource_name_yolo = "../../../../share/ament_index/resource_index/yolov5n-int8.tflite"
+		resource_name_yolo = "../../../../share/ament_index/resource_index/yolov8m_int8.tflite"
 		resource_path_yolo = pkg_resources.resource_filename(PACKAGE_NAME, resource_name_yolo)
 
 		with open(resource_path_coco) as f:
@@ -280,6 +280,12 @@ class ObjectRecognizer(Node):
 
 		# processing output.
 		for pred in y:
+			pred = pred.transpose((0, 2, 1))
+			box = pred[..., :4]
+			cls_scores = pred[..., 4:]
+			conf = np.max(cls_scores, axis=-1, keepdims=True)
+			pred = np.concatenate((box, conf, cls_scores), axis=-1)
+		
 			w, h = self.input_details[0]["shape"][1:3]
 			pred[0][..., :4] *= [w, h, w, h]
 			pred = torch.tensor(pred)
