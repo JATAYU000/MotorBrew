@@ -190,7 +190,7 @@ class ObjectRecognizer(Node):
 
 		resource_name_coco = "../../../../share/ament_index/resource_index/coco.yaml"
 		resource_path_coco = pkg_resources.resource_filename(PACKAGE_NAME, resource_name_coco)
-		resource_name_yolo = "../../../../share/ament_index/resource_index/yolov8m_full_integer_quant.tflite"
+		resource_name_yolo = "../../../../share/ament_index/resource_index/yolo11n_int8.tflite"
 		resource_path_yolo = pkg_resources.resource_filename(PACKAGE_NAME, resource_name_yolo)
 
 		with open(resource_path_coco) as f:
@@ -272,11 +272,19 @@ class ObjectRecognizer(Node):
 		y = []
 		for output in self.output_details:
 			x = self.interpreter.get_tensor(output["index"])
+
+			# FIX: Check THIS output's data type, not the input's
+			output_dtype = output["dtype"]
+			is_quantized = output_dtype in [np.int8, np.uint8]
 			if is_quantized:
 				scale, zero_point = output["quantization"]
 				x = (x.astype(np.float32) - zero_point) * scale  # re-scale
-			y.append(x)
+			
+			elif x.dtype != np.float32:
+					x = x.astype(np.float32)
 
+			y.append(x)
+			
 		image *= 255
 		image = cv2.cvtColor(image.astype(np.float32), cv2.COLOR_RGB2BGR)
 
