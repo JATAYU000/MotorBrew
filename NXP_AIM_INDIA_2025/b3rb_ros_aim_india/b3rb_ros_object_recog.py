@@ -190,7 +190,7 @@ class ObjectRecognizer(Node):
 
 		resource_name_coco = "../../../../share/ament_index/resource_index/coco.yaml"
 		resource_path_coco = pkg_resources.resource_filename(PACKAGE_NAME, resource_name_coco)
-		resource_name_yolo = "../../../../share/ament_index/resource_index/yolov8m_elq.tflite"
+		resource_name_yolo = "../../../../share/ament_index/resource_index/yolov8m_fixed_npu.tflite"
 		resource_path_yolo = pkg_resources.resource_filename(PACKAGE_NAME, resource_name_yolo)
 
 		with open(resource_path_coco) as f:
