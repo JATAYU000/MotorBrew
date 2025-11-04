@@ -165,7 +165,6 @@ class WarehouseExplore(Node):
 		self.global_map_curr = None
 
 		# --- Goal Management ---
-		self.xy_goal_tolerance = 0.27
 		self.goal_completed = True  # No goal is currently in-progress.
 		self.goal_handle_curr = None
 		self.cancelling_goal = False
@@ -270,7 +269,7 @@ class WarehouseExplore(Node):
 			self.shelf_objects_curr.object_count = self.current_shelf_objects.object_count
 			self.logger.info(f"Captured {self.shelf_objects_curr.object_count} objects: {self.shelf_objects_curr.object_name}")
 
-			if sum(self.current_shelf_objects.object_count) >=5 or self.obj_retry>5:
+			if sum(self.current_shelf_objects.object_count) >=2 or self.obj_retry>5:
 				info = self.find_obstacles_on_ray()
 				if info is not None: self.shelf_info = info
 				self.current_state = self.MOVE_TO_QR
@@ -757,7 +756,7 @@ class WarehouseExplore(Node):
 			info = self.simple_map_curr.info
 			self.logger.info(f"gmap info: {info}")
 			self.logger.info(f"00 : {self.get_map_coord_from_world_coord(0.0,0.0,info)} 11: {self.get_map_coord_from_world_coord(1.0,1.0,info)}")
-			self.current_state = self.EXPLORE
+			self.current_state = self.DEBUG
 
 		elif self.current_state == self.EXPLORE:
 			self.frontier_explore()
