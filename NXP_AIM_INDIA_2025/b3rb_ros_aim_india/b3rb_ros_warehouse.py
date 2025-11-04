@@ -310,8 +310,8 @@ class WarehouseExplore(Node):
 		
 	def adjust_qr(self):
 		if self.qr_code_str is None:
-			if self._lr_dist < 30:self._lr_dist+=15
-			else:self._lr_dist-=15
+			if self._lr_dist < 30:self._lr_dist+=17
+			else:self._lr_dist-=17
 			self.current_state = self.MOVE_TO_QR
 		else:
 			self.logger.info('ADJUST BUT QR GOT???????????/')
