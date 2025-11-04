@@ -262,7 +262,7 @@ class ObjectRecognizer(Node):
 			scale, zero_point = input_detail["quantization"]
 			img = (img / scale + zero_point).astype(dtype)
 			
-		self.interpreter.set_tensor(input["index"], img)
+		self.interpreter.set_tensor(input_detail["index"], img)
 
 		startTime = time.time()
 		self.interpreter.invoke()
