@@ -270,7 +270,7 @@ class WarehouseExplore(Node):
 			self.shelf_objects_curr.object_count = self.current_shelf_objects.object_count
 			self.logger.info(f"Captured {self.shelf_objects_curr.object_count} objects: {self.shelf_objects_curr.object_name}")
 
-			if sum(self.current_shelf_objects.object_count) ==6 or self.obj_retry>8:
+			if sum(self.current_shelf_objects.object_count) >=5 or self.obj_retry>5:
 				info = self.find_obstacles_on_ray()
 				if info is not None: self.shelf_info = info
 				self.current_state = self.MOVE_TO_QR
@@ -279,7 +279,7 @@ class WarehouseExplore(Node):
 				if info is not None: self.shelf_info = info
 				self.logger.info("Adjusting position to capture all objects...")
 				if self._fb_dist < 27: self._fb_dist = 28
-				else: self._fb_dist == 24
+				else: self._fb_dist == 25
 				self.obj_retry +=1
 				self.current_state = self.MOVE_TO_SHELF
 		else:
