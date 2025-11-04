@@ -239,7 +239,9 @@ class ObjectRecognizer(Node):
 	def camera_image_callback(self, message):
 		# Convert message to an n-dimensional numpy array representation of image.
 		np_arr = np.frombuffer(message.data, np.uint8)
+		np.save("frombuffer.npy",np_arr)
 		image = cv2.imdecode(np_arr, cv2.IMREAD_COLOR)
+		cv2.imwrite("FRMAE.jpg",image)
 		height, width, _ = image.shape
 
 		# image pre-processing.
