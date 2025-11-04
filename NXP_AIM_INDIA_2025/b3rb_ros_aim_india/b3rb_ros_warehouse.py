@@ -191,7 +191,7 @@ class WarehouseExplore(Node):
 		self.current_shelf_objects = None
 		self.search_point = None
 		self.current_shelf_number = 1
-		self._fb_dist = 32
+		self._fb_dist = 30
 		self._lr_dist = 39
 		self.obj_retry = 0
 
@@ -245,7 +245,7 @@ class WarehouseExplore(Node):
 
 	def handle_move_to_shelf(self):
 		self.front, self.back = self.find_front_back_points(self._fb_dist,False)
-		self.f, self.b = self.find_front_back_points(32,False)
+		self.f, self.b = self.find_front_back_points(30,False)
 
 		direction = self.shelf_info['orientation']['secondary_direction']
 		self.logger.info(f" f b : {self.find_obs_around_point(self.front, 30)}, {self.find_obs_around_point(self.back,30)}")
@@ -278,7 +278,7 @@ class WarehouseExplore(Node):
 				info = self.find_obstacles_on_ray()
 				if info is not None: self.shelf_info = info
 				self.logger.info("Adjusting position to capture all objects...")
-				if self._fb_dist < 31: self._fb_dist = 32
+				if self._fb_dist < 27: self._fb_dist = 30
 				else: self._fb_dist == 24
 				self.obj_retry +=1
 				self.current_state = self.MOVE_TO_SHELF
@@ -757,7 +757,7 @@ class WarehouseExplore(Node):
 			info = self.simple_map_curr.info
 			self.logger.info(f"gmap info: {info}")
 			self.logger.info(f"00 : {self.get_map_coord_from_world_coord(0.0,0.0,info)} 11: {self.get_map_coord_from_world_coord(1.0,1.0,info)}")
-			self.current_state = self.DEBUG
+			self.current_state = self.EXPLORE
 
 		elif self.current_state == self.EXPLORE:
 			self.frontier_explore()
@@ -985,7 +985,7 @@ class WarehouseExplore(Node):
 				filtered_message.object_name = filtered_object_names
 				filtered_message.object_count = filtered_object_counts
 				self.current_shelf_objects = filtered_message
-			self.logger.info(f"{filtered_object_names}")
+			# self.logger.info(f"{filtered_object_names}")
 
 
 		# How to send WarehouseShelf messages for evaluation.
