@@ -255,12 +255,13 @@ class ObjectRecognizer(Node):
 		shelf_objects_message = WarehouseShelf()
 		object_count_dict = {}
 
-		# invoke for inference.
-		input = self.input_details[0]
-		int8 = input["dtype"] == np.uint8  # is TFLite quantized uint8 model
-		if int8:
-			scale, zero_point = input["quantization"]
-			img = (img / scale + zero_point).astype(np.uint8)  # de-scale
+		input_detail = self.input_details[0]
+		dtype = input_detail["dtype"]
+		is_quantized = dtype in [np.int8, np.uint8]
+		if is_quantized:
+			scale, zero_point = input_detail["quantization"]
+			img = (img / scale + zero_point).astype(dtype)
+			
 		self.interpreter.set_tensor(input["index"], img)
 
 		startTime = time.time()
@@ -270,7 +271,7 @@ class ObjectRecognizer(Node):
 		y = []
 		for output in self.output_details:
 			x = self.interpreter.get_tensor(output["index"])
-			if int8:
+			if is_quantized:
 				scale, zero_point = output["quantization"]
 				x = (x.astype(np.float32) - zero_point) * scale  # re-scale
 			y.append(x)
