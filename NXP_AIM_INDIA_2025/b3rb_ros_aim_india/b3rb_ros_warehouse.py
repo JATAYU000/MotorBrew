@@ -757,7 +757,7 @@ class WarehouseExplore(Node):
 			info = self.simple_map_curr.info
 			self.logger.info(f"gmap info: {info}")
 			self.logger.info(f"00 : {self.get_map_coord_from_world_coord(0.0,0.0,info)} 11: {self.get_map_coord_from_world_coord(1.0,1.0,info)}")
-			self.current_state = self.EXPLORE
+			self.current_state = self.DEBUG
 
 		elif self.current_state == self.EXPLORE:
 			self.frontier_explore()
@@ -985,7 +985,7 @@ class WarehouseExplore(Node):
 				filtered_message.object_name = filtered_object_names
 				filtered_message.object_count = filtered_object_counts
 				self.current_shelf_objects = filtered_message
-			# self.logger.info(f"{filtered_object_names}")
+			self.logger.info(f"{filtered_object_names}")
 
 
 		# How to send WarehouseShelf messages for evaluation.
