@@ -270,7 +270,7 @@ class WarehouseExplore(Node):
 			self.shelf_objects_curr.object_count = self.current_shelf_objects.object_count
 			self.logger.info(f"Captured {self.shelf_objects_curr.object_count} objects: {self.shelf_objects_curr.object_name}")
 
-			if sum(self.current_shelf_objects.object_count) ==6 or self.obj_retry>4:
+			if sum(self.current_shelf_objects.object_count) ==6 or self.obj_retry>8:
 				info = self.find_obstacles_on_ray()
 				if info is not None: self.shelf_info = info
 				self.current_state = self.MOVE_TO_QR
@@ -278,7 +278,7 @@ class WarehouseExplore(Node):
 				info = self.find_obstacles_on_ray()
 				if info is not None: self.shelf_info = info
 				self.logger.info("Adjusting position to capture all objects...")
-				if self._fb_dist < 27: self._fb_dist = 30
+				if self._fb_dist < 27: self._fb_dist = 28
 				else: self._fb_dist == 24
 				self.obj_retry +=1
 				self.current_state = self.MOVE_TO_SHELF
@@ -737,7 +737,7 @@ class WarehouseExplore(Node):
 			self.qr_code_str = None
 			self.current_state = self.EXPLORE
 			self.shelf_info = None
-			self._fb_dist = 32
+			self._fb_dist = 28
 			self._lr_dist = 39
 
 			self.logger.info(f"QR processed, resuming exploration towards angle {self.shelf_angle_deg}°")
@@ -984,7 +984,12 @@ class WarehouseExplore(Node):
 				filtered_message = WarehouseShelf()
 				filtered_message.object_name = filtered_object_names
 				filtered_message.object_count = filtered_object_counts
-				self.current_shelf_objects = filtered_message
+				if self.current_shelf_objects is not None and sum(filtered_object_counts) >= sum(self.current_shelf_objects.object_count):
+					self.current_shelf_objects = filtered_message
+				elif self.current_shelf_objects is None:
+					self.current_shelf_objects = filtered_message
+				else: 
+					pass
 			self.logger.info(f"{filtered_object_names}")
 
 
