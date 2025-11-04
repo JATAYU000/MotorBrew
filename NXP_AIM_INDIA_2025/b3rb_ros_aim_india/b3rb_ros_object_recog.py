@@ -190,7 +190,7 @@ class ObjectRecognizer(Node):
 
 		resource_name_coco = "../../../../share/ament_index/resource_index/coco.yaml"
 		resource_path_coco = pkg_resources.resource_filename(PACKAGE_NAME, resource_name_coco)
-		resource_name_yolo = "../../../../share/ament_index/resource_index/yolov8m_full_integer_quant.tflite"
+		resource_name_yolo = "../../../../share/ament_index/resource_index/yolov8m_elq.tflite"
 		resource_path_yolo = pkg_resources.resource_filename(PACKAGE_NAME, resource_name_yolo)
 
 		with open(resource_path_coco) as f:
@@ -245,11 +245,12 @@ class ObjectRecognizer(Node):
 		height, width, _ = image.shape
 
 		# image pre-processing.
-		input_size = self.input_details[0]['shape'][1]
+		input_size = self.input_details[0]['shape'][2]
 		image = cv2.resize(image, (input_size, input_size))
 		image = image.astype(np.float32)
 		image = cv2.cvtColor(image.astype(np.float32), cv2.COLOR_BGR2RGB)
 		image /= 255
+		image = image.transpose((2, 0, 1))
 		img = np.expand_dims(image, axis=0)
 
 		shelf_objects_message = WarehouseShelf()
