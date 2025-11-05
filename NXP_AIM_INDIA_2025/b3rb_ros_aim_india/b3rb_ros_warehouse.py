@@ -392,13 +392,14 @@ class WarehouseExplore(Node):
 		map_info = self.simple_map_curr.info
 		if frontiers:
 			closest_frontier = None
-			min_distance_curr = float('inf')
+			min_distance_curr = 1
 
 			for fy, fx in frontiers:
 				fx_world, fy_world = self.get_world_coord_from_map_coord(fx, fy,
 											 map_info)
 				distance = euclidean((fx_world, fy_world), self.buggy_center)
-				if (distance < min_distance_curr):
+				self.logger.info(f"{distance}")
+				if (distance > min_distance_curr):
 					min_distance_curr = distance
 					closest_frontier = (fx_world, fy_world)
 
@@ -793,6 +794,10 @@ class WarehouseExplore(Node):
 			self.current_state = self.WAIT_FRONTIER
 		
 		elif self.current_state == self.WAIT_FRONTIER:
+			if self.detected is not None:
+				self.logger.info("DETCETION STARTED.....")
+				self.current_state == self.EXPLORE
+				return
 			self.frontier_explore_while_detect()
 
 		elif self.current_state == self.EXPLORE:
@@ -856,10 +861,6 @@ class WarehouseExplore(Node):
 		)
 		self.simple_map_array = np.array(self.simple_map_curr.data).reshape((map_info.height, map_info.width))
 		np.save("simap_mon.npy",self.simple_map_array)
-		# if self.current_state == -1:
-		# 	self.map_array = None
-		# 	self.current_state = self.WAIT_FRONTIER
-		# 	self.prev_shelf_center = (self.buggy_pose_x, self.buggy_pose_y)
 		
 		if not self.goal_completed:
 			return	
