@@ -695,7 +695,7 @@ class WarehouseExplore(Node):
 			for dx in range(-radius, radius + 1):
 				if dx**2 + dy**2 <= radius**2:
 					ny, nx = y + dy, x + dx
-					if 0 <= nx < map_array.shape[1] and 0 <= ny < self.map_array.shape[0]:
+					if 0 <= nx < map_array.shape[1] and 0 <= ny < map_array.shape[0]:
 						total_cells += 1
 						if 95 <=map_array[ny, nx] <=101:
 							free_space_count += 1
