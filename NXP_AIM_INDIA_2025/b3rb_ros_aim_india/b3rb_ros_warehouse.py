@@ -238,7 +238,7 @@ class WarehouseExplore(Node):
 	# -------------------- QR PROCESSING --------------------
 
 	def handle_qr_navigation(self):
-		if self.qr_list[self.current_shelf_number] is not '':
+		if self.qr_list[self.current_shelf_number] != '':
 			self.qr_code_str = self.qr_list[self.current_shelf_number]
 			return
 		self.left, self.right = self.find_front_back_points(self._lr_dist,True)
