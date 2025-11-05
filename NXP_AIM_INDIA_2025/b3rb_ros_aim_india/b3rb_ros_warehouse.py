@@ -906,8 +906,8 @@ class WarehouseExplore(Node):
 					self.qr_code_str = qr_data	
 			self.logger.info(f"QR Code Detected: {self.qr_code_str}")
 			self.qr_list[int(self.qr_code_str[0])] = self.qr_code_str
-		if int(self.qr_code_str[0]) != self.current_shelf_number:
-			self.qr_code_str = None
+			if int(self.qr_code_str[0]) != self.current_shelf_number:
+				self.qr_code_str = None
 		
 		self.publish_debug_image(self.publisher_qr_decode, image)
 
