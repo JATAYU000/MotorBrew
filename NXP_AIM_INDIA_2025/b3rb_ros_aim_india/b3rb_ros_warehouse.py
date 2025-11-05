@@ -382,7 +382,7 @@ class WarehouseExplore(Node):
 	def frontier_explore_while_detect(self):
 		if self.detected is not None:
 			self.logger.info("DETCETION STARTED.....")
-			self.current_state == self.EXPLORE
+			self.current_state = self.EXPLORE
 			return 
 		
 		self.logger.info("WAITING FOR DETECT frontier...")
@@ -398,13 +398,14 @@ class WarehouseExplore(Node):
 				fx_world, fy_world = self.get_world_coord_from_map_coord(fx, fy,
 											 map_info)
 				distance = euclidean((fx_world, fy_world), self.buggy_center)
-				self.logger.info(f"{distance}")
 				if (distance > min_distance_curr):
 					min_distance_curr = distance
 					closest_frontier = (fx_world, fy_world)
+					
 
 			if closest_frontier:
 				fy, fx = closest_frontier
+				self.curr_frontier_goal = self.get_map_coord_from_world_coord(fy,fx,self.global_map_curr.info)
 				goal = self.create_goal_from_world_coord(fy,fx)
 				self.send_goal_from_world_pose(goal)
 				return
@@ -794,10 +795,6 @@ class WarehouseExplore(Node):
 			self.current_state = self.WAIT_FRONTIER
 		
 		elif self.current_state == self.WAIT_FRONTIER:
-			if self.detected is not None:
-				self.logger.info("DETCETION STARTED.....")
-				self.current_state == self.EXPLORE
-				return
 			self.frontier_explore_while_detect()
 
 		elif self.current_state == self.EXPLORE:
@@ -1163,7 +1160,7 @@ class WarehouseExplore(Node):
 			if self.current_state == self.CAPTURE_OBJECTS:
 				self.current_state = self.MOVE_TO_SHELF
 		
-		if self.current_state == self.EXPLORE:
+		if self.current_state == self.EXPLORE or self.current_state == self.WAIT_FRONTIER:
 			if number_of_recoveries > 8:
 				self.logger.info("Retry limit for frontier")
 				self.cancel_current_goal()
