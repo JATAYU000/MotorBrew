@@ -690,14 +690,14 @@ class WarehouseExplore(Node):
 		radius = int(radius)
 		free_space_count = 0
 		total_cells = 0
-		
+		map_array =  self.map_array if self.map_array is not None else self.simple_map_array
 		for dy in range(-radius, radius + 1):
 			for dx in range(-radius, radius + 1):
 				if dx**2 + dy**2 <= radius**2:
 					ny, nx = y + dy, x + dx
-					if 0 <= nx < self.map_array.shape[1] and 0 <= ny < self.map_array.shape[0]:
+					if 0 <= nx < map_array.shape[1] and 0 <= ny < self.map_array.shape[0]:
 						total_cells += 1
-						if 95 <=self.map_array[ny, nx] <=101:
+						if 95 <=map_array[ny, nx] <=101:
 							free_space_count += 1
 		if total_cells > 0:
 			return (free_space_count / total_cells) * 100
@@ -943,7 +943,7 @@ class WarehouseExplore(Node):
 					]
 
 					for ny, nx in neighbors_cardinal:
-						if map_array[ny, nx] == 0 and self.find_obs_around_point((nx,ny),10) <18:  # Free space.
+						if map_array[ny, nx] == 0 and self.find_obs_around_point((nx,ny),15) <18:  # Free space.
 							# self.logger.info(f"obs percent {self.find_obs_around_point((nx,ny),10)}")
 							frontiers.append((ny, nx))
 							break
