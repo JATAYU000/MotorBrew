@@ -905,7 +905,7 @@ class WarehouseExplore(Node):
 					]
 
 					for ny, nx in neighbors_cardinal:
-						if map_array[ny, nx] == 0 and self.find_obs_around_point((nx,ny),15) <15:  # Free space.
+						if map_array[ny, nx] == 0 and self.find_obs_around_point((nx,ny),10) <18:  # Free space.
 							# self.logger.info(f"obs percent {self.find_obs_around_point((nx,ny),10)}")
 							frontiers.append((ny, nx))
 							break
@@ -1162,9 +1162,9 @@ class WarehouseExplore(Node):
 				self.current_state = self.MOVE_TO_SHELF
 		
 		if self.current_state == self.EXPLORE or self.current_state == self.WAIT_FRONTIER:
-			if number_of_recoveries > 8:
-				self.logger.info("Retry limit for frontier")
-				self.cancel_current_goal()
+			# if number_of_recoveries > 8:
+			# 	self.logger.info("Retry limit for frontier")
+			# 	self.cancel_current_goal()
 			
 			if self.shelf_info is not None and self.find_free_space_around_point(self.get_map_coord_from_world_coord(float(self.shelf_info['center'][0]), float(self.shelf_info['center'][1]), self.global_map_curr.info), radius=75) > 35:
 				self.logger.info(f"CLEAR ENOUGH STAWP FRONTIER")
