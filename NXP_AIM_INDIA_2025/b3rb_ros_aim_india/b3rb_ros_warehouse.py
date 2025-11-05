@@ -181,6 +181,7 @@ class WarehouseExplore(Node):
 
 		# --- QR Code Data ---
 		self.qr_code_str = None
+		self.qr_list = ['','','','','']
 
 		# --- Shelf Data ---
 		self.shelf_objects_curr = WarehouseShelf()
@@ -287,6 +288,9 @@ class WarehouseExplore(Node):
 	# -------------------- QR PROCESSING --------------------
 
 	def handle_qr_navigation(self):
+		if self.qr_list[self.current_shelf_number] is not '':
+			self.qr_code_str = self.qr_list[self.current_shelf_number]
+			return
 		self.left, self.right = self.find_front_back_points(self._lr_dist,True)
 		self.l, self.r = self.find_front_back_points(36,True)
 
@@ -943,26 +947,25 @@ class WarehouseExplore(Node):
 		# Process the image from front camera as needed.
 
 		qr_codes = pyzbar.decode(image)
-		if self.current_state == self.MOVE_TO_QR:
-			if qr_codes:
-				for qr_code in qr_codes:
-					qr_data = qr_code.data.decode('utf-8')
-					if 'qr1' in qr_data:
-						self.qr_code_str = '1_225.0_MotorBrew'
-					elif 'qr2' in qr_data:
-						self.qr_code_str = '2_280.0_MotorBrew'
-					elif 'qr3' in qr_data:
-						self.qr_code_str = '3_315.0_MotorBrew'
-					elif 'qr4' in qr_data:
-						self.qr_code_str = '4_240.0_MotorBrew'
-					elif 'qr5' in qr_data:
-						self.qr_code_str = '5_000.0_MotorBrew'
-					else:
-						self.qr_code_str = qr_data	
-				self.logger.info(f"QR Code Detected: {self.qr_code_str}")
-		else:
-			if self.qr_code_str is not None and self.current_shelf_number != int(self.qr_code_str[0]):
-				self.qr_code_str = None
+		if qr_codes:
+			for qr_code in qr_codes:
+				qr_data = qr_code.data.decode('utf-8')
+				if 'qr1' in qr_data:
+					self.qr_code_str = '1_225.0_MotorBrew'
+				elif 'qr2' in qr_data:
+					self.qr_code_str = '2_280.0_MotorBrew'
+				elif 'qr3' in qr_data:
+					self.qr_code_str = '3_315.0_MotorBrew'
+				elif 'qr4' in qr_data:
+					self.qr_code_str = '4_240.0_MotorBrew'
+				elif 'qr5' in qr_data:
+					self.qr_code_str = '5_000.0_MotorBrew'
+				else:
+					self.qr_code_str = qr_data	
+			self.logger.info(f"QR Code Detected: {self.qr_code_str}")
+			self.qr_list[int(self.qr_code_str[0])] = self.qr_code_str
+		if int(self.qr_code_str[0]) != self.current_shelf_number:
+			self.qr_code_str = None
 		
 		self.publish_debug_image(self.publisher_qr_decode, image)
 
