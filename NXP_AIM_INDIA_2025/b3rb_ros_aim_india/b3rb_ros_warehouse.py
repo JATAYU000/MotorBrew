@@ -169,9 +169,8 @@ class WarehouseExplore(Node):
 		self.goal_handle_curr = None
 		self.cancelling_goal = False
 		self.recovery_threshold = 10
-
-		# --- Goal Creation ---
 		self._frame_id = "map"
+		self.detected = None
 
 		# --- Exploration Parameters ---
 		self.max_step_dist_world_meters = 7.0
@@ -203,6 +202,7 @@ class WarehouseExplore(Node):
 		self.ADJUST_TO = 4
 		self.DEBUG = 5
 		self.RECOVER = 6
+		self.WAIT_FRONTIER = 7
 		self.start = time.time()
 
 		self.send_request_to_server(rtype='reset')
@@ -211,6 +211,36 @@ class WarehouseExplore(Node):
 		detect_msg = DetectNotifier()
 		detect_msg.detect_mode = bool(detect)
 		self.detect_notify.publish(detect_msg)
+	
+
+	async def set_navigation_speed(self, speed: float):
+		"""
+		Dynamically sets the 'desired_linear_vel' parameter on the controller server.
+		"""
+		# Note: The parameter name is 'FollowPath.desired_linear_vel' because
+		# 'FollowPath' is the name of the plugin in your controller_server config.
+		param_name = 'FollowPath.desired_linear_vel'
+		
+		# Create the parameter object
+		param = Parameter(
+			name=param_name,
+			value=rclpy.Parameter.Value(double_value=float(speed))
+		)
+		
+		self.get_logger().info(f"Attempting to set '{param_name}' to: {speed}")
+		
+		try:
+			# Call the service to set the parameter
+			response = await self.param_client.set_parameters([param])
+			
+			# Check the response
+			for result in response.results:
+				if result.successful:
+					self.get_logger().info(f"Successfully set '{param_name}' to {speed}")
+				else:
+					self.get_logger().error(f"Failed to set '{param_name}': {result.reason}")
+		except Exception as e:
+			self.get_logger().error(f"Error calling parameter service: {e}")
 
 	def scan_callback(self, message):
 		if self.current_state == self.RECOVER:
@@ -355,7 +385,7 @@ class WarehouseExplore(Node):
 
 			for fy, fx in frontiers:
 				fx_world, fy_world = self.get_world_coord_from_map_coord(fx, fy, self.global_map_curr.info)
-				distance = euclidean((fx_world, fy_world), world_self_center)
+				distance = euclidean((fx, fy), world_self_center)
 				if (distance < min_distance_curr):
 					min_distance_curr = distance
 					closest_frontier = (fy, fx)
@@ -363,7 +393,6 @@ class WarehouseExplore(Node):
 			if closest_frontier:
 				fy, fx = closest_frontier
 				self.logger.info(f'\nFound frontier closest at: ({fx}, {fy})')
-				self.logger.info(f'World coordinates: ({fx_world}, {fy_world})')
 
 				cand_x,cand_y = fx,fy
 				goal_x,goal_y = self.get_world_coord_from_map_coord(float(cand_x), float(cand_y), self.global_map_curr.info)
@@ -380,6 +409,49 @@ class WarehouseExplore(Node):
 		else:
 			self.full_map_explored_count += 1
 	
+	def frontier_explore_while_detect(self):
+		if self.detected is not None:
+			self.logger.info("DETCETION STARTED.....")
+			self.current_state == self.EXPLORE
+			return 
+		
+		self.logger.info("WAITING FOR DETECT frontier...")
+		frontiers = self.get_frontiers_for_space_exploration(self.simple_map_array)
+		self.logger.info(f"Found {len(frontiers)} frontiers in the map.")
+		self.logger.info(f"world center: {self.world_center}, Current shelf info: {self.shelf_info}\n")
+		
+		map_info = self.simple_map_curr.info
+		if frontiers:
+			closest_frontier = None
+			min_distance_curr = float('inf')
+
+			for fy, fx in frontiers:
+				fx_world, fy_world = self.get_world_coord_from_map_coord(fx, fy,
+											 map_info)
+				distance = euclidean((fx_world, fy_world), self.buggy_center)
+				if (distance < min_distance_curr and
+				    distance <= self.max_step_dist_world_meters and
+				    distance >= self.min_step_dist_world_meters):
+					min_distance_curr = distance
+					closest_frontier = (fy, fx)
+
+			if closest_frontier:
+				fy, fx = closest_frontier
+				goal = self.create_goal_from_map_coord(fx, fy, map_info)
+				self.send_goal_from_world_pose(goal)
+				print("Sending goal for space exploration.")
+				return
+			else:
+				self.max_step_dist_world_meters += 2.0
+				new_min_step_dist = self.min_step_dist_world_meters - 1.0
+				self.min_step_dist_world_meters = max(0.25, new_min_step_dist)
+
+			self.full_map_explored_count = 0
+		else:
+			self.full_map_explored_count += 1
+			print(f"Nothing found in frontiers; count = {self.full_map_explored_count}")
+	
+
 	# -------------------- SHELF FINDING --------------------
 
 	def check_ray_rect_intersection(self,start_point, angle_degrees, rect):
@@ -751,12 +823,12 @@ class WarehouseExplore(Node):
 		
 		# state machine
 		if self.current_state == -1:
-			self.prev_shelf_center = (self.buggy_pose_x, self.buggy_pose_y)
-			self.trigger_detection(detect=True)
+			# self.prev_shelf_center = (self.buggy_pose_x, self.buggy_pose_y)
+			# self.trigger_detection(detect=True)
 			info = self.simple_map_curr.info
 			self.logger.info(f"gmap info: {info}")
 			self.logger.info(f"00 : {self.get_map_coord_from_world_coord(0.0,0.0,info)} 11: {self.get_map_coord_from_world_coord(1.0,1.0,info)}")
-			self.current_state = self.DEBUG
+			# self.current_state = self.DEBUG
 
 		elif self.current_state == self.EXPLORE:
 			self.frontier_explore()
@@ -819,6 +891,17 @@ class WarehouseExplore(Node):
 		)
 		self.simple_map_array = np.array(self.simple_map_curr.data).reshape((map_info.height, map_info.width))
 		np.save("simap_mon.npy",self.simple_map_array)
+		if self.current_state == -1:
+			self.current_state = self.WAIT_FRONTIER
+			self.prev_shelf_center = (self.buggy_pose_x, self.buggy_pose_y)
+			# asyncio.create_task(self.set_navigation_speed(0.1))
+		
+		if not self.goal_completed:
+			return	
+		
+		if self.current_state == self.WAIT_FRONTIER:
+			self.frontier_explore_while_detect()
+		
 	
 	def get_frontiers_for_space_exploration(self, map_array):
 		"""Identifies frontiers for space exploration.
@@ -860,7 +943,7 @@ class WarehouseExplore(Node):
 					]
 
 					for ny, nx in neighbors_cardinal:
-						if map_array[ny, nx] == 0 and self.find_obs_around_point((nx,ny),10) <12:  # Free space.
+						if map_array[ny, nx] == 0 and self.find_obs_around_point((nx,ny),10) <18:  # Free space.
 							# self.logger.info(f"obs percent {self.find_obs_around_point((nx,ny),10)}")
 							frontiers.append((ny, nx))
 							break
@@ -965,6 +1048,7 @@ class WarehouseExplore(Node):
 		Returns:
 			None
 		"""
+		self.detected = True
 		predicates = {'horse','car','banana','potted plant','clock','cup','zebra','teddy bear'}
 		mapping = {'potted plant': 'plant', 'teddy bear': 'teddy','zebra': 'zebra', 'cup': 'cup', 'clock': 'clock','horse':'horse','car':'car','banana':'banana'}
 		if self.current_state == self.CAPTURE_OBJECTS or self.current_state == self.DEBUG:
