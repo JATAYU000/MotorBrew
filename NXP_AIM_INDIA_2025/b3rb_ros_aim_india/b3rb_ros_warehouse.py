@@ -413,6 +413,7 @@ class WarehouseExplore(Node):
 		if self.detected is not None:
 			self.logger.info("DETCETION STARTED.....")
 			self.current_state == self.EXPLORE
+			asyncio.create_task(self.set_navigation_speed(0.5))
 			return 
 		
 		self.logger.info("WAITING FOR DETECT frontier...")
@@ -812,8 +813,6 @@ class WarehouseExplore(Node):
 			self.logger.info(f"QR processed, resuming exploration towards angle {self.shelf_angle_deg}°")
 			return
 
-		
-		self.map_array = np.array(self.global_map_curr.data).reshape((self.global_map_curr.info.height, self.global_map_curr.info.width))
 		self.buggy_map_xy = self.get_map_coord_from_world_coord(self.buggy_pose_x, self.buggy_pose_y, self.global_map_curr.info)
 		
 		# if self.current_state == self.CAPTURE_OBJECTS OR self.current_state == self.MOVE_TO_QR: 
@@ -823,10 +822,14 @@ class WarehouseExplore(Node):
 		if self.current_state == -1:
 			self.prev_shelf_center = (self.buggy_pose_x, self.buggy_pose_y)
 			# self.trigger_detection(detect=True)
-			info = self.simple_map_curr.info
+			info = self.global_map_curr.info
 			self.logger.info(f"gmap info: {info}")
 			self.logger.info(f"00 : {self.get_map_coord_from_world_coord(0.0,0.0,info)} 11: {self.get_map_coord_from_world_coord(1.0,1.0,info)}")
 			self.current_state = self.WAIT_FRONTIER
+			asyncio.create_task(self.set_navigation_speed(0.1))
+		
+		elif self.current_state == self.WAIT_FRONTIER:
+			self.frontier_explore_while_detect()
 
 		elif self.current_state == self.EXPLORE:
 			self.frontier_explore()
@@ -897,9 +900,7 @@ class WarehouseExplore(Node):
 		
 		if not self.goal_completed:
 			return	
-		
-		if self.current_state == self.WAIT_FRONTIER:
-			self.frontier_explore_while_detect()
+
 		
 	
 	def get_frontiers_for_space_exploration(self, map_array):
