@@ -892,6 +892,7 @@ class WarehouseExplore(Node):
 		self.simple_map_array = np.array(self.simple_map_curr.data).reshape((map_info.height, map_info.width))
 		np.save("simap_mon.npy",self.simple_map_array)
 		if self.current_state == -1:
+			self.map_array = None
 			self.current_state = self.WAIT_FRONTIER
 			self.prev_shelf_center = (self.buggy_pose_x, self.buggy_pose_y)
 			# asyncio.create_task(self.set_navigation_speed(0.1))
