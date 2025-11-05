@@ -212,36 +212,6 @@ class WarehouseExplore(Node):
 		detect_msg.detect_mode = bool(detect)
 		self.detect_notify.publish(detect_msg)
 	
-
-	async def set_navigation_speed(self, speed: float):
-		"""
-		Dynamically sets the 'desired_linear_vel' parameter on the controller server.
-		"""
-		# Note: The parameter name is 'FollowPath.desired_linear_vel' because
-		# 'FollowPath' is the name of the plugin in your controller_server config.
-		param_name = 'FollowPath.desired_linear_vel'
-		
-		# Create the parameter object
-		param = Parameter(
-			name=param_name,
-			value=rclpy.Parameter.Value(double_value=float(speed))
-		)
-		
-		self.get_logger().info(f"Attempting to set '{param_name}' to: {speed}")
-		
-		try:
-			# Call the service to set the parameter
-			response = await self.param_client.set_parameters([param])
-			
-			# Check the response
-			for result in response.results:
-				if result.successful:
-					self.get_logger().info(f"Successfully set '{param_name}' to {speed}")
-				else:
-					self.get_logger().error(f"Failed to set '{param_name}': {result.reason}")
-		except Exception as e:
-			self.get_logger().error(f"Error calling parameter service: {e}")
-
 	def scan_callback(self, message):
 		if self.current_state == self.RECOVER:
 			self.scan_data = message
@@ -413,7 +383,6 @@ class WarehouseExplore(Node):
 		if self.detected is not None:
 			self.logger.info("DETCETION STARTED.....")
 			self.current_state == self.EXPLORE
-			asyncio.create_task(self.set_navigation_speed(0.5))
 			return 
 		
 		self.logger.info("WAITING FOR DETECT frontier...")
@@ -826,7 +795,6 @@ class WarehouseExplore(Node):
 			self.logger.info(f"gmap info: {info}")
 			self.logger.info(f"00 : {self.get_map_coord_from_world_coord(0.0,0.0,info)} 11: {self.get_map_coord_from_world_coord(1.0,1.0,info)}")
 			self.current_state = self.WAIT_FRONTIER
-			asyncio.create_task(self.set_navigation_speed(0.1))
 		
 		elif self.current_state == self.WAIT_FRONTIER:
 			self.frontier_explore_while_detect()
@@ -896,7 +864,6 @@ class WarehouseExplore(Node):
 		# 	self.map_array = None
 		# 	self.current_state = self.WAIT_FRONTIER
 		# 	self.prev_shelf_center = (self.buggy_pose_x, self.buggy_pose_y)
-			# asyncio.create_task(self.set_navigation_speed(0.1))
 		
 		if not self.goal_completed:
 			return	
