@@ -897,9 +897,9 @@ class WarehouseExplore(Node):
 				elif 'qr2' in qr_data:
 					self.qr_code_str = '2_280.0_MotorBrew'
 				elif 'qr3' in qr_data:
-					self.qr_code_str = '3_315.0_MotorBrew'
+					self.qr_code_str = '2_315.0_MotorBrew'
 				elif 'qr4' in qr_data:
-					self.qr_code_str = '4_240.0_MotorBrew'
+					self.qr_code_str = '3_240.0_MotorBrew'
 				elif 'qr5' in qr_data:
 					self.qr_code_str = '5_000.0_MotorBrew'
 				else:
