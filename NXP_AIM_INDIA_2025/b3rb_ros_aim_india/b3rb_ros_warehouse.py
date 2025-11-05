@@ -1,18 +1,16 @@
-# Copyright 2025 NXP
+# Copyright 2025 MotorBrew
+# All right owned by the members of MotorBrew alone
 
-# Copyright 2016 Open Source Robotics Foundation, Inc.
-#
-# Licensed under the Apache License, Version 2.0 (the "License");
-# you may not use this file except in compliance with the License.
-# You may obtain a copy of the License at
-#
-#     http://www.apache.org/licenses/LICENSE-2.0
-#
-# Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an "AS IS" BASIS,
-# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-# See the License for the specific language governing permissions and
-# limitations under the License.
+# All that is gold does not glitter,
+# Not all those who wander are lost;
+# The old that is strong does not wither,
+# Deep roots are not reached by the frost.
+
+# From the ashes a fire shall be woken,
+# A light from the shadows shall spring;
+# Renewed shall be blade that was broken,
+# The crownless again shall be king.
+#  - Appu Kuttan
 
 import rclpy
 from rclpy.node import Node
@@ -25,11 +23,8 @@ import time
 import numpy as np
 import cv2
 from typing import Optional, Tuple
-import asyncio
-import threading
 
 from sensor_msgs.msg import Joy
-from sensor_msgs.msg import LaserScan
 from sensor_msgs.msg import CompressedImage
 from pyzbar import pyzbar
 
@@ -44,9 +39,7 @@ from action_msgs.msg import GoalStatus
 
 from synapse_msgs.msg import Status
 from synapse_msgs.msg import WarehouseShelf
-from synapse_msgs.msg import DetectNotifier
 
-from scipy.ndimage import label, center_of_mass
 from scipy.spatial.distance import euclidean
 from sklearn.decomposition import PCA
 
@@ -65,16 +58,6 @@ class WarehouseExplore(Node):
 	def __init__(self):
 		super().__init__('warehouse_explore')
 
-		self.scan_data = self.create_subscription(
-			LaserScan,
-			'/scan',
-			self.scan_callback,
-			QOS_PROFILE_DEFAULT)
-		
-		self.detect_notify = self.create_publisher(
-			DetectNotifier,
-			'/detect_notifier',
-			QOS_PROFILE_DEFAULT)
 		self.action_client = ActionClient(
 			self,
 			NavigateToPose,
@@ -202,45 +185,12 @@ class WarehouseExplore(Node):
 		self.MOVE_TO_QR = 3
 		self.ADJUST_TO = 4
 		self.DEBUG = 5
-		self.RECOVER = 6
 		self.WAIT_FRONTIER = 7
 		self.start = time.time()
 
 		self.send_request_to_server(rtype='reset')
 
-	def trigger_detection(self, detect = False):
-		detect_msg = DetectNotifier()
-		detect_msg.detect_mode = bool(detect)
-		self.detect_notify.publish(detect_msg)
-	
-	def scan_callback(self, message):
-		if self.current_state == self.RECOVER:
-			self.scan_data = message
-			self.scan_ranges = np.array(message.ranges)
-			self.scan_ranges = np.nan_to_num(self.scan_ranges, nan=message.range_max, posinf=message.range_max)
-			self.logger.info(f"In recover mode trying to calculate free space")
-			curr_angle = math.radians(self.get_yaw_from_quaternion(self.pose_curr.pose.pose.orientation))
-			threshold = 0.8  
-			free_indices = np.where(self.scan_ranges > threshold)[0]
-
-			if len(free_indices) == 0:
-				self.get_logger().info("No free direction!")
-				return
-
-			best_index = int(np.argmax(self.scan_ranges))
-			best_angle = message.angle_min + best_index * message.angle_increment
-			escape_dist = self.scan_ranges[best_index]
-
-			self.escape_angle = curr_angle + best_angle
-			target_x = self.buggy_pose_x + math.cos(self.escape_angle) * escape_dist * 0.4
-			target_y = self.buggy_pose_y + math.cos(self.escape_angle) * escape_dist * 0.4
-			
-
-			goal = self.create_goal_from_world_coord(target_x, target_y, self.escape_angle)
-			if self.send_goal_from_world_pose(goal):
-				self.logger.info(f"NAV TO SHELF Goal sent to ({target_x:.2f}, {target_y:.2f}) with yaw {self.escape_angle:.2f}°") 
-				self.current_state = self.EXPLORE
-			
+		
 	# -------------------- MOVE TO THE SHELF -----------------------
 
 	def handle_move_to_shelf(self):
@@ -332,7 +282,6 @@ class WarehouseExplore(Node):
 
 	# -------------------- FRONTIER EXPLORATION --------------------
 
-
 	def frontier_explore(self):
 		self.shelf_info = self.find_obstacles_on_ray()
 		self.logger.info(f"SHELF INFO: {self.shelf_info}")
@@ -422,7 +371,6 @@ class WarehouseExplore(Node):
 		else:
 			self.full_map_explored_count += 1
 	
-
 	# -------------------- SHELF FINDING --------------------
 
 	def check_ray_rect_intersection(self,start_point, angle_degrees, rect):
@@ -522,7 +470,6 @@ class WarehouseExplore(Node):
 
 		return None
 
-
 	def calculate_shelf_orientation(self, points):
 		"""
 		Calculates the orientation and geometric properties of a shelf given a set of 2D points.
@@ -617,7 +564,6 @@ class WarehouseExplore(Node):
 
 			return front_point, back_point
 	
-
 	# -------------------- UTILITY -------------------
 
 	def find_free_space_around_point(self, point, radius):
@@ -787,12 +733,10 @@ class WarehouseExplore(Node):
 		self.buggy_map_xy = self.get_map_coord_from_world_coord(self.buggy_pose_x, self.buggy_pose_y, self.global_map_curr.info)
 		
 		# if self.current_state == self.CAPTURE_OBJECTS OR self.current_state == self.MOVE_TO_QR: 
-		# 	self.trigger_detection(detect=True)
 		
 		# state machine
 		if self.current_state == -1:
 			self.prev_shelf_center = (self.buggy_pose_x, self.buggy_pose_y)
-			# self.trigger_detection(detect=True)
 			info = self.global_map_curr.info
 			self.logger.info(f"gmap info: {info}")
 			self.logger.info(f"00 : {self.get_map_coord_from_world_coord(0.0,0.0,info)} 11: {self.get_map_coord_from_world_coord(1.0,1.0,info)}")
@@ -867,8 +811,6 @@ class WarehouseExplore(Node):
 		if not self.goal_completed:
 			return	
 
-		
-	
 	def get_frontiers_for_space_exploration(self, map_array):
 		"""Identifies frontiers for space exploration.
 
