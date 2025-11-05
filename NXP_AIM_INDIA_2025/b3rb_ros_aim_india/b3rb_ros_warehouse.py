@@ -398,17 +398,14 @@ class WarehouseExplore(Node):
 				fx_world, fy_world = self.get_world_coord_from_map_coord(fx, fy,
 											 map_info)
 				distance = euclidean((fx_world, fy_world), self.buggy_center)
-				if (distance < min_distance_curr and
-				    distance <= self.max_step_dist_world_meters and
-				    distance >= self.min_step_dist_world_meters):
+				if (distance < min_distance_curr):
 					min_distance_curr = distance
-					closest_frontier = (fy, fx)
+					closest_frontier = (fx_world, fy_world)
 
 			if closest_frontier:
 				fy, fx = closest_frontier
-				goal = self.create_goal_from_map_coord(fx, fy, map_info)
+				goal = self.create_goal_from_world_coord(fy,fx)
 				self.send_goal_from_world_pose(goal)
-				print("Sending goal for space exploration.")
 				return
 			else:
 				self.max_step_dist_world_meters += 2.0
@@ -418,7 +415,6 @@ class WarehouseExplore(Node):
 			self.full_map_explored_count = 0
 		else:
 			self.full_map_explored_count += 1
-			print(f"Nothing found in frontiers; count = {self.full_map_explored_count}")
 	
 
 	# -------------------- SHELF FINDING --------------------
@@ -910,7 +906,7 @@ class WarehouseExplore(Node):
 					]
 
 					for ny, nx in neighbors_cardinal:
-						if map_array[ny, nx] == 0 and self.find_obs_around_point((nx,ny),15) <18:  # Free space.
+						if map_array[ny, nx] == 0 and self.find_obs_around_point((nx,ny),15) <15:  # Free space.
 							# self.logger.info(f"obs percent {self.find_obs_around_point((nx,ny),10)}")
 							frontiers.append((ny, nx))
 							break
