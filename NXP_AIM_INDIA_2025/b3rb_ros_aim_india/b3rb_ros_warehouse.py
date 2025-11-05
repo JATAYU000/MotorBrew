@@ -689,14 +689,13 @@ class WarehouseExplore(Node):
 		radius = int(radius)
 		free_space_count = 0
 		total_cells = 0
-		map_array =  self.map_array if self.map_array is not None else self.simple_map_array
 		for dy in range(-radius, radius + 1):
 			for dx in range(-radius, radius + 1):
 				if dx**2 + dy**2 <= radius**2:
 					ny, nx = y + dy, x + dx
-					if 0 <= nx < map_array.shape[1] and 0 <= ny < map_array.shape[0]:
+					if 0 <= nx < self.map_array.shape[1] and 0 <= ny < self.map_array.shape[0]:
 						total_cells += 1
-						if 95 <=map_array[ny, nx] <=101:
+						if 95 <=self.map_array[ny, nx] <=101:
 							free_space_count += 1
 		if total_cells > 0:
 			return (free_space_count / total_cells) * 100
@@ -822,12 +821,12 @@ class WarehouseExplore(Node):
 		
 		# state machine
 		if self.current_state == -1:
-			# self.prev_shelf_center = (self.buggy_pose_x, self.buggy_pose_y)
+			self.prev_shelf_center = (self.buggy_pose_x, self.buggy_pose_y)
 			# self.trigger_detection(detect=True)
 			info = self.simple_map_curr.info
 			self.logger.info(f"gmap info: {info}")
 			self.logger.info(f"00 : {self.get_map_coord_from_world_coord(0.0,0.0,info)} 11: {self.get_map_coord_from_world_coord(1.0,1.0,info)}")
-			# self.current_state = self.DEBUG
+			self.current_state = self.WAIT_FRONTIER
 
 		elif self.current_state == self.EXPLORE:
 			self.frontier_explore()
@@ -890,10 +889,10 @@ class WarehouseExplore(Node):
 		)
 		self.simple_map_array = np.array(self.simple_map_curr.data).reshape((map_info.height, map_info.width))
 		np.save("simap_mon.npy",self.simple_map_array)
-		if self.current_state == -1:
-			self.map_array = None
-			self.current_state = self.WAIT_FRONTIER
-			self.prev_shelf_center = (self.buggy_pose_x, self.buggy_pose_y)
+		# if self.current_state == -1:
+		# 	self.map_array = None
+		# 	self.current_state = self.WAIT_FRONTIER
+		# 	self.prev_shelf_center = (self.buggy_pose_x, self.buggy_pose_y)
 			# asyncio.create_task(self.set_navigation_speed(0.1))
 		
 		if not self.goal_completed:
