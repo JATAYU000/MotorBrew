@@ -418,7 +418,6 @@ class WarehouseExplore(Node):
 		self.logger.info("WAITING FOR DETECT frontier...")
 		frontiers = self.get_frontiers_for_space_exploration(self.simple_map_array)
 		self.logger.info(f"Found {len(frontiers)} frontiers in the map.")
-		self.logger.info(f"world center: {self.world_center}, Current shelf info: {self.shelf_info}\n")
 		
 		map_info = self.simple_map_curr.info
 		if frontiers:
