@@ -793,6 +793,7 @@ class WarehouseExplore(Node):
 			self.logger.info(f"gmap info: {info}")
 			self.logger.info(f"00 : {self.get_map_coord_from_world_coord(0.0,0.0,info)} 11: {self.get_map_coord_from_world_coord(1.0,1.0,info)}")
 			self.current_state = self.WAIT_FRONTIER
+			self.shelf_info = None
 		
 		elif self.current_state == self.WAIT_FRONTIER:
 			self.frontier_explore_while_detect()
