@@ -415,6 +415,7 @@ class WarehouseExplore(Node):
 		start_point = self.get_map_coord_from_world_coord(self.prev_shelf_center[0], self.prev_shelf_center[1], self.global_map_curr.info)
 		start_point = list(start_point)
 		angle_degrees = -self.shelf_angle_deg
+		self.logger.info(f"SHELF FINDING  from {start_point} trhough {angle_degrees}")
 		start_point[0] += 35*math.cos(math.radians(angle_degrees))
 		start_point[1] += -35*math.sin(math.radians(angle_degrees))
 		binary_map = np.zeros(map_array.shape, dtype=np.uint8)
