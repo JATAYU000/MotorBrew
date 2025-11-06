@@ -173,7 +173,7 @@ class WarehouseExplore(Node):
 		self.search_point = None
 		self.current_shelf_number = 1
 		self._fb_dist = 28
-		self._lr_dist = 32
+		self._lr_dist = 30
 		self.obj_retry = 0
 		self.saverid = 0
 		self.shelf_info = None
@@ -242,7 +242,7 @@ class WarehouseExplore(Node):
 		# 	self.qr_code_str = self.qr_list[self.current_shelf_number]
 		# 	return
 		self.left, self.right = self.find_front_back_points(self._lr_dist,True)
-		self.l, self.r = self.find_front_back_points(32,True)
+		self.l, self.r = self.find_front_back_points(30,True)
 
 		direction = self.shelf_info['orientation']['primary_direction']
 		# self.target_view_point = self.left if self.calc_distance(self.buggy_map_xy, self.left) < self.calc_distance(self.buggy_map_xy, self.right) else self.right
@@ -723,7 +723,7 @@ class WarehouseExplore(Node):
 			self.current_state = self.EXPLORE
 			self.shelf_info = None
 			self._fb_dist = 28
-			self._lr_dist = 32
+			self._lr_dist = 30
 
 
 			self.logger.info(f"QR processed, resuming exploration towards angle {self.shelf_angle_deg}°")
