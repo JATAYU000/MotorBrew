@@ -174,7 +174,7 @@ class WarehouseExplore(Node):
 		self.search_point = None
 		self.current_shelf_number = 1
 		self._fb_dist = 28
-		self._lr_dist = 39
+		self._lr_dist = 36
 		self.obj_retry = 0
 		self.saverid = 0
 		self.shelf_info = None
@@ -262,8 +262,8 @@ class WarehouseExplore(Node):
 		
 	def adjust_qr(self):
 		if self.qr_code_str is None:
-			if self._lr_dist < 30:self._lr_dist+=17
-			else:self._lr_dist-=17
+			if self._lr_dist < 30:self._lr_dist+=14
+			else:self._lr_dist-=14
 			self.current_state = self.MOVE_TO_QR
 		else:
 			self.logger.info('ADJUST BUT QR GOT???????????/')
@@ -724,7 +724,7 @@ class WarehouseExplore(Node):
 			self.current_state = self.EXPLORE
 			self.shelf_info = None
 			self._fb_dist = 28
-			self._lr_dist = 38
+			self._lr_dist = 36
 
 			self.logger.info(f"QR processed, resuming exploration towards angle {self.shelf_angle_deg}°")
 			return
@@ -739,7 +739,7 @@ class WarehouseExplore(Node):
 			info = self.global_map_curr.info
 			self.logger.info(f"gmap info: {info}")
 			self.logger.info(f"00 : {self.get_map_coord_from_world_coord(0.0,0.0,info)} 11: {self.get_map_coord_from_world_coord(1.0,1.0,info)}")
-			self.current_state = self.DEBUG
+			self.current_state = self.WAIT_FRONTIER
 			self.shelf_info = None
 		
 		elif self.current_state == self.WAIT_FRONTIER:
