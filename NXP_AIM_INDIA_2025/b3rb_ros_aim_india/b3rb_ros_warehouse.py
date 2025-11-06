@@ -422,10 +422,10 @@ class WarehouseExplore(Node):
 		binary_map[map_array == 100] = 255
 		contours, _ = cv2.findContours(binary_map, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
 		found_obstacles = []
-		angle_tolerance = 3.0
+		angle_tolerance = 8.0
 		angles_to_check = np.linspace(angle_degrees - angle_tolerance, 
                                   angle_degrees + angle_tolerance, 
-                                  num=3)
+                                  num=5)
     
 		found_contour_indices = set()
 		for i, contour in enumerate(contours):
