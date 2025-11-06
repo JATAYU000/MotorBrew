@@ -173,7 +173,7 @@ class WarehouseExplore(Node):
 		self.search_point = None
 		self.current_shelf_number = 1
 		self._fb_dist = 28
-		self._lr_dist = 36
+		self._lr_dist = 34
 		self.obj_retry = 0
 		self.saverid = 0
 		self.shelf_info = None
@@ -242,7 +242,7 @@ class WarehouseExplore(Node):
 		# 	self.qr_code_str = self.qr_list[self.current_shelf_number]
 		# 	return
 		self.left, self.right = self.find_front_back_points(self._lr_dist,True)
-		self.l, self.r = self.find_front_back_points(36,True)
+		self.l, self.r = self.find_front_back_points(34,True)
 
 		direction = self.shelf_info['orientation']['primary_direction']
 		# self.target_view_point = self.left if self.calc_distance(self.buggy_map_xy, self.left) < self.calc_distance(self.buggy_map_xy, self.right) else self.right
@@ -723,7 +723,8 @@ class WarehouseExplore(Node):
 			self.current_state = self.EXPLORE
 			self.shelf_info = None
 			self._fb_dist = 28
-			self._lr_dist = 36
+			self._lr_dist = 34
+
 
 			self.logger.info(f"QR processed, resuming exploration towards angle {self.shelf_angle_deg}°")
 			return
@@ -1102,7 +1103,10 @@ class WarehouseExplore(Node):
 				self.logger.info(f"Cancelling since dist {self.calc_distance(self.buggy_map_xy,self.curr_frontier_goal)}<20")
 				self.cancel_current_goal()
 				self.curr_frontier_goal = None
-
+		if self.current_state == self.MOVE_TO_SHELF or self.current_state == self.CAPTURE_OBJECTS:
+			if self.current_shelf_objects is not None and sum(self.current_shelf_objects.object_count) == 6:
+				self.logger.info("all obj code detected during navigation, cancelling goal.")
+				self.cancel_current_goal()
 		
 		elif self.current_state == self.MOVE_TO_QR or self.current_state == self.ADJUST_TO:
 			if self.qr_code_str is not None:
