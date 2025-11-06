@@ -55,7 +55,7 @@ def xywh2xyxy(x):
 
 def non_max_suppression(
 	prediction,
-	conf_thres=0.05,
+	conf_thres=0.18,
 	iou_thres=0.1,
 	classes=None,
 	agnostic=False,
@@ -190,7 +190,7 @@ class ObjectRecognizer(Node):
 
 		resource_name_coco = "../../../../share/ament_index/resource_index/coco.yaml"
 		resource_path_coco = pkg_resources.resource_filename(PACKAGE_NAME, resource_name_coco)
-		resource_name_yolo = "../../../../share/ament_index/resource_index/yolo11m_integer_quant.tflite"
+		resource_name_yolo = "../../../../share/ament_index/resource_index/yolo11l_full_integer_quant.tflite"
 		resource_path_yolo = pkg_resources.resource_filename(PACKAGE_NAME, resource_name_yolo)
 
 		with open(resource_path_coco) as f:
@@ -301,7 +301,7 @@ class ObjectRecognizer(Node):
 			pred = torch.tensor(pred)
 
 			max_det = 1000
-			conf_thres = 0.05
+			conf_thres = 0.18
 			pred = non_max_suppression(pred, conf_thres, False, max_det=max_det)
 
 			for i, det in enumerate(pred):

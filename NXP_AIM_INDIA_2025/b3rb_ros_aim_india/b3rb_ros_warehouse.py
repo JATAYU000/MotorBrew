@@ -176,6 +176,8 @@ class WarehouseExplore(Node):
 		self._fb_dist = 28
 		self._lr_dist = 39
 		self.obj_retry = 0
+		self.saverid = 0
+		self.shelf_info = None
 
 		# --- State Machine ---
 		self.current_state = -1
@@ -198,7 +200,6 @@ class WarehouseExplore(Node):
 		self.f, self.b = self.find_front_back_points(28,False)
 
 		direction = self.shelf_info['orientation']['secondary_direction']
-		self.logger.info(f" f b : {self.find_obs_around_point(self.front, 30)}, {self.find_obs_around_point(self.back,30)}")
 		# self.target_view_point = self.front if self.calc_distance(self.buggy_map_xy, self.front) < self.calc_distance(self.buggy_map_xy, self.back) else self.back
 		self.target_view_point = self.front if self.find_obs_around_point(self.f, 30) < self.find_obs_around_point(self.b,30)  else self.back
 		cen = self.get_map_coord_from_world_coord(float(self.shelf_info['center'][0]), float(self.shelf_info['center'][1]), self.global_map_curr.info)
@@ -245,8 +246,6 @@ class WarehouseExplore(Node):
 		self.l, self.r = self.find_front_back_points(36,True)
 
 		direction = self.shelf_info['orientation']['primary_direction']
-		self.logger.info(f" f b : {self.find_obs_around_point(self.left, 30)}, {self.find_obs_around_point(self.right,30)}")
-
 		# self.target_view_point = self.left if self.calc_distance(self.buggy_map_xy, self.left) < self.calc_distance(self.buggy_map_xy, self.right) else self.right
 		self.target_view_point = self.left if self.find_obs_around_point(self.l, 30) < self.find_obs_around_point(self.r,30)  else self.right
 
@@ -338,38 +337,38 @@ class WarehouseExplore(Node):
 			self.current_state = self.EXPLORE
 			return 
 		
-		self.logger.info("WAITING FOR DETECT frontier...")
-		frontiers = self.get_frontiers_for_space_exploration(self.simple_map_array)
-		self.logger.info(f"Found {len(frontiers)} frontiers in the map.")
+		self.logger.info("WAITING FOR DETECT...")
+		# frontiers = self.get_frontiers_for_space_exploration(self.simple_map_array)
+		# self.logger.info(f"Found {len(frontiers)} frontiers in the map.")
 		
-		map_info = self.simple_map_curr.info
-		if frontiers:
-			closest_frontier = None
-			min_distance_curr = 1
+		# map_info = self.simple_map_curr.info
+		# if frontiers:
+		# 	closest_frontier = None
+		# 	min_distance_curr = 1
 
-			for fy, fx in frontiers:
-				fx_world, fy_world = self.get_world_coord_from_map_coord(fx, fy,
-											 map_info)
-				distance = euclidean((fx_world, fy_world), self.buggy_center)
-				if (distance > min_distance_curr):
-					min_distance_curr = distance
-					closest_frontier = (fx_world, fy_world)
+		# 	for fy, fx in frontiers:
+		# 		fx_world, fy_world = self.get_world_coord_from_map_coord(fx, fy,
+		# 									 map_info)
+		# 		distance = euclidean((fx_world, fy_world), self.buggy_center)
+		# 		if (distance > min_distance_curr):
+		# 			min_distance_curr = distance
+		# 			closest_frontier = (fx_world, fy_world)
 					
 
-			if closest_frontier:
-				fy, fx = closest_frontier
-				self.curr_frontier_goal = self.get_map_coord_from_world_coord(fy,fx,self.global_map_curr.info)
-				goal = self.create_goal_from_world_coord(fy,fx)
-				self.send_goal_from_world_pose(goal)
-				return
-			else:
-				self.max_step_dist_world_meters += 2.0
-				new_min_step_dist = self.min_step_dist_world_meters - 1.0
-				self.min_step_dist_world_meters = max(0.25, new_min_step_dist)
+		# 	if closest_frontier:
+		# 		fy, fx = closest_frontier
+		# 		self.curr_frontier_goal = self.get_map_coord_from_world_coord(fy,fx,self.global_map_curr.info)
+		# 		goal = self.create_goal_from_world_coord(fy,fx)
+		# 		self.send_goal_from_world_pose(goal)
+		# 		return
+		# 	else:
+		# 		self.max_step_dist_world_meters += 2.0
+		# 		new_min_step_dist = self.min_step_dist_world_meters - 1.0
+		# 		self.min_step_dist_world_meters = max(0.25, new_min_step_dist)
 
-			self.full_map_explored_count = 0
-		else:
-			self.full_map_explored_count += 1
+		# 	self.full_map_explored_count = 0
+		# else:
+		# 	self.full_map_explored_count += 1
 	
 	# -------------------- SHELF FINDING --------------------
 
@@ -1107,9 +1106,6 @@ class WarehouseExplore(Node):
 				self.current_state = self.MOVE_TO_SHELF
 		
 		if self.current_state == self.EXPLORE or self.current_state == self.WAIT_FRONTIER:
-			# if number_of_recoveries > 8:
-			# 	self.logger.info("Retry limit for frontier")
-			# 	self.cancel_current_goal()
 			
 			if self.shelf_info is not None and self.find_free_space_around_point(self.get_map_coord_from_world_coord(float(self.shelf_info['center'][0]), float(self.shelf_info['center'][1]), self.global_map_curr.info), radius=75) > 35:
 				self.logger.info(f"CLEAR ENOUGH STAWP FRONTIER")
@@ -1122,7 +1118,7 @@ class WarehouseExplore(Node):
 				self.curr_frontier_goal = None
 
 		
-		elif self.current_state == self.MOVE_TO_QR:
+		elif self.current_state == self.MOVE_TO_QR or self.current_state == self.ADJUST_TO:
 			if self.qr_code_str is not None:
 				self.logger.info("QR code detected during navigation, cancelling goal.")
 				self.logger.info(f"\n\n\nQR code detected: {self.qr_code_str}, processing...")
