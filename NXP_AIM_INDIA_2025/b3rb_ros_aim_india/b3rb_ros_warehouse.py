@@ -164,7 +164,6 @@ class WarehouseExplore(Node):
 
 		# --- QR Code Data ---
 		self.qr_code_str = None
-		self.qr_list = ['','','','','']
 
 		# --- Shelf Data ---
 		self.shelf_objects_curr = WarehouseShelf()
@@ -239,9 +238,9 @@ class WarehouseExplore(Node):
 	# -------------------- QR PROCESSING --------------------
 
 	def handle_qr_navigation(self):
-		if self.qr_list[self.current_shelf_number] != '':
-			self.qr_code_str = self.qr_list[self.current_shelf_number]
-			return
+		# if self.qr_list[self.current_shelf_number] != '':
+		# 	self.qr_code_str = self.qr_list[self.current_shelf_number]
+		# 	return
 		self.left, self.right = self.find_front_back_points(self._lr_dist,True)
 		self.l, self.r = self.find_front_back_points(36,True)
 
@@ -894,9 +893,6 @@ class WarehouseExplore(Node):
 				qr_data = qr_code.data.decode('utf-8')
 				self.qr_code_str = qr_data	
 			self.logger.info(f"QR Code Detected: {self.qr_code_str}")
-			self.qr_list[int(self.qr_code_str[0])] = self.qr_code_str
-			if int(self.qr_code_str[0]) != self.current_shelf_number:
-				self.qr_code_str = None
 		
 		self.publish_debug_image(self.publisher_qr_decode, image)
 
