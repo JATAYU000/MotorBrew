@@ -739,7 +739,7 @@ class WarehouseExplore(Node):
 			info = self.global_map_curr.info
 			self.logger.info(f"gmap info: {info}")
 			self.logger.info(f"00 : {self.get_map_coord_from_world_coord(0.0,0.0,info)} 11: {self.get_map_coord_from_world_coord(1.0,1.0,info)}")
-			self.current_state = self.WAIT_FRONTIER
+			self.current_state = self.DEBUG
 			self.shelf_info = None
 		
 		elif self.current_state == self.WAIT_FRONTIER:
@@ -885,6 +885,7 @@ class WarehouseExplore(Node):
 		"""
 		np_arr = np.frombuffer(message.data, np.uint8)
 		image = cv2.imdecode(np_arr, cv2.IMREAD_COLOR)
+		cv2.imwrite('FRAMENXP.jpg',image)
 		# Process the image from front camera as needed.
 
 		qr_codes = pyzbar.decode(image)
