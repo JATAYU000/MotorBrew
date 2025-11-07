@@ -285,10 +285,10 @@ class WarehouseExplore(Node):
 		self.logger.info(f"SHELF INFO: {self.shelf_info}")
 		self.logger.info(f"prev shelf center: {self.prev_shelf_center}")
 		if self.shelf_info is not None:
-			self.logger.info(f"Map : {self.find_free_space_around_point(self.get_map_coord_from_world_coord(float(self.shelf_info['center'][0]), float(self.shelf_info['center'][1]), self.global_map_curr.info), radius=75)}% free")
+			self.logger.info(f"Map : {self.find_free_space_around_point(self.get_map_coord_from_world_coord(float(self.shelf_info['center'][0]), float(self.shelf_info['center'][1]), self.global_map_curr.info), radius=50)}% free")
 
-		if self.shelf_info is not None and self.find_free_space_around_point(self.get_map_coord_from_world_coord(float(self.shelf_info['center'][0]), float(self.shelf_info['center'][1]), self.global_map_curr.info), radius=70) > 30:
-			self.logger.info(f"Map is mostly free, skipping exp: {self.find_free_space_around_point(self.get_map_coord_from_world_coord(float(self.shelf_info['center'][0]), float(self.shelf_info['center'][1]), self.global_map_curr.info), radius=75)}% free")
+		if self.shelf_info is not None and self.find_free_space_around_point(self.get_map_coord_from_world_coord(float(self.shelf_info['center'][0]), float(self.shelf_info['center'][1]), self.global_map_curr.info), radius=50) > 75:
+			self.logger.info(f"Map is mostly free, skipping exp: {self.find_free_space_around_point(self.get_map_coord_from_world_coord(float(self.shelf_info['center'][0]), float(self.shelf_info['center'][1]), self.global_map_curr.info), radius=50)}% free")
 			self.current_state = self.MOVE_TO_SHELF
 			return
 		
@@ -963,7 +963,7 @@ class WarehouseExplore(Node):
 				filtered_message = WarehouseShelf()
 				filtered_message.object_name = filtered_object_names
 				filtered_message.object_count = filtered_object_counts
-				if self.current_shelf_objects is not None and sum(filtered_object_counts) >= sum(self.current_shelf_objects.object_count):
+				if self.current_shelf_objects is not None and sum(filtered_object_counts) >= sum(self.current_shelf_objects.object_count) and sum(filtered_object_counts) == 6:
 					self.current_shelf_objects = filtered_message
 				elif self.current_shelf_objects is None:
 					self.current_shelf_objects = filtered_message
@@ -1097,7 +1097,7 @@ class WarehouseExplore(Node):
 		
 		if self.current_state == self.EXPLORE or self.current_state == self.WAIT_FRONTIER:
 			
-			if self.shelf_info is not None and self.find_free_space_around_point(self.get_map_coord_from_world_coord(float(self.shelf_info['center'][0]), float(self.shelf_info['center'][1]), self.global_map_curr.info), radius=75) > 35:
+			if self.shelf_info is not None and self.find_free_space_around_point(self.get_map_coord_from_world_coord(float(self.shelf_info['center'][0]), float(self.shelf_info['center'][1]), self.global_map_curr.info), radius=50) > 75:
 				self.logger.info(f"CLEAR ENOUGH STAWP FRONTIER")
 				self.cancel_current_goal()
 				self.current_state = self.MOVE_TO_SHELF
