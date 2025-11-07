@@ -895,7 +895,8 @@ class WarehouseExplore(Node):
 			if qr_codes:
 				for qr_code in qr_codes:
 					qr_data = qr_code.data.decode('utf-8')
-					self.qr_code_str = qr_data	
+					if qr_data[1] == '_' or '_' in qr_data:
+						self.qr_code_str = qr_data	
 				self.logger.info(f"QR Code Detected: {self.qr_code_str}")
 		
 		self.publish_debug_image(self.publisher_qr_decode, image)
