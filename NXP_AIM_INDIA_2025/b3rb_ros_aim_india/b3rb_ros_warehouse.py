@@ -287,7 +287,7 @@ class WarehouseExplore(Node):
 		if self.shelf_info is not None:
 			self.logger.info(f"Map : {self.find_free_space_around_point(self.get_map_coord_from_world_coord(float(self.shelf_info['center'][0]), float(self.shelf_info['center'][1]), self.global_map_curr.info), radius=50)}% free")
 
-		if self.shelf_info is not None and self.find_free_space_around_point(self.get_map_coord_from_world_coord(float(self.shelf_info['center'][0]), float(self.shelf_info['center'][1]), self.global_map_curr.info), radius=50) > 70:
+		if self.shelf_info is not None and self.find_free_space_around_point(self.get_map_coord_from_world_coord(float(self.shelf_info['center'][0]), float(self.shelf_info['center'][1]), self.global_map_curr.info), radius=50) > 55:
 			self.logger.info(f"Map is mostly free, skipping exp: {self.find_free_space_around_point(self.get_map_coord_from_world_coord(float(self.shelf_info['center'][0]), float(self.shelf_info['center'][1]), self.global_map_curr.info), radius=50)}% free")
 			self.current_state = self.MOVE_TO_SHELF
 			return
@@ -1097,7 +1097,7 @@ class WarehouseExplore(Node):
 		
 		if self.current_state == self.EXPLORE or self.current_state == self.WAIT_FRONTIER:
 			
-			if self.shelf_info is not None and self.find_free_space_around_point(self.get_map_coord_from_world_coord(float(self.shelf_info['center'][0]), float(self.shelf_info['center'][1]), self.global_map_curr.info), radius=50) > 70:
+			if self.shelf_info is not None and self.find_free_space_around_point(self.get_map_coord_from_world_coord(float(self.shelf_info['center'][0]), float(self.shelf_info['center'][1]), self.global_map_curr.info), radius=50) > 55:
 				self.logger.info(f"CLEAR ENOUGH STAWP FRONTIER")
 				self.cancel_current_goal()
 				self.current_state = self.MOVE_TO_SHELF
