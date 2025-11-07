@@ -969,7 +969,7 @@ class WarehouseExplore(Node):
 					self.current_shelf_objects = filtered_message
 				else: 
 					pass
-			self.logger.info(f"{filtered_object_names}")
+			# self.logger.info(f"{filtered_object_names}")
 
 
 		# How to send WarehouseShelf messages for evaluation.
